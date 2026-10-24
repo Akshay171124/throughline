@@ -20,6 +20,10 @@ MAX_ROWS = 25
 STOPWORDS = {
     "the", "and", "for", "with", "talk", "talks", "session", "workshop", "about", "what", "your", "you",
     "this", "that", "get", "ready", "from", "just", "came", "out", "one", "on", "how",
+    "a", "an", "at", "in", "of", "to", "is", "it", "my", "me", "we", "do", "by", "or", "as", "be", "i",
+    "are", "was", "who", "where", "when", "which", "want", "need", "see", "go", "going", "find", "show",
+    "tell", "can", "there", "its", "our", "their", "they", "them", "all", "any", "not", "but", "into",
+    "workshops", "sessions", "thing", "something", "called", "named", "some", "us",
 }
 
 SCHEMA_NOTE = """Graph schema for run_cypher (FalkorDB, Cypher). It holds conference knowledge only, no attendee data:
@@ -116,22 +120,66 @@ class Tools:
         return {"clock": planner.format_minutes(clock), "known": [k for k in known if k["concept"]], "attended": attended}, [q]
 
     def search_talks(self, query: str, day: str = "any"):
-        # FalkorDB narrows to talks mentioning any word; Python ranks them (titles count most, whole words only).
+        """FalkorDB narrows to talks mentioning any query word stem (or with that exact code);
+        Python ranks them with a few plain rules:
+          exact talk code  +100
+          word in title +3, in speakers/companies +3, in abstract +1 (per query word)
+          two query words side by side in the title (either order)  +4
+          title starts with a query word  +2
+          "workshop"/"keynote"/"panel" in the query and the talk is that type  +2
+        Words match on a light stem (security ~ securing ~ secure, agents ~ agent), or when
+        one stem starts with the other (5+ letters: custom ~ customization)."""
         q = """
         MATCH (t:Talk)
         WHERE ($day = 'any' OR t.day = $day)
-          AND any(w IN $words WHERE toLower(t.title) CONTAINS w OR toLower(t.abstract) CONTAINS w
-                  OR any(s IN t.speakers WHERE toLower(s) CONTAINS w))
-        RETURN t.code, t.title, t.day, t.start, t.end, t.room, t.level, t.abstract, t.speakers
+          AND any(w IN $words WHERE toLower(t.code) = w OR toLower(t.title) CONTAINS w
+                  OR toLower(t.abstract) CONTAINS w OR any(s IN t.speakers WHERE toLower(s) CONTAINS w))
+        RETURN t.code, t.title, t.day, t.start, t.end, t.room, t.level, t.abstract, t.speakers, t.type
         """
-        words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2 and w not in STOPWORDS]
-        words = words or [query.lower().strip()]
+        suffixes = ("ations", "ation", "ities", "ity", "ings", "ing", "ies", "ied", "ers", "er",
+                    "ed", "es", "ate", "ic", "al", "ly", "e", "y", "s")
+
+        def tokens(text: str) -> list[str]:
+            text = re.sub(r"['’]s\b", "", (text or "").lower()).replace("'", "").replace("’", "")
+            return re.findall(r"[a-z0-9]+", text)
+
+        def stem(w: str) -> str:
+            if any(ch.isdigit() for ch in w):  # codes, "2am", "x86": keep as written
+                return w
+            for _ in range(2):  # two passes: securely -> secure -> secur
+                for suf in suffixes:
+                    if w.endswith(suf) and len(w) - len(suf) >= 3:
+                        w = w[: -len(suf)]
+                        break
+            return w
+
+        def same(a: str, b: str) -> bool:
+            if a == b:
+                return True
+            short, long_ = sorted((a, b), key=len)
+            return len(short) >= 5 and long_.startswith(short)
+
+        raw = tokens(query)
+        terms = [stem(w) for w in raw if w not in STOPWORDS]
+        terms = list(dict.fromkeys(terms))  # dedupe, keep order
+        words = terms or [query.lower().strip()]
+        wanted_type = next((t for t in ("workshop", "keynote", "panel") if any(w.startswith(t) for w in raw)), None)
         rows = self.g.query(q, {"words": words, "day": day}).result_set
 
-        def score(row) -> int:
-            title, abstract, speakers = row[1].lower(), (row[7] or "").lower(), " ".join(row[8] or []).lower()
-            hit = lambda text, w: re.search(rf"\b{re.escape(w)}\b", text) is not None
-            return sum(3 * hit(title, w) + hit(abstract, w) + 2 * hit(speakers, w) for w in words)
+        def score(row) -> float:
+            code, title, abstract, speakers, kind = row[0], row[1], row[7], row[8] or [], row[9] or ""
+            title_seq = [stem(w) for w in tokens(title) if w not in STOPWORDS]
+            abstract_set = {stem(w) for w in tokens(abstract)}
+            speaker_set = {stem(w) for w in tokens(" ".join(speakers))}
+            hit = lambda pool, t: any(same(t, w) for w in pool)
+            s = 100.0 * any(t == code.lower() for t in terms)
+            s += sum(3 * hit(title_seq, t) + 3 * hit(speaker_set, t) + hit(abstract_set, t) for t in terms)
+            pairs = {frozenset(p) for p in zip(terms, terms[1:])}
+            s += 4 * sum(any(same(a, x) and same(b, y) or same(a, y) and same(b, x) for x, y in zip(title_seq, title_seq[1:]))
+                         for a, b in (tuple(p) for p in pairs if len(p) == 2))
+            s += 2 * bool(title_seq and any(same(title_seq[0], t) for t in terms))
+            s += 2 * bool(wanted_type and wanted_type in kind.lower())
+            return s
 
         keys = ["code", "title", "day", "start", "end", "room", "level"]
         best = sorted(rows, key=score, reverse=True)[:6]
