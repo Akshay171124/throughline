@@ -33,3 +33,26 @@ Tests: `uv run pytest` (the graph tests need FalkorDB running and use a separate
 | `web/` | The page: schedule, talk detail, on-screen clock |
 | `data/raw/` | Last good catalog snapshot (fallback when a scrape fails) |
 | `checks/` | Hand-checked research from the evening before, including the 15-talk prerequisite baseline |
+
+## Offline demo
+
+If the venue Wi-Fi fails, the app can run against the local Docker FalkorDB (`throughline-falkordb` on `localhost:6379`) instead of the shared lab. Do this before going on stage, while you still have internet:
+
+```sh
+uv run python -m throughline.offline sync    # copy the lab graph into local FalkorDB (replaces the local one)
+uv run python -m throughline.offline check   # PASS/FAIL: talks, plan for BLD1428W, graph view, attendee memory
+```
+
+`sync` copies every node and edge with Cypher (labels, properties, relationship types and properties), recreates the indexes, refreshes the attendee-free `throughline_public` view and checks that node and edge counts match on both sides. Attendee memory stays out of the copy unless you add `--with-attendees`. Run it again after any change to the lab graph you want in the demo.
+
+To switch the running app to the local copy:
+
+1. In `.env`, comment out the lab line: `# FALKORDB_URL=...`
+2. Restart the app: stop it, then `uv run uvicorn throughline.api:app --port 8000`
+3. `/api/health` should now say `local FalkorDB (localhost:6379)`.
+
+(Or, without editing `.env`: `FALKORDB_URL= uv run uvicorn throughline.api:app --port 8000`. An empty variable in the shell wins over `.env`.)
+
+What works offline: "Plan without AI" (the schedule, talk detail, learning path, day plan and path diagram) and attendee memory (`/api/talks`, `/api/plan`, `/api/graph`, `/api/attendees`). The agent chat calls OpenAI, so it needs the internet. Explainer links come from the graph, so `sync` brings them along. If they're missing locally, `uv run python -m throughline.explainers --from-cache` (with `FALKORDB_URL` commented out, or add `--local`) loads them from `data/explainers.json` without any web calls. The links themselves still need the internet to open.
+
+To switch back: uncomment `FALKORDB_URL` in `.env` and restart the app. Anything attendees saved while offline stays in the local graph and is not copied back to the lab.
