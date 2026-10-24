@@ -1031,6 +1031,8 @@ async function sendGoal(raw) {
     if (highlight.length) applyHighlight(highlight);
   } catch (err) {
     clearInterval(tick);
+    const box = document.getElementById("chat-input");
+    if (box && !box.value) box.value = message; // keep what they typed, so they can just press Enter again
     pending.className = "msg agent error";
     pending.innerHTML = `<p>${err.status === 404
       ? "The assistant isn't available on the landing page yet. Try again in a few minutes."
@@ -1398,7 +1400,7 @@ async function init() {
   }).catch(() => {});
   api("/api/health").then((h) => {
     document.getElementById("status").textContent =
-      `${h.talks} talks · knowledge graph “${h.graph}” on ${h.backend}`;
+      `${h.talks} talks · FalkorDB knowledge graph`;
   }).catch(() => {});
   sessionReady = startAttendee().catch((err) => {
     attendee = null;

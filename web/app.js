@@ -644,7 +644,7 @@ function renderTrace(trace) {
       <summary><span class="step-n">${i + 1}</span> <code>${escapeHtml(step.tool)}</code>
         <span class="muted">${escapeHtml(JSON.stringify(step.args))}</span></summary>
       ${(step.cypher || []).map((c) => `<pre class="cypher">${escapeHtml(c)}</pre>`).join("")}
-      <pre class="result">${escapeHtml(JSON.stringify(step.result, null, 2).slice(0, 4000))}</pre>
+      <pre class="result">${escapeHtml((JSON.stringify(step.result ?? null, null, 2) || "").slice(0, 4000))}</pre>
     </details>`).join("");
 }
 
@@ -663,26 +663,43 @@ async function ask(message) {
   asking = true;
   setBusy(true);
   addMessage("user", `<p>${escapeHtml(message)}</p>`);
-  const pending = addMessage("agent pending", `<p>Walking the graph<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>`);
+  const pending = addMessage("agent pending", `<p>Walking the graph<span class="dots"><span>.</span><span>.</span><span>.</span></span> <span class="muted elapsed"></span></p>`);
+  // Show the wait, and give up after 90 s so a stuck request can't lock the chat on stage.
+  const started = Date.now();
+  const tick = setInterval(() => {
+    const el = pending.querySelector(".elapsed");
+    if (el) el.textContent = `${Math.round((Date.now() - started) / 1000)} s`;
+  }, 1000);
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 90000);
+  let turn = null;
   try {
-    const turn = await api("/api/agent", {
+    turn = await api("/api/agent", {
       method: "POST",
       body: JSON.stringify({ attendee, message }), // the server keeps the conversation
+      signal: abort.signal,
     });
     pending.classList.remove("pending");
     pending.innerHTML = `<p>${formatReply(turn.reply || "")}</p>`;
+  } catch (err) {
+    pending.classList.remove("pending");
+    const why = err.name === "AbortError" ? "it took too long" : err.message;
+    pending.innerHTML = `<p class="error">The agent failed: ${escapeHtml(why)}. Use “Plan without AI” on the talk instead.</p>`;
+  } finally {
+    clearInterval(tick);
+    clearTimeout(timeout);
+    asking = false;
+    setBusy(false);
+  }
+  if (!turn) return;
+  // The answer is already on screen; a problem drawing the extras must not replace it.
+  try {
     renderTrace(turn.trace || []);
     await refreshAttendee();
     const target = turn.view && turn.view.talk;
     if (target) await loadTalkView(target);
     else if (view.talk) await loadTalkView(view.talk);
-  } catch (err) {
-    pending.classList.remove("pending");
-    pending.innerHTML = `<p class="error">The agent failed: ${escapeHtml(err.message)}. Use “Plan without AI” on the talk instead.</p>`;
-  } finally {
-    asking = false;
-    setBusy(false);
-  }
+  } catch { /* keep the answer; the panels refresh on the next action */ }
 }
 
 function openHow() {
@@ -856,11 +873,11 @@ function graphStyle() {
     { selector: "node.talk.chosen, node.explainer.chosen", style: { "border-color": c.accent, "border-width": 2 } },
     { selector: "node.explainer", style: { "border-style": "dashed" } },
     { selector: "node.target", style: {
-      width: 200, height: 72, "background-color": c.accent, "border-color": c.accent,
-      color: c.onAccent, "font-weight": 700, "font-size": 13,
+      width: 230, height: 84, "background-color": c.accent, "border-color": c.accent,
+      color: c.onAccent, "font-weight": 700, "font-size": 13, "text-max-width": 210,
     } },
     { selector: "node.concept", style: {
-      width: 172, height: 48, "background-color": c.accentSoft, "border-color": c.accent, "border-width": 2,
+      width: 180, height: 56, "background-color": c.accentSoft, "border-color": c.accent, "border-width": 2,
       "font-weight": 600, "font-size": 13, "text-max-width": 158,
     } },
     { selector: "node.concept.known", style: { "background-color": c.okSoft, "border-color": c.ok, color: c.ok } },
@@ -896,7 +913,7 @@ function graphElements(graph, showAlts) {
     const classes = [n.type];
     let label = n.label;
     if (n.type === "target") {
-      label = `YOUR TALK · ${dayShort(d.day)} ${formatTime(d.start)}\n${shortTitle(n.label, 48)}`;
+      label = `YOUR TALK · ${dayShort(d.day)} ${formatTime(d.start)}\n${shortTitle(n.label, 40)}`;
     } else if (n.type === "talk") {
       const chosen = chosenTeachers.has(n.id);
       if (!chosen && !showAlts) continue;
@@ -906,8 +923,9 @@ function graphElements(graph, showAlts) {
       classes.push(chosenTeachers.has(n.id) ? "chosen" : "alt");
       label = `Read · outside explainer\n${shortTitle(n.label)}`;
     } else if (n.type === "concept") {
-      if (d.known) { classes.push("known"); label = `✓ ${n.label}`; }
-      else label = steps.has(d.concept) ? `${steps.get(d.concept)}. ${n.label}` : n.label;
+      const name = shortTitle(n.label, 38); // long names like "Model Context Protocol (MCP) and MCP servers" fit the box
+      if (d.known) { classes.push("known"); label = `✓ ${name}`; }
+      else label = steps.has(d.concept) ? `${steps.get(d.concept)}. ${name}` : name;
     }
     kept.add(n.id);
     els.push({ group: "nodes", data: { id: n.id, label }, classes: classes.join(" ") });
@@ -1629,7 +1647,7 @@ async function init() {
     if (cur && cur.name) document.getElementById("conference").textContent = [cur.name, cur.dates, cur.location].filter(Boolean).join(" · ");
   }).catch(() => {});
   document.getElementById("clock").textContent = formatClock(clock.now);
-  document.getElementById("status").textContent = `${health.talks} talks · graph “${health.graph}” on ${health.backend}${
+  document.getElementById("status").textContent = `${health.talks} talks · FalkorDB knowledge graph${
     graphAvailable() ? "" : " · graph drawing unavailable, showing text path"}`;
   allTalks = talks;
   introHtml = document.getElementById("messages").innerHTML;

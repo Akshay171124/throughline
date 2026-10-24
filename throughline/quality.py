@@ -35,8 +35,9 @@ def _one(g: Graph, cypher: str, params: dict | None = None):
 
 def evidence_check(g: Graph, edges: list[dict]) -> dict:
     """The word-for-word check from knowledge.load_edges, without writing anything."""
-    sources = {code: f"{title}\n{abstract}" for code, title, abstract in
-               _one(g, "MATCH (t:Talk) RETURN t.code, t.title, t.abstract")}
+    # Same source text as knowledge.load_edges: title, stated level and abstract.
+    sources = {code: f"{title}\n{level or ''}\n{abstract}" for code, title, level, abstract in
+               _one(g, "MATCH (t:Talk) RETURN t.code, t.title, t.level, t.abstract")}
     concept_ids = {row[0] for row in _one(g, "MATCH (c:Concept) RETURN c.id")}
     reasons = Counter()
     for e in edges:
@@ -48,7 +49,7 @@ def evidence_check(g: Graph, edges: list[dict]) -> dict:
         elif e.get("concept") not in concept_ids:
             reasons["unknown concept"] += 1
         elif not phrase_in_source(e.get("evidence", ""), source):
-            reasons["evidence not in title or abstract"] += 1
+            reasons["evidence not in title, level or abstract"] += 1
     discarded = sum(reasons.values())
     return {
         "proposed": len(edges),

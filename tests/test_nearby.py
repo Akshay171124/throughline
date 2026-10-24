@@ -44,5 +44,13 @@ def test_cached_results_are_merged_and_loaded_ones_listed_first(monkeypatch, tmp
     assert [c["name"] for c in first["conferences"]][:2] == ["GitHub Universe 2026", "QCon San Francisco 2026"]
 
 
+def test_an_empty_search_is_not_cached(monkeypatch, tmp_path):
+    monkeypatch.setattr(nearby, "CACHE_FILE", tmp_path / "nearby.json")
+    monkeypatch.setattr(nearby, "_search", lambda place, today: [])
+    monkeypatch.setattr(nearby, "_extract", lambda place, today, results: [])
+    nearby.nearby(LOADED, place="Nowhere")
+    assert "nowhere" not in nearby._read_cache()  # the next visit searches again
+
+
 def test_no_place_is_a_clear_error():
     assert nearby.nearby(LOADED)["error"]

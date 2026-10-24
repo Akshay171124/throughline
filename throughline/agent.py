@@ -269,13 +269,15 @@ class Tools:
         ]
         # Most concepts covered first, then non-sponsored, then by time.
         talks.sort(key=lambda t: (-len(t["teaches"]), bool(t["sponsor"]), t["start_min"]))
-        best = sorted(talks[:6], key=lambda t: t["start_min"])
+        # The top 4 by rank, shown in time order. The model sees exactly these, so its picks
+        # always match the cards and the map highlight.
+        best = sorted(talks[:4], key=lambda t: t["start_min"])
         self.suggestions = [
             {k: t[k] for k in ("code", "title", "day", "start", "end", "room", "ready")}
             | {"reason": "Teaches " + ", ".join(t["teaches"])}
-            for t in best[:4]
+            for t in best
         ]
-        self._light(*[t["code"] for t in best[:4]])
+        self._light(*[t["code"] for t in best])
         return {"talks": best, "concepts_used": ids, "unknown": unknown}, [q]
 
     def _resolve_concepts(self, values: list[str]) -> tuple[list[str], list[str]]:
@@ -372,7 +374,8 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
     tools, trace = Tools(g, attendee, public), []
     system = SYSTEM_PROMPT + (LANDING_PROMPT if page == "landing" else "")
     messages = [{"role": "system", "content": system}, *(history or [])[-10:], {"role": "user", "content": message}]
-    client = OpenAI(timeout=60)
+    # Fail fast if OpenAI is slow: the page then offers "Plan without AI" instead of a stuck spinner.
+    client = OpenAI(timeout=25, max_retries=1)
 
     def done(text):
         return {"reply": text, "trace": trace, "view": tools.last_view,

@@ -21,7 +21,7 @@ from . import brightdata
 from .config import ROOT, settings
 
 CACHE_FILE = ROOT / "data" / "cache" / "nearby.json"
-CACHE_HOURS = 6
+CACHE_HOURS = 48  # conferences don't move overnight, and a cached answer is instant on stage
 WINDOW_DAYS = 60
 MAX_RESULTS = 8
 
@@ -133,7 +133,7 @@ def _extract(place: str, today: date, results: list[dict]) -> list[dict]:
     end = today + timedelta(days=WINDOW_DAYS)
     listing = "\n\n".join(f"[{i}] {r['title']}\nURL: {r['url']}\n{r['snippet']}" for i, r in enumerate(results))
     user = f"Place: {place}\nFrom: {today.isoformat()}\nTo: {end.isoformat()}\n\nSearch results:\n{listing}"
-    response = OpenAI(timeout=60).chat.completions.create(
+    response = OpenAI(timeout=30, max_retries=1).chat.completions.create(
         model=settings.agent_model,
         messages=[{"role": "system", "content": EXTRACT_PROMPT}, {"role": "user", "content": user}],
         response_format={"type": "json_schema", "json_schema": SCHEMA},
@@ -178,8 +178,9 @@ def nearby(graph_conferences: list[dict], place: str = "", lat: float | None = N
                        if c["name"].lower() not in names and _in_window(c.get("start_date", ""), today, today + timedelta(days=WINDOW_DAYS))]
             found += earlier
             result = {"place": place, "searched_at": _now(), "source": "Bright Data SERP + OpenAI", "conferences": found}
-            cache[_key(place)] = {"ts": time.time(), "result": result}
-            _write_cache(cache)
+            if found:  # an empty result usually means the search failed; don't remember it as "nothing here"
+                cache[_key(place)] = {"ts": time.time(), "result": result}
+                _write_cache(cache)
         except Exception as e:
             if hit:  # stale is better than nothing when the network fails
                 result = {**hit["result"], "error": f"Live search failed; showing results from {hit['result']['searched_at']}"}
