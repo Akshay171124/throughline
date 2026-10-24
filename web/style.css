@@ -83,13 +83,23 @@ button:disabled { cursor: default; opacity: 0.6; }
 .link.danger { color: var(--danger); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Three panels with two drag handles between them. --w1/--w2 are set by dragging (and remembered);
+   without them the panels share the space as before. The path panel takes the rest. */
 .layout {
   display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) minmax(320px, 1.1fr) minmax(420px, 1.6fr);
-  gap: 14px;
+  grid-template-columns: var(--w1, minmax(260px, 0.95fr)) 14px var(--w2, minmax(320px, 1.1fr)) 14px minmax(360px, 1.6fr);
   padding: 14px 20px;
   height: calc(100vh - 96px);
 }
+
+.resizer { position: relative; cursor: col-resize; touch-action: none; border-radius: 6px; }
+.resizer::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 44px;
+  transform: translate(-50%, -50%); border-radius: 2px; background: var(--line); transition: background 0.15s, height 0.15s;
+}
+.resizer:hover::after, .resizer:focus-visible::after, .resizer.dragging::after { background: var(--accent); height: 72px; }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing iframe, body.resizing #graph { pointer-events: none; }
 
 .panel {
   background: var(--panel);
@@ -281,7 +291,8 @@ pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospac
 }
 
 @media (max-width: 1100px) {
-  .layout { grid-template-columns: 1fr; height: auto; }
+  .layout { grid-template-columns: 1fr; height: auto; gap: 14px; }
+  .resizer { display: none; }
   .panel { max-height: 80vh; }
   .top { flex-wrap: wrap; }
 }

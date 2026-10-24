@@ -965,6 +965,83 @@ function layoutBest() {
 }
 
 // Size the canvas so the graph reads at ~100% when it fits the width, then fit it.
+// ---- resizable panels ------------------------------------------------------
+
+const PANELS_KEY = "throughline.panels";
+const PANEL_MIN = [220, 280]; // schedule, conversation
+const PATH_MIN = 360; // the path panel keeps at least this much, so the graph never gets crushed
+const HANDLE = 14;
+
+function setupResizers() {
+  const layout = document.querySelector(".layout");
+  const panels = [layout.querySelector(".schedule"), layout.querySelector(".chat")];
+  let fitQueued = false;
+
+  const refit = () => {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => { fitQueued = false; if (cy) { cy.resize(); sizeAndFit(false); } });
+  };
+  // Clamp both widths so every panel keeps its minimum and the path panel keeps PATH_MIN.
+  const apply = (w1, w2) => {
+    const inner = layout.clientWidth - parseFloat(getComputedStyle(layout).paddingLeft) * 2 - 2 * HANDLE;
+    w1 = Math.max(PANEL_MIN[0], Math.min(w1, inner - PANEL_MIN[1] - PATH_MIN));
+    w2 = Math.max(PANEL_MIN[1], Math.min(w2, inner - w1 - PATH_MIN));
+    layout.style.setProperty("--w1", `${Math.round(w1)}px`);
+    layout.style.setProperty("--w2", `${Math.round(w2)}px`);
+    refit();
+    return [w1, w2];
+  };
+  const current = () => panels.map((p) => p.getBoundingClientRect().width);
+  const save = (w) => storageSet(PANELS_KEY, JSON.stringify(w.map(Math.round)));
+  const reset = () => {
+    layout.style.removeProperty("--w1");
+    layout.style.removeProperty("--w2");
+    storageSet(PANELS_KEY, null);
+    refit();
+  };
+
+  try {
+    const saved = JSON.parse(storageGet(PANELS_KEY) || "null");
+    if (Array.isArray(saved) && saved.length === 2 && saved.every(Number.isFinite)) apply(saved[0], saved[1]);
+  } catch { /* ignore a bad saved value */ }
+
+  layout.querySelectorAll(".resizer").forEach((handle) => {
+    const index = Number(handle.dataset.resizer); // 0: between schedule and chat, 1: between chat and path
+    handle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      const startX = e.clientX;
+      const [w1, w2] = current();
+      handle.classList.add("dragging");
+      document.body.classList.add("resizing");
+      let last = [w1, w2];
+      const move = (ev) => {
+        const dx = ev.clientX - startX;
+        // Left handle trades space between schedule and chat; right handle widens or narrows the chat.
+        last = index === 0 ? apply(w1 + dx, w2 - dx) : apply(w1, w2 + dx);
+      };
+      const up = () => {
+        handle.removeEventListener("pointermove", move);
+        handle.classList.remove("dragging");
+        document.body.classList.remove("resizing");
+        save(last);
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up, { once: true });
+      handle.addEventListener("pointercancel", up, { once: true });
+    });
+    handle.addEventListener("dblclick", reset);
+    handle.addEventListener("keydown", (e) => {
+      if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      e.preventDefault();
+      const step = e.key === "ArrowRight" ? 32 : -32;
+      const [w1, w2] = current();
+      save(index === 0 ? apply(w1 + step, w2 - step) : apply(w1, w2 + step));
+    });
+  });
+}
+
 function sizeAndFit(animate) {
   const box = document.getElementById("graph");
   const bb = cy.elements().boundingBox();
@@ -1423,6 +1500,7 @@ async function init() {
   dlg.addEventListener("close", () => { dialogCtx = null; });
 
   window.addEventListener("resize", () => { if (cy) { cy.resize(); sizeAndFit(false); } });
+  setupResizers();
   try {
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (cy) cy.style(graphStyle()); });
   } catch { /* old browsers */ }
