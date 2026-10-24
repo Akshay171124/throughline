@@ -217,9 +217,10 @@ def conferences_nearby(place: str = "", lat: float | None = None, lon: float | N
 
 
 @app.get("/api/flow")
-def conference_flow(attendee: str | None = None):
-    """The conference as a left-to-right flow of 'prepares you for' links, for the landing page."""
-    return flow.flow(graph(), attendee)
+def conference_flow(attendee: str | None = None, include: str = ""):
+    """The conference as a left-to-right flow of 'prepares you for' links, for the landing page.
+    include: comma-separated talk codes that must be on the map (the chat's picks)."""
+    return flow.flow(graph(), attendee, include=[c.strip() for c in include.split(",") if c.strip()])
 
 
 @app.get("/api/featured")

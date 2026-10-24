@@ -1346,6 +1346,10 @@ async function onDialogAction(act) {
 async function init() {
   const [clock, talks, health] = await Promise.all([api("/api/clock"), api("/api/talks"), api("/api/health")]);
   document.getElementById("conference").textContent = clock.conference;
+  api("/api/conferences").then((c) => {
+    const cur = c && c.current;
+    if (cur && cur.name) document.getElementById("conference").textContent = [cur.name, cur.dates, cur.location].filter(Boolean).join(" · ");
+  }).catch(() => {});
   document.getElementById("clock").textContent = formatClock(clock.now);
   document.getElementById("status").textContent = `${health.talks} talks · graph “${health.graph}” on ${health.backend}${
     graphAvailable() ? "" : " · graph drawing unavailable, showing text path"}`;

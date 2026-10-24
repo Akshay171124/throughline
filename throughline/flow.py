@@ -60,25 +60,33 @@ def _counts(rows) -> tuple[dict, dict]:
     return prepares, builds_on
 
 
-def flow(g: Graph, attendee: str | None = None) -> dict:
+def flow(g: Graph, attendee: str | None = None, include: list[str] | None = None) -> dict:
+    """`include`: talks that must be on the map (e.g. the agent's picks), with every link between them."""
     talks = {r[0]: dict(zip(TALK_KEYS, r)) for r in g.query(TALKS).result_set}
     rows = _all_edges(g)
     prepares, builds_on = _counts(rows)
+    include = [c for c in (include or []) if c in talks][:20]
 
     incoming = defaultdict(list)
     for a, b, concepts, weight, a_end in rows:
         incoming[b].append((weight, a_end, a, concepts))
-    edges = []
+    edges, drawn = [], set()
     for b, options in incoming.items():
         # most shared concepts, then the closest in time, then by code so the picture never changes on reload
         options.sort(key=lambda o: (-o[0], -o[1], o[2]))
         for weight, _, a, concepts in options[:EDGES_PER_TALK]:
             edges.append({"source": a, "target": b, "concepts": sorted(concepts), "weight": weight})
+            drawn.add((a, b))
+    wanted = set(include)
+    for a, b, concepts, weight, _ in rows:  # links among the included talks, even if not the strongest
+        if a in wanted and b in wanted and (a, b) not in drawn:
+            edges.append({"source": a, "target": b, "concepts": sorted(concepts), "weight": weight})
+            drawn.add((a, b))
 
     # FalkorDB returns rows in no fixed order; sort so every load draws the same picture.
     edges.sort(key=lambda e: (talks[e["target"]]["start_min"], e["target"], talks[e["source"]]["start_min"], e["source"]))
     must_see = {c for c, _ in _featured_codes(talks, prepares)}
-    shown = {e["source"] for e in edges} | {e["target"] for e in edges} | must_see
+    shown = {e["source"] for e in edges} | {e["target"] for e in edges} | must_see | wanted
     ready = ready_map(g, attendee)
     nodes = [
         {

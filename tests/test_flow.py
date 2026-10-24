@@ -64,6 +64,15 @@ def test_ready_reflects_what_the_attendee_knows(g):
         planner.forget_attendee(g, code)
 
 
+def test_included_talks_are_drawn_with_the_links_between_them(g):
+    plain = flow.flow(g)
+    assert ("SKILLS_A", "TARGET") not in edge_pairs(plain)  # not among TARGET's strongest two
+    view = flow.flow(g, include=["SKILLS_A", "TARGET", "NOPE"])
+    assert ("SKILLS_A", "TARGET") in edge_pairs(view)
+    assert {"SKILLS_A", "TARGET"} <= {n["code"] for n in view["nodes"]}
+    assert "NOPE" not in {n["code"] for n in view["nodes"]}  # unknown codes are ignored
+
+
 def test_featured_has_reasons_and_is_in_time_order(g):
     cards = flow.featured(g)
     assert cards and all(c["reason"] for c in cards)

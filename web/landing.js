@@ -19,6 +19,10 @@ let allTalks = null;   // GET /api/talks, loaded when the calendar first opens
 let flowData = null;
 let cy = null;
 let clockNow = null;   // "2026-10-28T08:30"
+let clockConference = ""; // the conference name /api/clock reports, used until /api/conferences answers
+let conferences = null;   // GET /api/conferences
+let activeHighlight = null; // talk codes the chat picked, lit up on the flow graph
+const PLACE_KEY = "throughline.place";
 
 // ---- helpers (copied from app.js) ---------------------------------------------
 
@@ -26,6 +30,15 @@ function escapeHtml(text) {
   return String(text ?? "").replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[c]);
+}
+
+function safeUrl(url) {
+  return /^https:\/\//.test(url || "") ? escapeHtml(url) : "#";
+}
+
+// Minimal formatting for agent replies: escape, then **bold** and line breaks.
+function formatReply(text) {
+  return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
 }
 
 function formatTime(hhmm) {
@@ -261,7 +274,10 @@ function setFlowState(html, isError = false) {
 
 async function loadFlow() {
   try {
-    flowData = await api(`/api/flow${attendeeQuery()}`);
+    // include= asks the server to keep the chat's picks on the map even when they aren't among the most connected.
+    const include = activeHighlight && activeHighlight.length
+      ? `${attendee ? "&" : "?"}include=${encodeURIComponent(activeHighlight.join(","))}` : "";
+    flowData = await api(`/api/flow${attendeeQuery()}${include}`);
   } catch (err) {
     if (!cy) {
       setFlowState(err.status === 404
@@ -315,6 +331,12 @@ function flowStyle() {
     { selector: "node.talk.must", style: { "outline-width": 3, "outline-color": c.star, "outline-offset": 2, "font-weight": 700 } },
     { selector: "node.talk.ready", style: { "background-color": cssVar("--ok-soft", "#e4f3ea") } },
     { selector: "node.talk.lonely", style: { opacity: 0.55 } },
+    // The chat's picks: glow and a thick accent border; everything else steps back.
+    { selector: "node.talk.dimmed", style: { opacity: 0.16 } },
+    { selector: "node.talk.picked", style: {
+      opacity: 1, "border-color": c.accent, "border-width": 5, "font-weight": 700, "z-index": 15,
+      "underlay-color": c.accent, "underlay-opacity": 0.28, "underlay-padding": 9, "underlay-shape": "round-rectangle",
+    } },
     { selector: "node.talk.hover", style: { "border-color": c.accent, "border-width": 4, "z-index": 20 } },
     { selector: "node.talk.chain", style: { opacity: 1, "z-index": 10 } },
     { selector: "node.axis", style: {
@@ -332,6 +354,8 @@ function flowStyle() {
       "target-arrow-shape": "triangle", "arrow-scale": 0.9, "curve-style": "bezier", opacity: 0.85,
       "transition-property": "opacity, line-color, width", "transition-duration": "180ms",
     } },
+    { selector: "edge.dimmed", style: { opacity: 0.07 } },
+    { selector: "edge.picked", style: { "line-color": c.accent, "target-arrow-color": c.accent, width: 4.5, opacity: 1, "z-index": 14 } },
     { selector: "edge.chain", style: { "line-color": c.accent, "target-arrow-color": c.accent, opacity: 1, "z-index": 9 } },
     { selector: "edge.hover", style: {
       "line-color": c.accent, "target-arrow-color": c.accent, opacity: 1, width: 4, "z-index": 12,
@@ -513,6 +537,7 @@ function drawFlow(data) {
   cy.on("tap", "node.talk", (evt) => { window.location.href = talkHref(evt.target.id()); });
   cy.on("pan zoom", hideCard);
   cy.container().addEventListener("mouseleave", clearHighlight);
+  if (activeHighlight) applyHighlight(activeHighlight, { animate: false });
 }
 
 function highlightChain(node) {
@@ -784,17 +809,475 @@ function wireCalendar() {
   });
 }
 
+// ---- chat highlight on the flow graph ---------------------------------------------
+
+function cleanCodes(codes) {
+  return Array.isArray(codes) ? [...new Set(codes.map((c) => String(c || "").trim()).filter(Boolean))].slice(0, 40) : [];
+}
+
+// Zoom so the picked talks fill the canvas (capped so one talk doesn't fill the whole screen).
+function fitTo(eles, animate = true) {
+  if (!cy || eles.empty()) return;
+  const bb = eles.boundingBox();
+  const w = cy.width();
+  const h = cy.height();
+  const pad = 70;
+  let zoom = Math.min((w - pad * 2) / Math.max(bb.w, 1), (h - pad * 2) / Math.max(bb.h, 1), 1.3);
+  zoom = Math.max(0.2, zoom);
+  // Centre a little low so the "Showing N talks" bar at the top doesn't cover them.
+  const pan = { x: w / 2 - (bb.x1 + bb.w / 2) * zoom, y: h / 2 + 20 - (bb.y1 + bb.h / 2) * zoom };
+  if (animate) cy.animate({ zoom, pan }, { duration: 450, easing: "ease-in-out-cubic" });
+  else { cy.zoom(zoom); cy.pan(pan); }
+}
+
+function applyHighlight(codes, { animate = true } = {}) {
+  const list = cleanCodes(codes);
+  if (!list.length) return clearChatHighlight(false);
+  activeHighlight = list;
+  const bar = document.getElementById("flow-hl");
+  const text = document.getElementById("flow-hl-text");
+  bar.hidden = false;
+  if (!cy) { text.textContent = `${plural(list.length, "talk", "talks")} picked in the chat`; return; }
+  let picked = cy.collection();
+  for (const code of list) {
+    const n = cy.getElementById(code);
+    if (n.nonempty() && n.hasClass("talk")) picked = picked.union(n);
+  }
+  cy.elements().removeClass("picked dimmed");
+  const missing = list.length - picked.length;
+  if (picked.empty()) {
+    text.textContent = `The ${plural(list.length, "talk", "talks")} picked in the chat aren't on this map view`;
+    return;
+  }
+  const links = picked.edgesWith(picked);
+  talkNodes().not(picked).addClass("dimmed");
+  cy.edges().not(links).addClass("dimmed");
+  picked.addClass("picked");
+  links.addClass("picked");
+  text.textContent = `Showing ${plural(picked.length, "talk", "talks")} from the chat${missing > 0 ? ` · ${missing} more aren't drawn on this map` : ""}`;
+  fitTo(picked, animate);
+}
+
+function clearChatHighlight(refit = true) {
+  activeHighlight = null;
+  document.getElementById("flow-hl").hidden = true;
+  if (!cy) return;
+  cy.elements().removeClass("picked dimmed");
+  if (refit) fitWidth(true);
+}
+
+// ---- landing chat ---------------------------------------------------------------------
+
+let chatBusy = false;
+let talkIndex = null; // code -> talk, for cards rebuilt from stored messages
+
+function chatLog() {
+  return document.getElementById("chat-log");
+}
+
+function scrollChat() {
+  const log = chatLog();
+  log.scrollTop = log.scrollHeight;
+}
+
+function addChat(cls, html) {
+  const div = document.createElement("div");
+  div.className = `msg ${cls}`;
+  div.innerHTML = html;
+  chatLog().appendChild(div);
+  scrollChat();
+  return div;
+}
+
+function showExamples(show) {
+  document.getElementById("chat-examples").hidden = !show;
+}
+
+function lookupTalk(code) {
+  if (!talkIndex && Array.isArray(allTalks)) talkIndex = new Map(allTalks.map((t) => [t.code, t]));
+  const fromFlow = flowData && Array.isArray(flowData.nodes) ? flowData.nodes.find((n) => n.code === code) : null;
+  return (talkIndex && talkIndex.get(code)) || fromFlow || null;
+}
+
+function isSaved(code) {
+  return me.targets.some((t) => t && t.code === code);
+}
+
+function suggestionCards(sugs) {
+  const list = (Array.isArray(sugs) ? sugs : []).filter((s) => s && s.code).slice(0, 8);
+  if (!list.length) return "";
+  return `<div class="sugs">${list.map((s) => {
+    const when = [dayShort(s.day), s.start ? `${formatTime(s.start)}${s.end ? `–${formatTime(s.end)}` : ""}` : ""].filter(Boolean).join(" ");
+    const meta = [when, s.room].filter(Boolean).join(" · ");
+    const saved = isSaved(s.code);
+    return `<div class="sug">
+      <a class="sug-title" href="${escapeHtml(talkHref(s.code))}">${escapeHtml(s.title || s.code)}</a>
+      <button type="button" class="sug-save${saved ? " saved" : ""}" data-save="${escapeHtml(s.code)}" ${saved ? "disabled" : ""}>${saved ? "Saved ✓" : "Save"}</button>
+      <span class="sug-meta">${escapeHtml(meta)}${s.ready === true ? ` · <span class="pill ok">✓ Ready</span>` : ""}</span>
+      ${s.reason ? `<span class="sug-reason">${escapeHtml(s.reason)}</span>` : ""}
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function traceHtml(trace) {
+  const steps = (Array.isArray(trace) ? trace : []).filter((s) => s && s.tool);
+  if (!steps.length) return "";
+  const queries = steps.reduce((n, s) => n + (Array.isArray(s.cypher) ? s.cypher.length : 0), 0);
+  return `<details class="how">
+    <summary>How I got this · ${plural(steps.length, "tool call", "tool calls")}, ${plural(queries, "Cypher query", "Cypher queries")}</summary>
+    ${steps.map((step, i) => `
+      <details class="step">
+        <summary><span class="step-n">${i + 1}</span> <code>${escapeHtml(step.tool)}</code>
+          <span class="muted">${escapeHtml(JSON.stringify(step.args ?? {}))}</span></summary>
+        ${(Array.isArray(step.cypher) ? step.cypher : []).map((c) => `<pre class="cypher">${escapeHtml(c)}</pre>`).join("")}
+        ${step.result !== undefined ? `<pre class="result">${escapeHtml(JSON.stringify(step.result, null, 2).slice(0, 4000))}</pre>` : ""}
+      </details>`).join("")}
+  </details>`;
+}
+
+function agentHtml(m) {
+  const highlight = cleanCodes(m.highlight);
+  let sugs = m.suggestions;
+  if ((!Array.isArray(sugs) || !sugs.length) && highlight.length) {
+    // Stored turns keep only the codes: rebuild plain cards from the schedule.
+    sugs = highlight.map((code) => {
+      const t = lookupTalk(code);
+      return t ? { code, title: t.title, day: t.day, start: t.start, end: t.end, room: t.room } : null;
+    }).filter(Boolean);
+  }
+  const actions = [];
+  if (highlight.length) actions.push(`<button type="button" class="linkbtn" data-highlight="${escapeHtml(highlight.join(","))}">Show ${plural(highlight.length, "talk", "talks")} on the map</button>`);
+  if (m.talk) actions.push(`<a class="linkbtn" href="${escapeHtml(talkHref(m.talk))}">Open the plan for this talk →</a>`);
+  return `<p>${formatReply(m.content || "")}</p>
+    ${suggestionCards(sugs)}
+    ${actions.length ? `<div class="msg-actions">${actions.join("")}</div>` : ""}
+    ${traceHtml(m.trace)}`;
+}
+
+function lockChat(busy) {
+  const input = document.getElementById("chat-input");
+  const send = document.getElementById("chat-send");
+  input.disabled = busy;
+  send.disabled = busy;
+  send.textContent = busy ? "Working…" : "Send";
+  document.querySelectorAll("#chat-examples .chip").forEach((b) => { b.disabled = busy; });
+  if (!busy) input.focus();
+}
+
+async function loadChat() {
+  if (!attendee) return;
+  let data;
+  try {
+    data = await api(`/api/attendees/${encodeURIComponent(attendee)}/chat`);
+  } catch { return; } // no stored chat (or the endpoint is missing): keep the intro
+  const msgs = (data && Array.isArray(data.messages) ? data.messages : [])
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && m.content);
+  if (!msgs.length) return;
+  showExamples(false);
+  for (const m of msgs.slice(-30)) {
+    if (m.role === "user") addChat("user", `<p>${escapeHtml(m.content)}</p>`);
+    else addChat("agent", agentHtml(m));
+  }
+  // Talk-page turns are about one talk; only a landing-page answer lights up the map.
+  const last = [...msgs].reverse().find((m) => m.role === "assistant" && m.page === "landing");
+  if (last && cleanCodes(last.highlight).length) applyHighlight(last.highlight);
+}
+
+async function sendGoal(raw) {
+  const message = String(raw || "").trim().slice(0, 2000);
+  if (!message || chatBusy) return;
+  if (!attendee) {
+    addChat("agent error", "<p>Your session didn't start, so the assistant can't answer. Reload the page to try again.</p>");
+    return;
+  }
+  chatBusy = true;
+  lockChat(true);
+  showExamples(false);
+  document.getElementById("chat-input").value = "";
+  addChat("user", `<p>${escapeHtml(message)}</p>`);
+  const pending = addChat("agent pending", `<span class="spinner"></span><span>Checking the graph… <span class="elapsed"></span></span>`);
+  const started = Date.now();
+  const tick = setInterval(() => {
+    const el = pending.querySelector(".elapsed");
+    if (el) el.textContent = `${Math.round((Date.now() - started) / 1000)} s`;
+  }, 1000);
+  try {
+    const turn = await api("/api/agent", {
+      method: "POST",
+      body: JSON.stringify({ attendee, message, page: "landing" }),
+    });
+    clearInterval(tick);
+    const highlight = cleanCodes(turn && turn.highlight);
+    const view = (turn && turn.view) || {};
+    // Saved talks or profile changes show up in the header and the ✓ marks on the flow.
+    await loadAttendee().catch(() => {});
+    pending.className = "msg agent";
+    pending.innerHTML = agentHtml({
+      content: (turn && turn.reply) || "", suggestions: turn && turn.suggestions, highlight,
+      trace: turn && turn.trace, talk: view.talk,
+    });
+    // Show the start of the answer, not its end.
+    chatLog().scrollTop = Math.max(0, pending.offsetTop - chatLog().offsetTop - 8);
+    activeHighlight = highlight.length ? highlight : activeHighlight;
+    await Promise.allSettled([loadFlow(), loadFeatured()]);
+    if (highlight.length) applyHighlight(highlight);
+  } catch (err) {
+    clearInterval(tick);
+    pending.className = "msg agent error";
+    pending.innerHTML = `<p>${err.status === 404
+      ? "The assistant isn't available on the landing page yet. Try again in a few minutes."
+      : `The assistant couldn't answer: ${escapeHtml(err.message)}. Try again, or plan a talk directly on the <a href="/talk.html">attendee page</a>.`}</p>`;
+  } finally {
+    chatBusy = false;
+    lockChat(false);
+  }
+}
+
+async function saveSuggestion(btn) {
+  const code = btn.dataset.save;
+  if (!code || !attendee) return;
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  try {
+    const res = await api(`/api/attendees/${encodeURIComponent(attendee)}/targets`, { method: "POST", body: JSON.stringify({ talk: code }) });
+    if (res && Array.isArray(res.targets)) me.targets = res.targets;
+    else await loadAttendee().catch(() => {});
+    document.querySelectorAll(`[data-save="${CSS.escape(code)}"]`).forEach((b) => {
+      b.disabled = true; b.textContent = "Saved ✓"; b.classList.add("saved");
+    });
+    renderProfileButton();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Retry save";
+    btn.title = `Couldn't save: ${err.message}`;
+  }
+}
+
+function wireChat() {
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("chat-input");
+  form.addEventListener("submit", (e) => { e.preventDefault(); sendGoal(input.value); });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendGoal(input.value); }
+  });
+  document.getElementById("chat").addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-goal]");
+    if (chip && !chip.disabled) return sendGoal(chip.dataset.goal);
+    const save = e.target.closest("[data-save]");
+    if (save && !save.disabled) return saveSuggestion(save);
+    const hl = e.target.closest("[data-highlight]");
+    if (hl) applyHighlight(hl.dataset.highlight.split(","));
+  });
+  document.getElementById("flow-hl-clear").addEventListener("click", () => clearChatHighlight(true));
+  // "toggle" doesn't bubble: listen in the capture phase so opened traces scroll into view.
+  chatLog().addEventListener("toggle", (e) => {
+    if (e.target.open && e.target.matches("details")) e.target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, true);
+}
+
+// ---- conferences ----------------------------------------------------------------------
+
+function confLine(c) {
+  return [c && c.name, c && c.dates, c && c.location].filter(Boolean).join(" · ");
+}
+
+function renderConfLabel() {
+  const label = document.getElementById("conf-label");
+  const btn = document.getElementById("conf-picker");
+  const cur = conferences && conferences.current;
+  if (cur && cur.name) {
+    label.textContent = confLine(cur);
+    btn.disabled = false;
+    btn.title = "Conferences in Throughline, and conferences near you";
+    document.title = `Throughline · ${cur.name}`;
+  } else {
+    label.textContent = clockConference || " ";
+    btn.disabled = true;
+    btn.title = "";
+  }
+}
+
+let confRetry = null;
+async function loadConferences() {
+  try {
+    conferences = await api("/api/conferences");
+  } catch (err) {
+    conferences = null;
+    if (err.status === 404 && !confRetry) confRetry = setTimeout(() => { confRetry = null; loadConferences(); }, 20000);
+  }
+  renderConfLabel();
+}
+
+function openDialog(dlg) {
+  if (dlg.open) return;
+  if (typeof dlg.showModal === "function") dlg.showModal();
+  else dlg.setAttribute("open", "");
+}
+
+function renderLoadedConferences() {
+  const box = document.getElementById("cf-loaded");
+  const cur = conferences && conferences.current;
+  if (!cur) {
+    box.innerHTML = `<p class="muted">The conference list isn't available yet.</p>`;
+    return;
+  }
+  const loaded = Array.isArray(conferences.loaded) && conferences.loaded.length ? conferences.loaded : [cur];
+  box.innerHTML = `<h3>In Throughline now</h3>
+    <div class="cf-results">${loaded.filter(Boolean).map((c) => {
+      const isCur = c.id === cur.id;
+      const facts = [c.dates, c.location, Number(c.talks) > 0 ? plural(Number(c.talks), "talk", "talks") : ""].filter(Boolean).join(" · ");
+      return `<div class="cf-item${isCur ? " current" : ""}">
+        <span class="cf-name">${escapeHtml(c.name || c.id || "Conference")}</span>
+        <button type="button" class="pill ok cf-badge" data-to-map>${isCur ? "You're here · " : ""}Readiness map ready</button>
+        <span class="cf-facts">${escapeHtml(facts)}</span>
+      </div>`;
+    }).join("")}</div>`;
+}
+
+function openConferences(focusNear = false) {
+  const dlg = document.getElementById("conferences");
+  clearHighlight();
+  renderLoadedConferences();
+  const input = document.getElementById("cf-place");
+  if (!input.value) input.value = storageGet(PLACE_KEY) || "";
+  openDialog(dlg);
+  if (focusNear) {
+    document.getElementById("cf-near").scrollIntoView({ block: "nearest" });
+    input.focus();
+  }
+}
+
+function formatSearchedAt(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+let nearbyBusy = false;
+function setNearbyBusy(busy) {
+  nearbyBusy = busy;
+  document.getElementById("cf-locate").disabled = busy;
+  document.querySelector("#cf-form button").disabled = busy;
+}
+
+function nearbyState(html, isError = false) {
+  document.getElementById("cf-results").innerHTML = `<div class="cf-state${isError ? " error" : ""}">${html}</div>`;
+}
+
+async function searchNearby(query, label) {
+  if (nearbyBusy) return;
+  setNearbyBusy(true);
+  const started = Date.now();
+  nearbyState(`<span class="spinner"></span><span>Searching the live web for conferences near ${escapeHtml(label)}… <b class="cf-elapsed">0 s</b><br><span class="muted">This usually takes 10–40 seconds.</span></span>`);
+  const tick = setInterval(() => {
+    const el = document.querySelector("#cf-results .cf-elapsed");
+    if (el) el.textContent = `${Math.round((Date.now() - started) / 1000)} s`;
+  }, 1000);
+  const ctrl = typeof AbortController === "function" ? new AbortController() : null;
+  const timeout = ctrl ? setTimeout(() => ctrl.abort(), 90000) : null;
+  try {
+    const data = await api(`/api/conferences/nearby?${query}`, ctrl ? { signal: ctrl.signal } : {});
+    renderNearby(data || {});
+  } catch (err) {
+    if (err.name === "AbortError") nearbyState("The search took too long. Try again, or try a bigger city nearby.", true);
+    else if (err.status === 404) nearbyState("Conference search isn't available yet. Try again in a few minutes.", true);
+    else nearbyState(`Couldn't search: ${escapeHtml(err.message)}`, true);
+  } finally {
+    clearInterval(tick);
+    if (timeout) clearTimeout(timeout);
+    setNearbyBusy(false);
+  }
+}
+
+function renderNearby(data) {
+  const list = (Array.isArray(data.conferences) ? data.conferences : []).filter((c) => c && c.name);
+  const place = data.place ? String(data.place) : "";
+  if (place) storageSet(PLACE_KEY, place.slice(0, 80));
+  const meta = [
+    `${plural(list.length, "conference", "conferences")}${place ? ` near <strong>${escapeHtml(place)}</strong>` : ""}`,
+    "found via live web search",
+    data.searched_at ? `searched ${escapeHtml(formatSearchedAt(data.searched_at))}` : "",
+  ].filter(Boolean).join(" · ");
+  const parts = [`<div class="cf-meta">${meta}</div>`];
+  if (data.error) parts.push(`<div class="cf-state error">${escapeHtml(data.error)}</div>`);
+  if (!list.length) {
+    parts.push(`<div class="cf-state">No upcoming conferences turned up${place ? ` near ${escapeHtml(place)}` : ""}. Try a bigger city nearby.</div>`);
+  }
+  for (const c of list.slice(0, 20)) {
+    const badge = c.loaded
+      ? `<button type="button" class="pill ok cf-badge" data-to-map>Readiness map ready</button>`
+      : `<span class="pill plain cf-badge">Map not loaded yet</span>`;
+    const href = safeUrl(c.url);
+    parts.push(`<div class="cf-item">
+      <span class="cf-name">${escapeHtml(c.name)}</span>
+      ${badge}
+      <span class="cf-facts">${escapeHtml([c.dates, c.location].filter(Boolean).join(" · "))}
+        ${href !== "#" ? ` · <a class="cf-link" href="${href}" target="_blank" rel="noopener noreferrer">Website ↗</a>` : ""}</span>
+      ${c.snippet ? `<span class="cf-snippet">${escapeHtml(c.snippet)}</span>` : ""}
+    </div>`);
+  }
+  document.getElementById("cf-results").innerHTML = parts.join("");
+}
+
+function locateMe() {
+  if (nearbyBusy) return;
+  const input = document.getElementById("cf-place");
+  if (!navigator.geolocation) {
+    nearbyState("Your browser can't share a location here. Type a city instead.");
+    input.focus();
+    return;
+  }
+  nearbyState(`<span class="spinner"></span><span>Asking your browser for your location…</span>`);
+  navigator.geolocation.getCurrentPosition((pos) => {
+    // Rounded to about a kilometre, sent only with this one search, never stored.
+    const lat = pos.coords.latitude.toFixed(2);
+    const lon = pos.coords.longitude.toFixed(2);
+    searchNearby(`lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`, "you");
+  }, (err) => {
+    nearbyState(`${err && err.code === 1 ? "Location access was turned down." : "Couldn't get your location."} Type a city instead.`);
+    input.focus();
+  }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
+}
+
+function wireConferences() {
+  const dlg = document.getElementById("conferences");
+  document.getElementById("conf-picker").addEventListener("click", () => openConferences(false));
+  document.getElementById("open-nearby").addEventListener("click", () => openConferences(true));
+  document.getElementById("cf-locate").addEventListener("click", locateMe);
+  document.getElementById("cf-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const place = document.getElementById("cf-place").value.trim().slice(0, 80);
+    if (!place) { document.getElementById("cf-place").focus(); return; }
+    searchNearby(`place=${encodeURIComponent(place)}`, place);
+  });
+  dlg.addEventListener("click", (e) => {
+    if (e.target === dlg || e.target.closest("[data-close]")) return closeDialog(dlg);
+    if (e.target.closest("[data-to-map]")) {
+      closeDialog(dlg);
+      document.getElementById("flow-wrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  });
+}
+
 // ---- start --------------------------------------------------------------------------
 
 async function init() {
   wireProfile();
   wireFlow();
   wireCalendar();
-  api("/api/clock").then((c) => { clockNow = c && c.now; }).catch(() => {});
+  wireChat();
+  wireConferences();
+  const clock = api("/api/clock").then((c) => {
+    clockNow = c && c.now;
+    clockConference = (c && c.conference) || "";
+    if (!conferences) renderConfLabel();
+  }).catch(() => {});
+  loadConferences();
   api("/api/health").then((h) => {
     document.getElementById("status").textContent =
       `${h.talks} talks · knowledge graph “${h.graph}” on ${h.backend}`;
   }).catch(() => {});
+  const talks = api("/api/talks").then((t) => { allTalks = t; }).catch(() => {});
   try {
     await startAttendee();
   } catch (err) {
@@ -802,7 +1285,8 @@ async function init() {
     document.getElementById("profile-label").textContent = "Profile unavailable";
     document.getElementById("status").textContent = `Couldn't start your session: ${err.message}`;
   }
-  await Promise.allSettled([loadFlow(), loadFeatured()]);
+  await Promise.allSettled([loadFlow(), loadFeatured(), talks, clock]);
+  await loadChat();
   if (location.hash === "#calendar") openCalendar();
 }
 

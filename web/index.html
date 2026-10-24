@@ -9,20 +9,29 @@
 </head>
 <body>
   <header class="lp-top">
-    <a class="lp-brand" href="/" aria-label="Throughline home">
-      <svg class="lp-logo" viewBox="0 0 40 40" aria-hidden="true">
-        <rect x="1" y="1" width="38" height="38" rx="10" class="lp-logo-bg"/>
-        <path d="M8 27 C 14 27, 14 13, 20 13 S 26 27, 32 27" class="lp-logo-line"/>
-        <circle cx="8" cy="27" r="3.2" class="lp-logo-dot"/>
-        <circle cx="20" cy="13" r="3.2" class="lp-logo-dot"/>
-        <circle cx="32" cy="27" r="3.2" class="lp-logo-dot lp-logo-end"/>
-      </svg>
+    <div class="lp-brand">
+      <a class="lp-brand-link" href="/" aria-label="Throughline home">
+        <svg class="lp-logo" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" class="lp-logo-bg"/>
+          <path d="M8 27 C 14 27, 14 13, 20 13 S 26 27, 32 27" class="lp-logo-line"/>
+          <circle cx="8" cy="27" r="3.2" class="lp-logo-dot"/>
+          <circle cx="20" cy="13" r="3.2" class="lp-logo-dot"/>
+          <circle cx="32" cy="27" r="3.2" class="lp-logo-dot lp-logo-end"/>
+        </svg>
+      </a>
       <span class="lp-brand-text">
-        <span class="lp-wordmark">Throughline</span>
-        <span class="lp-sub">GitHub Universe 2026 · Oct 28–29</span>
+        <a class="lp-wordmark" href="/">Throughline</a>
+        <button class="lp-conf" id="conf-picker" type="button" aria-haspopup="dialog" title="Conferences">
+          <span id="conf-label" class="lp-sub">&nbsp;</span>
+          <svg class="lp-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>
+        </button>
       </span>
-    </a>
+    </div>
     <nav class="lp-actions">
+      <button class="lp-btn ghost" id="open-nearby" type="button" aria-haspopup="dialog">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s-5.5-5.2-5.5-9.5a5.5 5.5 0 0 1 11 0C15.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>
+        Conferences near you
+      </button>
       <a class="lp-btn ghost" href="/talk.html">Plan a talk</a>
       <button class="lp-btn ghost" id="open-calendar" type="button" aria-haspopup="dialog">
         <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="13.5" rx="2.5"/><path d="M2.5 8.5h15M6.5 2v4M13.5 2v4"/></svg>
@@ -57,10 +66,38 @@
           <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
           <button type="button" data-zoom="fit" aria-label="Fit to width">Fit</button>
         </div>
+        <div class="lp-hl" id="flow-hl" hidden>
+          <span id="flow-hl-text"></span>
+          <button type="button" id="flow-hl-clear">Show everything</button>
+        </div>
         <div class="lp-card" id="flow-card" role="status" hidden></div>
         <div class="lp-state" id="flow-state"><span class="spinner"></span> Building the talk flow from the graph…</div>
       </div>
     </section>
+
+    <aside class="lp-chat" id="chat" aria-labelledby="chat-title">
+      <div class="chat-inner">
+        <div class="chat-head">
+          <h2 id="chat-title">Ask the graph</h2>
+          <span class="muted">Answers come from the conference's knowledge graph</span>
+        </div>
+        <div class="chat-log" id="chat-log" aria-live="polite">
+          <div class="chat-intro" id="chat-intro">
+            <p class="chat-q">What do you want to get out of this conference?</p>
+            <p class="muted">Tell me your goal. I'll walk the talk graph, pick the talks that get you there, and light them up on the map.</p>
+            <div class="chat-examples" id="chat-examples">
+              <button type="button" class="chip" data-goal="I lead a platform team and want to roll out Copilot agents safely">I lead a platform team and want to roll out Copilot agents safely</button>
+              <button type="button" class="chip" data-goal="I'm new to MCP and want to build my first server">I'm new to MCP and want to build my first server</button>
+              <button type="button" class="chip" data-goal="I care about supply chain security">I care about supply chain security</button>
+            </div>
+          </div>
+        </div>
+        <form class="chat-form" id="chat-form">
+          <textarea id="chat-input" rows="2" maxlength="2000" placeholder="Your goal, in your own words…" aria-label="Your goal"></textarea>
+          <button class="primary" id="chat-send" type="submit">Send</button>
+        </form>
+      </div>
+    </aside>
 
     <section class="lp-featured" aria-labelledby="featured-title">
       <div class="lp-featured-head">
@@ -94,6 +131,29 @@
   <dialog id="profile" class="lp-dialog" aria-labelledby="pf-title">
     <button class="cal-close" type="button" data-close aria-label="Close">×</button>
     <div id="profile-body"></div>
+  </dialog>
+
+  <dialog id="conferences" class="lp-dialog lp-conf-dialog" aria-labelledby="cf-title">
+    <button class="cal-close" type="button" data-close aria-label="Close">×</button>
+    <span class="label">Conferences</span>
+    <h2 id="cf-title">Conferences</h2>
+    <div id="cf-loaded" class="cf-section"></div>
+    <div class="cf-section" id="cf-near">
+      <h3>Conferences near you</h3>
+      <p class="muted">Throughline can look for conferences happening near you. Your location is only used for this one search and isn't stored.</p>
+      <div class="cf-ask">
+        <button class="lp-btn ghost" type="button" id="cf-locate">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s-5.5-5.2-5.5-9.5a5.5 5.5 0 0 1 11 0C15.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>
+          Use my location
+        </button>
+        <span class="muted">or</span>
+        <form id="cf-form" class="cf-form">
+          <input id="cf-place" maxlength="80" placeholder="Type a city, e.g. Boston" aria-label="City">
+          <button class="primary" type="submit">Search</button>
+        </form>
+      </div>
+      <div id="cf-results" class="cf-results" role="status"></div>
+    </div>
   </dialog>
 
   <datalist id="role-options">

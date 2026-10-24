@@ -16,6 +16,9 @@ from .config import settings
 
 MAX_TOOL_ROUNDS = 8
 MAX_ROWS = 25
+# Results the model must see in full: cutting the concept list to 25 hid "Model Context Protocol"
+# (alphabetically after the cut), so a goal about MCP got mapped to unrelated concepts.
+UNTRIMMED_TOOLS = {"list_concepts"}
 # Words that say nothing about which talk someone means.
 STOPWORDS = {
     "the", "and", "for", "with", "talk", "talks", "session", "workshop", "about", "what", "your", "you",
@@ -98,9 +101,11 @@ TOOLS = [
     _fn("list_concepts", "Every concept in the graph (id, name, short definition), to map a goal onto.", {}, []),
     _fn("talks_for_concepts", "Talks that teach the given concepts, ranked by how many they cover, with readiness for this attendee.",
         {"concepts": {"type": "array", "items": {"type": "string"}, "description": "Concept ids from list_concepts"}}, ["concepts"]),
-    _fn("update_profile", "Save the attendee's role, experience and interests from what they said.",
-        {"role": {"type": "string"}, "experience": {"type": "string", "enum": ["", "new", "some", "experienced"]},
-         "interests": {"type": "array", "items": {"type": "string"}}}, ["role", "experience", "interests"]),
+    _fn("update_profile", "Save the attendee's role, experience and interests, only from what they actually said.",
+        {"role": {"type": "string", "description": "Their job, 1-4 words (e.g. 'Developer', 'Platform team lead', 'Student'); empty if they didn't say"},
+         "experience": {"type": "string", "enum": ["", "new", "some", "experienced"], "description": "Empty if they didn't say"},
+         "interests": {"type": "array", "items": {"type": "string"}, "description": "Short topics, 1-3 words each"}},
+        ["role", "experience", "interests"]),
     _fn("run_cypher", "Run a read-only Cypher query against the graph for questions other tools don't answer. Use LIMIT.",
         {"cypher": {"type": "string"}}, ["cypher"]),
 ]
@@ -251,7 +256,11 @@ class Tools:
         RETURN t.code, t.title, t.day, t.start, t.end, t.room, t.level_num, t.start_min, t.sponsor,
                collect(c.name), collect(e.evidence)
         """
-        rows = self.g.query(q, {"ids": concepts[:6]}).result_set
+        ids, unknown = self._resolve_concepts(concepts[:6])
+        if not ids:
+            return {"error": "None of those match a concept id. Call list_concepts and use ids from it.",
+                    "unknown": unknown}, []
+        rows = self.g.query(q, {"ids": ids}).result_set
         ready = flow.ready_map(self.g, self.attendee) or {}
         talks = [
             {"code": r[0], "title": r[1], "day": r[2], "start": r[3], "end": r[4], "room": r[5], "level_num": r[6],
@@ -267,7 +276,23 @@ class Tools:
             for t in best[:4]
         ]
         self._light(*[t["code"] for t in best[:4]])
-        return best, [q]
+        return {"talks": best, "concepts_used": ids, "unknown": unknown}, [q]
+
+    def _resolve_concepts(self, values: list[str]) -> tuple[list[str], list[str]]:
+        """Accept concept ids, names or aliases ("MCP"), so a near-miss id doesn't read as "nothing teaches this"."""
+        rows = self.g.query("MATCH (c:Concept) RETURN c.id, c.name, c.aliases").result_set
+        ids, unknown = [], []
+        for value in values:
+            v = value.strip().lower()
+            match = next((cid for cid, _, _ in rows if cid == v), None) or next(
+                (cid for cid, name, aliases in rows
+                 if v == name.lower() or v in (a.lower() for a in aliases or [])), None) or next(
+                (cid for cid, name, _ in rows if v and (v in name.lower() or v in cid)), None)
+            if match and match not in ids:
+                ids.append(match)
+            elif not match:
+                unknown.append(value)
+        return ids, unknown
 
     def update_profile(self, role: str = "", experience: str = "", interests: list[str] | None = None):
         current = planner.get_profile(self.g, self.attendee)
@@ -366,5 +391,6 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
             except Exception as e:  # report tool errors to the model instead of crashing the turn
                 result, cypher = {"error": f"{type(e).__name__}: {e}"}, []
             trace.append({"tool": call.function.name, "args": args, "cypher": [c.strip() for c in cypher], "result": _trim(result)})
-            messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(_trim(result), default=str)})
+            for_model = result if call.function.name in UNTRIMMED_TOOLS else _trim(result)
+            messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(for_model, default=str)})
     return done("I couldn't finish that within my tool budget. Try asking more narrowly.")
