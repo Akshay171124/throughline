@@ -11,7 +11,7 @@ import re
 from falkordb import Graph
 from openai import OpenAI
 
-from . import planner
+from . import flow, planner
 from .config import settings
 
 MAX_TOOL_ROUNDS = 8
@@ -39,7 +39,7 @@ The attendee's own memory is only available through get_attendee."""
 # Attendee memory never goes through free-form Cypher (it also runs on a copy without attendees).
 PRIVATE_TERMS = re.compile(r"\b(attendee|knows|attended|targets|clock_min)\b", re.IGNORECASE)
 
-SYSTEM_PROMPT = f"""You are Throughline, a readiness agent for GitHub Universe 2026 (October 28-29, San Francisco).
+SYSTEM_PROMPT = f"""You are Throughline, a readiness agent for {settings.conference_name} ({settings.conference_dates}, {settings.conference_location}).
 You help one attendee get ready for talks they care about: what to learn first, in what order, and where to learn it before the talk starts.
 
 Rules:
@@ -57,6 +57,16 @@ Rules:
 - Other attendees' codes and memory are private and not in your tools. If asked for them, say so plainly. Never call talk codes attendee codes.
 
 {SCHEMA_NOTE}"""
+
+# On the conference map the attendee describes a goal rather than naming a talk.
+LANDING_PROMPT = """
+The attendee is on the conference map and is describing what they want to get out of the conference.
+- If they mention their role, experience or interests, call update_profile with what they said (keep existing values they didn't mention).
+- Call list_concepts, pick the 1 to 4 concepts that best match their goal, then call talks_for_concepts with those ids.
+- Recommend 2 to 4 talks in time order, building up (earlier talks prepare for later ones). For each, one short line on why it fits their goal, citing the concept.
+- For the main (latest or most advanced) pick, call plan_day so they know what to learn first.
+- Offer to save the picks; call save_talk only if they ask.
+- Never recommend a talk that no tool returned."""
 
 
 def _fn(name: str, description: str, properties: dict, required: list[str]) -> dict:
@@ -85,6 +95,12 @@ TOOLS = [
     _fn("mark_attended", "Record that the attendee attended a talk; they learn what it teaches and the clock moves to its end.", TALK, ["talk"]),
     _fn("mark_known", "Record that the attendee already knows a concept.", {"concept": {"type": "string", "description": "Concept id"}}, ["concept"]),
     _fn("save_talk", "Save a talk to the attendee's list of talks they're aiming for.", TALK, ["talk"]),
+    _fn("list_concepts", "Every concept in the graph (id, name, short definition), to map a goal onto.", {}, []),
+    _fn("talks_for_concepts", "Talks that teach the given concepts, ranked by how many they cover, with readiness for this attendee.",
+        {"concepts": {"type": "array", "items": {"type": "string"}, "description": "Concept ids from list_concepts"}}, ["concepts"]),
+    _fn("update_profile", "Save the attendee's role, experience and interests from what they said.",
+        {"role": {"type": "string"}, "experience": {"type": "string", "enum": ["", "new", "some", "experienced"]},
+         "interests": {"type": "array", "items": {"type": "string"}}}, ["role", "experience", "interests"]),
     _fn("run_cypher", "Run a read-only Cypher query against the graph for questions other tools don't answer. Use LIMIT.",
         {"cypher": {"type": "string"}}, ["cypher"]),
 ]
@@ -108,6 +124,8 @@ class Tools:
         # `public` is the attendee-free copy used by run_cypher (see graph.publish_public_view).
         self.g, self.attendee, self.public = g, attendee, public
         self.last_view = None  # the latest full path or plan, for the page to draw
+        self.suggestions: list[dict] = []  # talks recommended for a goal, for cards on the conference map
+        self.highlight: list[str] = []  # talk codes to light up on the conference map
 
     def get_attendee(self):
         q = """
@@ -136,6 +154,7 @@ class Tools:
         }, [q]
 
     def save_talk(self, talk: str):
+        self._light(talk)
         return {"saved": talk, "targets": planner.add_target(self.g, self.attendee, talk)}, []
 
     def search_talks(self, query: str, day: str = "any"):
@@ -212,7 +231,53 @@ class Tools:
     def plan_day(self, talk: str):
         plan = planner.plan_day(self.g, talk, self.attendee)
         self.last_view = {"kind": "plan", **plan}
+        self._light(talk, *[s["learn_at"]["code"] for s in plan["plan"] if s["learn_at"]["kind"] == "talk"])
         return plan, plan["queries"]
+
+    def _light(self, *codes):
+        for code in codes:
+            if code and code not in self.highlight:
+                self.highlight.append(code)
+
+    def list_concepts(self):
+        q = "MATCH (c:Concept) RETURN c.id, c.name, c.definition, c.basic ORDER BY c.name"
+        rows = self.g.query(q).result_set
+        return [{"id": i, "name": n, "definition": (d or "")[:140], "basic": bool(b)} for i, n, d, b in rows], [q]
+
+    def talks_for_concepts(self, concepts: list[str]):
+        q = """
+        MATCH (t:Talk)-[e:TEACHES]->(c:Concept)
+        WHERE c.id IN $ids
+        RETURN t.code, t.title, t.day, t.start, t.end, t.room, t.level_num, t.start_min, t.sponsor,
+               collect(c.name), collect(e.evidence)
+        """
+        rows = self.g.query(q, {"ids": concepts[:6]}).result_set
+        ready = flow.ready_map(self.g, self.attendee) or {}
+        talks = [
+            {"code": r[0], "title": r[1], "day": r[2], "start": r[3], "end": r[4], "room": r[5], "level_num": r[6],
+             "start_min": r[7], "sponsor": r[8], "teaches": r[9], "evidence": r[10][:2], "ready": ready.get(r[0])}
+            for r in rows
+        ]
+        # Most concepts covered first, then non-sponsored, then by time.
+        talks.sort(key=lambda t: (-len(t["teaches"]), bool(t["sponsor"]), t["start_min"]))
+        best = sorted(talks[:6], key=lambda t: t["start_min"])
+        self.suggestions = [
+            {k: t[k] for k in ("code", "title", "day", "start", "end", "room", "ready")}
+            | {"reason": "Teaches " + ", ".join(t["teaches"])}
+            for t in best[:4]
+        ]
+        self._light(*[t["code"] for t in best[:4]])
+        return best, [q]
+
+    def update_profile(self, role: str = "", experience: str = "", interests: list[str] | None = None):
+        current = planner.get_profile(self.g, self.attendee)
+        saved = planner.set_profile(
+            self.g, self.attendee,
+            role or current.get("role", ""),
+            experience or current.get("experience", ""),
+            list(dict.fromkeys((current.get("interests") or []) + (interests or []))),
+        )
+        return {"saved": saved}, []
 
     def find_where_to_learn(self, concept: str, before_talk: str = ""):
         clock = planner.attendee_clock(self.g, self.attendee) or 0
@@ -277,16 +342,22 @@ def _plain(value):
 
 
 def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None = None,
-              public: Graph | None = None) -> dict:
+              public: Graph | None = None, page: str = "talk") -> dict:
     """One agent turn. History is earlier user/assistant text only; tool calls live in this turn's trace."""
     tools, trace = Tools(g, attendee, public), []
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}, *(history or [])[-10:], {"role": "user", "content": message}]
+    system = SYSTEM_PROMPT + (LANDING_PROMPT if page == "landing" else "")
+    messages = [{"role": "system", "content": system}, *(history or [])[-10:], {"role": "user", "content": message}]
     client = OpenAI(timeout=60)
+
+    def done(text):
+        return {"reply": text, "trace": trace, "view": tools.last_view,
+                "highlight": tools.highlight, "suggestions": tools.suggestions}
+
     for _ in range(MAX_TOOL_ROUNDS):
         response = client.chat.completions.create(model=settings.agent_model, messages=messages, tools=TOOLS)
         reply = response.choices[0].message
         if not reply.tool_calls:
-            return {"reply": reply.content, "trace": trace, "view": tools.last_view}
+            return done(reply.content)
         messages.append(reply.model_dump(exclude_none=True))
         for call in reply.tool_calls:
             args = json.loads(call.function.arguments or "{}")
@@ -296,5 +367,4 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
                 result, cypher = {"error": f"{type(e).__name__}: {e}"}, []
             trace.append({"tool": call.function.name, "args": args, "cypher": [c.strip() for c in cypher], "result": _trim(result)})
             messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(_trim(result), default=str)})
-    return {"reply": "I couldn't finish that within my tool budget. Try asking more narrowly.", "trace": trace,
-            "view": tools.last_view}
+    return done("I couldn't finish that within my tool budget. Try asking more narrowly.")

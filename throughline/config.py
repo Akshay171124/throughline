@@ -20,6 +20,10 @@ class Settings:
     agent_model: str = os.getenv("OPENAI_AGENT_MODEL", "gpt-5.4-mini")
     conference_id: str = "universe26"
     conference_name: str = "GitHub Universe 2026"
+    conference_dates: str = "Oct 28–29, 2026"
+    conference_start: str = "2026-10-28"
+    conference_end: str = "2026-10-29"
+    conference_location: str = "San Francisco, CA"
     raw_snapshot: Path = ROOT / "data" / "raw" / "universe26_feed_2026-10-20.json"
     talks_snapshot: Path = ROOT / "data" / "universe26_talks.jsonl"
 

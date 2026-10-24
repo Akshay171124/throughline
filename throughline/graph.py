@@ -65,6 +65,31 @@ def ensure_schema(g: Graph) -> None:
                 raise
 
 
+def upsert_conference(g: Graph) -> None:
+    """The conference's own details live in the graph, so the app never hard-codes them."""
+    g.query(
+        """
+        MERGE (c:Conference {id: $id})
+        SET c.name = $name, c.dates = $dates, c.start_date = $start, c.end_date = $end, c.location = $location
+        """,
+        {"id": settings.conference_id, "name": settings.conference_name, "dates": settings.conference_dates,
+         "start": settings.conference_start, "end": settings.conference_end, "location": settings.conference_location},
+    )
+
+
+def conferences(g: Graph) -> list[dict]:
+    rows = g.query(
+        """
+        MATCH (c:Conference)
+        OPTIONAL MATCH (t:Talk)-[:PART_OF]->(c)
+        RETURN c.id, c.name, c.dates, c.start_date, c.end_date, c.location, count(t)
+        ORDER BY c.start_date
+        """
+    ).result_set
+    keys = ["id", "name", "dates", "start_date", "end_date", "location", "talks"]
+    return [dict(zip(keys, r)) for r in rows]
+
+
 def load_talks(g: Graph, talks: list[dict], source: str = "snapshot") -> int:
     """Upsert talks and their time slots. Safe to run again after a fresh scrape."""
     fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -80,10 +105,7 @@ def load_talks(g: Graph, talks: list[dict], source: str = "snapshot") -> int:
         }
         for t in talks
     ]
-    g.query(
-        "MERGE (c:Conference {id: $id}) SET c.name = $name",
-        {"id": settings.conference_id, "name": settings.conference_name},
-    )
+    upsert_conference(g)
     # A re-scrape can move a talk, so drop old slot links before relinking.
     g.query(
         "MATCH (t:Talk)-[r:IN_SLOT]->() WHERE t.code IN $codes DELETE r",

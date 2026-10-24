@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from throughline import api, planner
-from throughline.graph import connect, ensure_schema, publish_public_view
+from throughline.graph import connect, ensure_schema, publish_public_view, upsert_conference
 
 
 @pytest.fixture(scope="module")
@@ -99,9 +99,9 @@ def test_public_view_has_no_profiles_or_chats(g, attendee):
 def test_api_agent_uses_and_stores_the_server_side_history(g, attendee, monkeypatch):
     seen = {}
 
-    def fake_agent(graph, code, message, history, public=None):
-        seen["history"] = history
-        return {"reply": f"echo {message}", "trace": [], "view": {"talk": "LATE"}}
+    def fake_agent(graph, code, message, history, public=None, page="talk"):
+        seen["history"], seen["page"] = history, page
+        return {"reply": f"echo {message}", "trace": [], "view": {"talk": "LATE"}, "highlight": ["EARLY", "LATE"]}
 
     monkeypatch.setattr(api, "_graph", g)
     monkeypatch.setattr(api, "_public", g)
@@ -116,7 +116,16 @@ def test_api_agent_uses_and_stores_the_server_side_history(g, attendee, monkeypa
 
     chat = client.get(f"/api/attendees/{attendee}/chat").json()["messages"]
     assert [m["content"] for m in chat] == ["first", "echo first", "second", "echo second"]
-    assert chat[-1]["talk"] == "LATE"
+    assert chat[-1]["talk"] == "LATE" and chat[-1]["highlight"] == ["EARLY", "LATE"]
+
+    client.post("/api/agent", json={"attendee": attendee, "message": "goal", "page": "landing"})
+    assert seen["page"] == "landing"
+    client.post("/api/agent", json={"attendee": attendee, "message": "x", "page": "anything-else"})
+    assert seen["page"] == "talk"  # unknown pages fall back to the talk page's behaviour
+    assert client.get("/api/conferences").json()["current"] is None  # nothing loaded in this test graph
+    upsert_conference(g)
+    current = client.get("/api/conferences").json()["current"]
+    assert current["name"] and current["dates"] and current["location"]
 
     assert client.put(f"/api/attendees/{attendee}/profile", json={"role": "Dev", "experience": "experienced", "interests": ["MCP"]}).status_code == 200
     assert client.put(f"/api/attendees/{attendee}/profile", json={"experience": "guru"}).status_code == 422

@@ -34,7 +34,7 @@ def _short(title: str, limit: int = 42) -> str:
     return head if len(head) <= limit else head[: limit - 1].rstrip() + "…"
 
 
-def _ready_map(g: Graph, attendee: str | None) -> dict[str, bool] | None:
+def ready_map(g: Graph, attendee: str | None) -> dict[str, bool] | None:
     """For each talk: is everything it requires already known (by memory or profile)?"""
     if not attendee:
         return None
@@ -79,7 +79,7 @@ def flow(g: Graph, attendee: str | None = None) -> dict:
     edges.sort(key=lambda e: (talks[e["target"]]["start_min"], e["target"], talks[e["source"]]["start_min"], e["source"]))
     must_see = {c for c, _ in _featured_codes(talks, prepares)}
     shown = {e["source"] for e in edges} | {e["target"] for e in edges} | must_see
-    ready = _ready_map(g, attendee)
+    ready = ready_map(g, attendee)
     nodes = [
         {
             **talks[code], "short_title": _short(talks[code]["title"]),
@@ -120,7 +120,7 @@ def _featured_codes(talks: dict, prepares: dict) -> list[tuple[str, str]]:
 def featured(g: Graph, attendee: str | None = None) -> list[dict]:
     talks = {r[0]: dict(zip(TALK_KEYS, r)) for r in g.query(TALKS).result_set}
     prepares, _ = _counts(_all_edges(g))
-    ready = _ready_map(g, attendee)
+    ready = ready_map(g, attendee)
     picks = _featured_codes(talks, prepares)
     cards = [
         {**{k: talks[c][k] for k in ("code", "title", "day", "start", "end", "room", "level_num", "type")},

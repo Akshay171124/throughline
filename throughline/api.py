@@ -5,10 +5,10 @@ from fastapi.staticfiles import StaticFiles
 from falkordb import Graph
 from pydantic import BaseModel
 
-from . import flow, planner
+from . import flow, nearby, planner
 from .agent import Tools, run_agent
 from .config import ROOT, settings
-from .graph import backend, connect, public_name
+from .graph import backend, conferences, connect, public_name
 from .graphview import graph_for_talk
 
 app = FastAPI(title="Throughline")
@@ -200,6 +200,22 @@ def talk_graph(talk: str, attendee: str | None = None):
         raise HTTPException(404, f"No talk with code {talk}")
 
 
+@app.get("/api/conferences")
+def list_conferences():
+    """Conferences whose schedules are loaded. The app never hard-codes a conference."""
+    loaded = conferences(graph())
+    current = next((c for c in loaded if c["id"] == settings.conference_id), loaded[0] if loaded else None)
+    return {"current": current, "loaded": loaded}
+
+
+@app.get("/api/conferences/nearby")
+def conferences_nearby(place: str = "", lat: float | None = None, lon: float | None = None):
+    """Conferences happening near a place (typed, or from the browser's location), found by live web search."""
+    if lat is not None and not (-90 <= lat <= 90 and -180 <= (lon or 0) <= 180):
+        raise HTTPException(422, "Invalid coordinates")
+    return nearby.nearby(conferences(graph()), place=place, lat=lat, lon=lon)
+
+
 @app.get("/api/flow")
 def conference_flow(attendee: str | None = None):
     """The conference as a left-to-right flow of 'prepares you for' links, for the landing page."""
@@ -218,6 +234,7 @@ class AgentTurn(BaseModel):
     attendee: str
     message: str
     history: list[dict] = []  # ignored: the server keeps the conversation
+    page: str = "talk"  # "landing" when the attendee describes a goal on the conference map
 
 
 @app.post("/api/agent")
@@ -227,12 +244,15 @@ def agent(body: AgentTurn):
     # The stored conversation, not what the browser sends, so it survives a refresh and can't be forged.
     history = [{"role": m["role"], "content": m["content"]} for m in planner.chat_history(g, body.attendee)
                if m.get("role") in ("user", "assistant") and m.get("content")]
-    turn = run_agent(g, body.attendee, body.message[:2000], history, public=public_graph())
+    page = "landing" if body.page == "landing" else "talk"
+    turn = run_agent(g, body.attendee, body.message[:2000], history, public=public_graph(), page=page)
     view = turn.get("view") or {}
-    planner.append_chat(g, body.attendee, [
-        {"role": "user", "content": body.message[:2000]},
-        {"role": "assistant", "content": turn.get("reply") or "", **({"talk": view["talk"]} if view.get("talk") else {})},
-    ])
+    reply = {"role": "assistant", "content": turn.get("reply") or "", "page": page}
+    if view.get("talk"):
+        reply["talk"] = view["talk"]
+    if turn.get("highlight"):
+        reply["highlight"] = turn["highlight"]
+    planner.append_chat(g, body.attendee, [{"role": "user", "content": body.message[:2000], "page": page}, reply])
     return turn
 
 
