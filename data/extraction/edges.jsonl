@@ -1,360 +1,401 @@
-{"type": "TEACHES", "talk": "2153B", "concept": "agentic_workflows", "evidence": "Agentic Workflows: Automation at scale", "confidence": 0.88}
-{"type": "TEACHES", "talk": "2153B", "concept": "agent_governance_permissions", "evidence": "setup your software factory with governance, monitoring, and security", "confidence": 0.69}
-{"type": "REQUIRES", "talk": "BLD1132S", "concept": "ai_coding_agents", "evidence": "AI coding tools are nearly solved", "confidence": 0.68}
-{"type": "TEACHES", "talk": "BLD1132S", "concept": "coding_model_evaluations", "evidence": "building your own eval system", "confidence": 0.96}
-{"type": "TEACHES", "talk": "TRU1783B", "concept": "open_source_security_governance", "evidence": "open source maintainers face a defining challenge", "confidence": 0.88}
-{"type": "TEACHES", "talk": "TRU1783B", "concept": "ai_fluency_enablement", "evidence": "AI security education, tools, and GitHub Copilot helped one project build safer practices", "confidence": 0.66}
-{"type": "REQUIRES", "talk": "BLD1312D", "concept": "ai_coding_agents", "evidence": "GitHub Copilot builds context from your open files", "confidence": 0.57}
-{"type": "TEACHES", "talk": "BLD1312D", "concept": "prompt_assembly_context_window", "evidence": "shows how Copilot constructs context in practice", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD1312D", "concept": "token_usage_optimization", "evidence": "developer habits that quietly inflate token usage", "confidence": 0.94}
-{"type": "TEACHES", "talk": "BLD1312D", "concept": "pull_request_review_workflows", "evidence": "catch overly broad changes before they merge", "confidence": 0.6}
-{"type": "REQUIRES", "talk": "TRU1338W", "concept": "model_context_protocol", "evidence": "MCP is showing up in production and in sensitive environments", "confidence": 0.85}
-{"type": "REQUIRES", "talk": "TRU1338W", "concept": "mcp_servers", "evidence": "how to host MCP servers in production", "confidence": 0.82}
-{"type": "TEACHES", "talk": "TRU1338W", "concept": "mcp_security", "evidence": "breaks down MCP security as it really stands today", "confidence": 0.97}
-{"type": "TEACHES", "talk": "BLD1825D", "concept": "cicd_modernization", "evidence": "leave with a practical way to plan a CI/CD modernization", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD1825D", "concept": "github_actions_workflows", "evidence": "moved from Jenkins to GitHub Actions", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD1825D", "concept": "agentic_workflows", "evidence": "put agents to work in a complex migration", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1825D", "concept": "human_in_the_loop_oversight", "evidence": "keeping engineers in full control", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1908M", "concept": "agentic_workflows", "evidence": "Agents are moving beyond code generation to help plan, review, secure, deploy, and operate software", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1908M", "concept": "human_in_the_loop_oversight", "evidence": "people remain accountable for what ships", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1908M", "concept": "agent_governance_permissions", "evidence": "controls teams need to delegate more ambitious work with confidence", "confidence": 0.62}
-{"type": "TEACHES", "talk": "TRU1488D", "concept": "dependency_screening", "evidence": "screening dependencies before they ever reach your runner", "confidence": 0.98}
-{"type": "TEACHES", "talk": "TRU1488D", "concept": "software_supply_chain_security", "evidence": "malicious package in your build can steal the credentials", "confidence": 0.8}
-{"type": "REQUIRES", "talk": "BLD1354B", "concept": "ai_coding_agents", "evidence": "from code completion to chat to agents", "confidence": 0.84}
-{"type": "REQUIRES", "talk": "BLD1354B", "concept": "agentic_workflows", "evidence": "Agentic engineering past the pilot", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1354B", "concept": "ai_fluency_enablement", "evidence": "from experiment to operating model", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD1354B", "concept": "agent_governance_permissions", "evidence": "where governance, developer experience, and adoption at scale", "confidence": 0.67}
-{"type": "TEACHES", "talk": "BLD1354B", "concept": "multi_agent_orchestration", "evidence": "multi-session orchestration", "confidence": 0.55}
-{"type": "TEACHES", "talk": "BLD1489H", "concept": "agent_lifecycle_hooks", "evidence": "how Copilot CLI hooks work under the hood", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD1489H", "concept": "copilot_cli_workflows", "evidence": "You'll leave knowing how to write your own hooks", "confidence": 0.69}
-{"type": "REQUIRES", "talk": "LDR1778B", "concept": "ai_coding_agents", "evidence": "using agents to plan, write, and ship real work", "confidence": 0.65}
-{"type": "TEACHES", "talk": "LDR1778B", "concept": "ai_fluency_enablement", "evidence": "what building AI fluency actually takes at enterprise scale", "confidence": 0.97}
-{"type": "TEACHES", "talk": "LDR1778B", "concept": "ai_adoption_measurement", "evidence": "why motivation and measurement matter as much as the tooling", "confidence": 0.78}
-{"type": "REQUIRES", "talk": "BLD1372B", "concept": "ai_coding_agents", "evidence": "today's AI agents treat every task as a fresh start", "confidence": 0.85}
-{"type": "REQUIRES", "talk": "BLD1372B", "concept": "agentic_workflows", "evidence": "apply these principles to your own agent workflows", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1372B", "concept": "prompt_assembly_context_window", "evidence": "carry forward what it learned from your last session and drop what no longer applies", "confidence": 0.8}
-{"type": "TEACHES", "talk": "BLD1372B", "concept": "token_usage_optimization", "evidence": "accumulated context can hurt performance", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1372B", "concept": "agent_skills", "evidence": "Skill Forge and Copilot REM", "confidence": 0.64}
-{"type": "TEACHES", "talk": "BLD1372B", "concept": "coding_model_evaluations", "evidence": "built a benchmark from chains of real GitHub pull requests", "confidence": 0.7}
-{"type": "TEACHES", "talk": "LDR1662D", "concept": "copilot_customization", "evidence": "custom Copilot code review instructions", "confidence": 0.96}
-{"type": "TEACHES", "talk": "LDR1662D", "concept": "pull_request_review_workflows", "evidence": "mine their own PR review history", "confidence": 0.86}
-{"type": "TEACHES", "talk": "LDR1662D", "concept": "developer_knowledge_bases", "evidence": "patterns their reviewers flag again and again", "confidence": 0.68}
-{"type": "TEACHES", "talk": "LDR1801D", "concept": "on_call_agent_autonomy", "evidence": "how to promote and demote autonomy safely", "confidence": 0.95}
-{"type": "TEACHES", "talk": "LDR1801D", "concept": "incident_rca_agents", "evidence": "triaging alerts, investigating them, acting on production", "confidence": 0.78}
-{"type": "TEACHES", "talk": "LDR1801D", "concept": "agent_governance_permissions", "evidence": "per decision class rather than per agent", "confidence": 0.7}
-{"type": "TEACHES", "talk": "BLD2011D", "concept": "local_and_cloud_models", "evidence": "use local and cloud intelligence together", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD2011D", "concept": "model_routing", "evidence": "match work to the right compute environment", "confidence": 0.9}
-{"type": "TEACHES", "talk": "LDR1384S", "concept": "token_usage_optimization", "evidence": "optimize token usage", "confidence": 0.98}
-{"type": "REQUIRES", "talk": "BLD2191D", "concept": "ai_coding_agents", "evidence": "As AI agents produce more code", "confidence": 0.7}
-{"type": "TEACHES", "talk": "BLD2191D", "concept": "software_supply_chain_security", "evidence": "what those agents bring into a build and how to verify what ships", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD2191D", "concept": "agent_governance_permissions", "evidence": "control which models, MCP servers, and packages agents use", "confidence": 0.85}
+{"type": "REQUIRES", "talk": "TRU1338W", "concept": "model_context_protocol", "evidence": "Securing MCP", "confidence": 0.91}
+{"type": "TEACHES", "talk": "TRU1338W", "concept": "mcp_security", "evidence": "breaks down MCP security as it really stands today", "confidence": 0.98}
+{"type": "TEACHES", "talk": "2153B", "concept": "agentic_workflows", "evidence": "Agentic Workflows: Automation at scale", "confidence": 0.93}
+{"type": "TEACHES", "talk": "2153B", "concept": "agent_governance_permissions", "evidence": "governance, monitoring, and security", "confidence": 0.63}
+{"type": "REQUIRES", "talk": "TRU1783B", "concept": "open_source_basics", "evidence": "open source maintainers face a defining challenge", "confidence": 0.63}
+{"type": "TEACHES", "talk": "TRU1783B", "concept": "open_source_security_governance", "evidence": "community into community-powered security impact", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1825D", "concept": "ci_cd_basics", "evidence": "Level 200: Intermediate", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD1825D", "concept": "cicd_modernization", "evidence": "plan a CI/CD modernization that addresses legacy complexity", "confidence": 0.95}
+{"type": "TEACHES", "talk": "BLD1825D", "concept": "github_actions_workflows", "evidence": "moved from Jenkins to GitHub Actions", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1825D", "concept": "agentic_workflows", "evidence": "put agents to work in a complex migration", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1825D", "concept": "human_in_the_loop_oversight", "evidence": "keeping engineers in full control", "confidence": 0.76}
+{"type": "REQUIRES", "talk": "BLD1312D", "concept": "github_copilot_basics", "evidence": "GitHub Copilot builds context", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1312D", "concept": "prompt_assembly_context_window", "evidence": "shows how Copilot constructs context in practice", "confidence": 0.97}
+{"type": "TEACHES", "talk": "BLD1312D", "concept": "repository_rulesets", "evidence": "guardrails that help teams catch overly broad changes before they merge", "confidence": 0.48}
+{"type": "REQUIRES", "talk": "BLD1132S", "concept": "github_copilot_basics", "evidence": "inside GitHub Copilot", "confidence": 0.75}
+{"type": "REQUIRES", "talk": "BLD1132S", "concept": "llm_basics", "evidence": "shipping models from multiple frontier labs", "confidence": 0.65}
+{"type": "TEACHES", "talk": "BLD1132S", "concept": "coding_model_evaluations", "evidence": "practical framework for building your own eval system", "confidence": 0.96}
+{"type": "REQUIRES", "talk": "BLD1354B", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.63}
+{"type": "TEACHES", "talk": "BLD1354B", "concept": "agentic_workflows", "evidence": "AI-native software delivery", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1354B", "concept": "agent_governance_permissions", "evidence": "where governance, developer experience, and adoption at scale", "confidence": 0.68}
+{"type": "TEACHES", "talk": "BLD1354B", "concept": "copilot_cli_workflows", "evidence": "live demos spanning IDE, CLI", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1354B", "concept": "multi_agent_orchestration", "evidence": "multi-session orchestration", "confidence": 0.45}
+{"type": "REQUIRES", "talk": "TRU1488D", "concept": "ci_cd_basics", "evidence": "privileges baked into CI/CD pipelines", "confidence": 0.83}
+{"type": "TEACHES", "talk": "TRU1488D", "concept": "software_supply_chain_security", "evidence": "screening dependencies before they ever reach your runner", "confidence": 0.96}
+{"type": "TEACHES", "talk": "BLD1908M", "concept": "agentic_workflows", "evidence": "plan, review, secure, deploy, and operate software", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1908M", "concept": "human_in_the_loop_oversight", "evidence": "people remain accountable for what ships", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD1908M", "concept": "delegating_to_agents", "evidence": "delegate more ambitious work with confidence", "confidence": 0.7}
+{"type": "REQUIRES", "talk": "LDR1662D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "LDR1662D", "concept": "git_and_pull_request_basics", "evidence": "PR review history", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1662D", "concept": "pull_request_review_workflows", "evidence": "custom Copilot code review instructions", "confidence": 0.96}
+{"type": "TEACHES", "talk": "LDR1662D", "concept": "copilot_customization", "evidence": "turned those recurring patterns into custom instruction files", "confidence": 0.88}
+{"type": "REQUIRES", "talk": "BLD1489H", "concept": "command_line_basics", "evidence": "GitHub Copilot CLI hooks", "confidence": 0.65}
+{"type": "TEACHES", "talk": "BLD1489H", "concept": "agent_lifecycle_hooks", "evidence": "system-level lifecycle events", "confidence": 0.96}
+{"type": "TEACHES", "talk": "BLD1489H", "concept": "copilot_cli_workflows", "evidence": "how Copilot CLI hooks work under the hood", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1384S", "concept": "llm_basics", "evidence": "Level 200: Intermediate", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1384S", "concept": "ci_cd_basics", "evidence": "noisy CI workflows", "confidence": 0.63}
+{"type": "TEACHES", "talk": "LDR1384S", "concept": "prompt_assembly_context_window", "evidence": "optimize token usage", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "BLD2011D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD2011D", "concept": "model_routing", "evidence": "match work to the right compute environment", "confidence": 0.94}
+{"type": "REQUIRES", "talk": "LDR1778B", "concept": "github_copilot_basics", "evidence": "Getting developers to try GitHub Copilot is simple", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1778B", "concept": "ai_adoption_measurement", "evidence": "why motivation and measurement matter as much as the tooling", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1778B", "concept": "agentic_workflows", "evidence": "using agents to plan, write, and ship real work", "confidence": 0.7}
+{"type": "TEACHES", "talk": "BLD1787B", "concept": "agent_skills", "evidence": "reusable files that capture how you want an agent to work", "confidence": 0.98}
+{"type": "TEACHES", "talk": "BLD2191D", "concept": "software_supply_chain_security", "evidence": "what those agents bring into a build and how to verify what ships", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD2191D", "concept": "agent_governance_permissions", "evidence": "control which models, MCP servers, and packages agents use", "confidence": 0.82}
 {"type": "TEACHES", "talk": "BLD2191D", "concept": "signed_evidence_audit_trails", "evidence": "enforce compliance policies using signed evidence", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD2191D", "concept": "dependency_screening", "evidence": "control which models, MCP servers, and packages agents use", "confidence": 0.65}
-{"type": "REQUIRES", "talk": "LDR1551D", "concept": "pull_request_review_workflows", "evidence": "Expect live demos and real before-and-after PR examples.", "confidence": 0.68}
-{"type": "TEACHES", "talk": "LDR1551D", "concept": "static_analysis_feedback", "evidence": "make automated feedback something developers actually trust and act on", "confidence": 0.96}
-{"type": "REQUIRES", "talk": "LDR1032H", "concept": "github_actions_workflows", "evidence": "combine automated GitHub Actions with custom Copilot prompts", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1032H", "concept": "copilot_customization", "evidence": "custom Copilot prompts", "confidence": 0.77}
-{"type": "TEACHES", "talk": "LDR1032H", "concept": "ai_fluency_enablement", "evidence": "empower others to adopt AI tools", "confidence": 0.7}
-{"type": "TEACHES", "talk": "LDR1032H", "concept": "agentic_workflows", "evidence": "use AI not just as a coding assistant", "confidence": 0.61}
-{"type": "TEACHES", "talk": "BLD1820B", "concept": "specification_driven_development", "evidence": "AI completions, spec-based programming, natural-language-to-app", "confidence": 0.63}
-{"type": "REQUIRES", "talk": "BLD1787B", "concept": "ai_coding_agents", "evidence": "files any coding agent can run", "confidence": 0.63}
-{"type": "TEACHES", "talk": "BLD1787B", "concept": "agent_skills", "evidence": "reusable files that capture how you want an agent to work", "confidence": 0.96}
-{"type": "REQUIRES", "talk": "LDR1786M", "concept": "ai_coding_agents", "evidence": "agents as the crew", "confidence": 0.78}
-{"type": "REQUIRES", "talk": "LDR1786M", "concept": "github_actions_workflows", "evidence": "GitHub Actions as the floor", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1786M", "concept": "agentic_workflows", "evidence": "how an agentic development factory comes together", "confidence": 0.95}
-{"type": "TEACHES", "talk": "LDR1786M", "concept": "agent_governance_permissions", "evidence": "central control plane deploying governed workflows across the organization", "confidence": 0.83}
-{"type": "TEACHES", "talk": "LDR1786M", "concept": "signed_evidence_audit_trails", "evidence": "every automated decision needs an audit trail", "confidence": 0.86}
-{"type": "REQUIRES", "talk": "BLD1485D", "concept": "pull_request_review_workflows", "evidence": "reviews it on github.com, and merges each pull request", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "LDR1032H", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1032H", "concept": "ci_cd_basics", "evidence": "automated GitHub Actions", "confidence": 0.58}
+{"type": "TEACHES", "talk": "LDR1032H", "concept": "github_actions_workflows", "evidence": "combine automated GitHub Actions", "confidence": 0.86}
+{"type": "TEACHES", "talk": "LDR1032H", "concept": "copilot_customization", "evidence": "custom Copilot prompts", "confidence": 0.88}
+{"type": "REQUIRES", "talk": "LDR1551D", "concept": "git_and_pull_request_basics", "evidence": "before-and-after PR examples", "confidence": 0.86}
+{"type": "TEACHES", "talk": "LDR1551D", "concept": "security_alert_autofix", "evidence": "static analysis surfaces more findings", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1801D", "concept": "incident_rca_agents", "evidence": "your on-call agent's autonomy", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1801D", "concept": "agent_governance_permissions", "evidence": "promote and demote autonomy safely, per decision class", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "BLD1372B", "concept": "github_copilot_basics", "evidence": "Level 300: Advanced", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1372B", "concept": "llm_basics", "evidence": "Level 300: Advanced", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "BLD1372B", "concept": "agentic_workflows", "evidence": "your own agent workflows", "confidence": 0.7}
+{"type": "TEACHES", "talk": "BLD1372B", "concept": "prompt_assembly_context_window", "evidence": "accumulated context can hurt performance", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1372B", "concept": "agent_skills", "evidence": "Skill Forge and Copilot REM", "confidence": 0.68}
+{"type": "TEACHES", "talk": "BLD1372B", "concept": "coding_model_evaluations", "evidence": "built a benchmark from chains of real GitHub pull requests", "confidence": 0.76}
+{"type": "REQUIRES", "talk": "LDR1387H", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.73}
+{"type": "REQUIRES", "talk": "LDR1387H", "concept": "git_and_pull_request_basics", "evidence": "autonomous pull requests were opened", "confidence": 0.72}
+{"type": "TEACHES", "talk": "LDR1387H", "concept": "delegating_to_agents", "evidence": "each written by an AI agent", "confidence": 0.83}
+{"type": "TEACHES", "talk": "LDR1387H", "concept": "cloud_agent_sandboxes", "evidence": "Copilot cloud agents", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1387H", "concept": "agentic_workflows", "evidence": "operating agentic systems at scale", "confidence": 0.85}
+{"type": "TEACHES", "talk": "BLD1820B", "concept": "specification_driven_development", "evidence": "AI completions, spec-based programming, natural-language-to-app, automation", "confidence": 0.55}
+{"type": "REQUIRES", "talk": "BLD1485D", "concept": "git_and_pull_request_basics", "evidence": "Level 200: Intermediate", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "BLD1485D", "concept": "command_line_basics", "evidence": "with the GitHub CLI", "confidence": 0.65}
 {"type": "TEACHES", "talk": "BLD1485D", "concept": "stacked_pull_requests", "evidence": "split changes into smaller, dependent pull requests", "confidence": 0.98}
-{"type": "TEACHES", "talk": "LDR1716W", "concept": "developer_knowledge_bases", "evidence": "build a developer knowledge base from the artifacts your team already produces", "confidence": 0.98}
-{"type": "TEACHES", "talk": "LDR1716W", "concept": "retrieval_grounding", "evidence": "producing grounded summaries and actionable pointers that link straight back", "confidence": 0.92}
-{"type": "TEACHES", "talk": "LDR1716W", "concept": "mcp_servers", "evidence": "expose it through an MCP server", "confidence": 0.93}
-{"type": "TEACHES", "talk": "LDR1716W", "concept": "copilot_cli_workflows", "evidence": "use the GitHub Copilot CLI to query your knowledge base", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "TRU1378S", "concept": "vulnerability_basics", "evidence": "Level 200: Intermediate", "confidence": 0.64}
+{"type": "TEACHES", "talk": "TRU1378S", "concept": "agentic_workflows", "evidence": "agentic workflows and security controls", "confidence": 0.87}
+{"type": "TEACHES", "talk": "TRU1378S", "concept": "security_alert_autofix", "evidence": "hunts them down with GitHub Advanced Security", "confidence": 0.55}
+{"type": "REQUIRES", "talk": "LDR1716W", "concept": "github_copilot_basics", "evidence": "Give GitHub Copilot access", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1716W", "concept": "command_line_basics", "evidence": "use the GitHub Copilot CLI", "confidence": 0.65}
+{"type": "TEACHES", "talk": "LDR1716W", "concept": "retrieval_grounding", "evidence": "build a developer knowledge base", "confidence": 0.96}
+{"type": "TEACHES", "talk": "LDR1716W", "concept": "model_context_protocol", "evidence": "expose it through an MCP server", "confidence": 0.94}
+{"type": "TEACHES", "talk": "LDR1716W", "concept": "copilot_cli_workflows", "evidence": "query your knowledge base inside real workflows", "confidence": 0.86}
+{"type": "TEACHES", "talk": "LDR1716W", "concept": "copilot_customization", "evidence": "grounding Copilot in your own team's knowledge", "confidence": 0.77}
 {"type": "TEACHES", "talk": "LDR1634P", "concept": "accessibility_automation", "evidence": "use AI and automation to accelerate accessibility", "confidence": 0.96}
-{"type": "REQUIRES", "talk": "LDR1387H", "concept": "ai_coding_agents", "evidence": "each written by an AI agent", "confidence": 0.86}
-{"type": "TEACHES", "talk": "LDR1387H", "concept": "agentic_workflows", "evidence": "operating agentic systems at scale", "confidence": 0.9}
-{"type": "TEACHES", "talk": "LDR1387H", "concept": "multi_agent_orchestration", "evidence": "routed Jira tickets to Copilot cloud agents", "confidence": 0.66}
-{"type": "TEACHES", "talk": "LDR1387H", "concept": "cloud_agent_sandboxes", "evidence": "Copilot cloud agents", "confidence": 0.64}
-{"type": "REQUIRES", "talk": "BLD1788B", "concept": "ai_coding_agents", "evidence": "You and your agent just built something that works on your laptop", "confidence": 0.76}
-{"type": "TEACHES", "talk": "BLD1788B", "concept": "agentic_workflows", "evidence": "you simply ask your agent to publish it, and it handles the rest", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1788B", "concept": "identity_based_agent_auth", "evidence": "putting it behind private, identity-based access that only you can reach", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1788B", "concept": "human_in_the_loop_oversight", "evidence": "captured in a diff you approve", "confidence": 0.84}
-{"type": "TEACHES", "talk": "BLD1788B", "concept": "github_configuration_as_code", "evidence": "every change to who can get in is captured in a diff", "confidence": 0.68}
-{"type": "REQUIRES", "talk": "TRU1422H", "concept": "software_supply_chain_security", "evidence": "Securing the supply chain against AI-discovered zero-days", "confidence": 0.91}
-{"type": "TEACHES", "talk": "TRU1422H", "concept": "deterministic_builds", "evidence": "how deterministic builds change your exposure model", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD1978M", "concept": "ai_coding_agents", "evidence": "they’ll put agents to work", "confidence": 0.87}
-{"type": "TEACHES", "talk": "BLD1978M", "concept": "agentic_workflows", "evidence": "Follow the project from idea to working software", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1978M", "concept": "copilot_cli_workflows", "evidence": "across the Copilot app, CLI, VS Code, and JetBrains", "confidence": 0.74}
-{"type": "TEACHES", "talk": "BLD1978M", "concept": "prompt_assembly_context_window", "evidence": "carry context between tasks", "confidence": 0.63}
-{"type": "REQUIRES", "talk": "TRU1378S", "concept": "ai_coding_agents", "evidence": "Three squads of AI agents compete on the same codebase", "confidence": 0.78}
-{"type": "TEACHES", "talk": "TRU1378S", "concept": "agentic_workflows", "evidence": "hear about agentic workflows and security controls", "confidence": 0.9}
-{"type": "TEACHES", "talk": "TRU1378S", "concept": "multi_agent_orchestration", "evidence": "a Dev Team ships features, a Red Team sneaks in vulnerabilities, and a Blue Team hunts them down", "confidence": 0.76}
-{"type": "TEACHES", "talk": "TRU1378S", "concept": "devsecops_pipeline", "evidence": "which GitHub security controls are non-negotiable for AI-generated code", "confidence": 0.62}
-{"type": "REQUIRES", "talk": "TRU1792D", "concept": "ai_coding_agents", "evidence": "Coding agents can read our repositories, write code, run commands", "confidence": 0.9}
-{"type": "REQUIRES", "talk": "TRU1792D", "concept": "runtime_observability", "evidence": "shift left observability means", "confidence": 0.78}
-{"type": "TEACHES", "talk": "TRU1792D", "concept": "observability_for_agents", "evidence": "bringing operational evidence into their decisions", "confidence": 0.92}
-{"type": "TEACHES", "talk": "TRU1792D", "concept": "human_in_the_loop_oversight", "evidence": "keep humans in the loop before a guess ships to production", "confidence": 0.95}
-{"type": "TEACHES", "talk": "TRU1792D", "concept": "agent_governance_permissions", "evidence": "keeping authority and verification in place", "confidence": 0.7}
-{"type": "TEACHES", "talk": "LDR1785D", "concept": "identity_based_agent_auth", "evidence": "exchange that identity for scoped, short-lived credentials to your API", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD2452D", "concept": "agentic_workflows", "evidence": "triaging issues and investigating production errors", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD2452D", "concept": "copilot_customization", "evidence": "give Copilot clear instructions to help with recurring engineering work", "confidence": 0.67}
-{"type": "TEACHES", "talk": "BLD1596H", "concept": "open_roadmap_collaboration", "evidence": "runs its entire roadmap in the open", "confidence": 0.96}
-{"type": "TEACHES", "talk": "TRU1775D", "concept": "secret_scanning_push_protection", "evidence": "push protection, where unstructured credentials are blocked before they land in a repository", "confidence": 0.97}
-{"type": "TEACHES", "talk": "TRU1775D", "concept": "local_and_cloud_models", "evidence": "model has to run on-premises instead of calling out to a hosted LLM", "confidence": 0.76}
-{"type": "TEACHES", "talk": "LDR1145B", "concept": "ai_adoption_measurement", "evidence": "connect AI investments to actual engineering and business outcomes", "confidence": 0.97}
-{"type": "REQUIRES", "talk": "LDR1774D", "concept": "runtime_observability", "evidence": "correlating logs across 15 dashboards", "confidence": 0.68}
-{"type": "TEACHES", "talk": "LDR1774D", "concept": "model_context_protocol", "evidence": "wire two AI agents together via MCP", "confidence": 0.95}
-{"type": "TEACHES", "talk": "LDR1774D", "concept": "multi_agent_orchestration", "evidence": "concrete architecture for multi-agent incident resolution", "confidence": 0.94}
-{"type": "TEACHES", "talk": "LDR1774D", "concept": "incident_rca_agents", "evidence": "investigates the alert and produces a structured root cause analysis", "confidence": 0.93}
-{"type": "TEACHES", "talk": "LDR1774D", "concept": "ai_coding_agents", "evidence": "Copilot generates a targeted fix, runs it through security scanning and tests", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1781S", "concept": "agentic_workflows", "evidence": "demo non-coding workflows in the GitHub Copilot App", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1781S", "concept": "ai_fluency_enablement", "evidence": "how to expand Copilot adoption across your team", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1795D", "concept": "agentic_workflows", "evidence": "AI agents across the full delivery lifecycle", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1795D", "concept": "human_in_the_loop_oversight", "evidence": "You'll see how human approvals", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1795D", "concept": "deployment_runbooks", "evidence": "runs the approved remediation, and redeploys", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1795D", "concept": "agent_governance_permissions", "evidence": "deployment controls let teams automate recovery without sacrificing governance", "confidence": 0.82}
-{"type": "TEACHES", "talk": "TRU1397B", "concept": "agentic_workflows", "evidence": "see it in action across your workflow", "confidence": 0.84}
-{"type": "TEACHES", "talk": "TRU1397B", "concept": "security_alert_autofix", "evidence": "find and fix the risks that matter most", "confidence": 0.66}
-{"type": "REQUIRES", "talk": "LDR1789B", "concept": "ai_coding_agents", "evidence": "directing agents on GitHub", "confidence": 0.86}
-{"type": "TEACHES", "talk": "LDR1789B", "concept": "human_in_the_loop_oversight", "evidence": "where humans need to stay in the loop", "confidence": 0.97}
-{"type": "TEACHES", "talk": "LDR1789B", "concept": "signed_evidence_audit_trails", "evidence": "approve and trace every step", "confidence": 0.84}
-{"type": "TEACHES", "talk": "LDR1789B", "concept": "devsecops_pipeline", "evidence": "the pipeline itti built", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1789B", "concept": "agentic_workflows", "evidence": "once agents were doing the writing", "confidence": 0.73}
-{"type": "REQUIRES", "talk": "TRU1324H", "concept": "ai_coding_agents", "evidence": "coding agents can now write, commit, and deploy code autonomously", "confidence": 0.88}
-{"type": "TEACHES", "talk": "TRU1324H", "concept": "runtime_observability", "evidence": "eBPF-based runtime observability extends that model down into the kernel", "confidence": 0.96}
+{"type": "REQUIRES", "talk": "LDR1774D", "concept": "github_copilot_basics", "evidence": "GitHub Copilot via MCP", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "LDR1774D", "concept": "git_and_pull_request_basics", "evidence": "opens a fully documented pull request", "confidence": 0.75}
+{"type": "TEACHES", "talk": "LDR1774D", "concept": "model_context_protocol", "evidence": "wire two AI agents together via MCP", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1774D", "concept": "multi_agent_orchestration", "evidence": "wire two AI agents together via MCP", "confidence": 0.88}
+{"type": "TEACHES", "talk": "LDR1774D", "concept": "incident_rca_agents", "evidence": "Production Ops Agent investigates the alert", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1774D", "concept": "delegating_to_agents", "evidence": "Copilot generates a targeted fix", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "BLD1978M", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "BLD1978M", "concept": "command_line_basics", "evidence": "CLI", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1978M", "concept": "agentic_workflows", "evidence": "put agents to work", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1978M", "concept": "copilot_cli_workflows", "evidence": "Copilot app, CLI, VS Code, and JetBrains", "confidence": 0.74}
+{"type": "TEACHES", "talk": "BLD1978M", "concept": "prompt_assembly_context_window", "evidence": "carry context between tasks", "confidence": 0.69}
+{"type": "TEACHES", "talk": "BLD1978M", "concept": "model_routing", "evidence": "their favorite tools, models", "confidence": 0.58}
+{"type": "REQUIRES", "talk": "LDR1786M", "concept": "git_and_pull_request_basics", "evidence": "460 pull requests a week", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1786M", "concept": "agentic_workflows", "evidence": "Agentic workflows in production", "confidence": 0.97}
+{"type": "TEACHES", "talk": "LDR1786M", "concept": "github_actions_workflows", "evidence": "GitHub Actions as the floor", "confidence": 0.72}
+{"type": "TEACHES", "talk": "LDR1786M", "concept": "agent_governance_permissions", "evidence": "deploying governed workflows across the organization", "confidence": 0.86}
+{"type": "TEACHES", "talk": "LDR1786M", "concept": "signed_evidence_audit_trails", "evidence": "every automated decision needs an audit trail", "confidence": 0.84}
+{"type": "REQUIRES", "talk": "TRU1422H", "concept": "vulnerability_basics", "evidence": "decades-old CVEs", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "TRU1422H", "concept": "software_supply_chain_security", "evidence": "Securing the supply chain", "confidence": 0.86}
+{"type": "TEACHES", "talk": "TRU1422H", "concept": "deterministic_builds", "evidence": "deterministic builds change your exposure model", "confidence": 0.97}
+{"type": "REQUIRES", "talk": "LDR1785D", "concept": "api_authentication_basics", "evidence": "generate an API key, and paste it into a config file", "confidence": 0.85}
+{"type": "TEACHES", "talk": "LDR1785D", "concept": "identity_based_agent_auth", "evidence": "exchange that identity for scoped, short-lived credentials", "confidence": 0.97}
+{"type": "REQUIRES", "talk": "TRU1792D", "concept": "agentic_workflows", "evidence": "agents are part of the development workflow", "confidence": 0.78}
+{"type": "TEACHES", "talk": "TRU1792D", "concept": "runtime_observability", "evidence": "bringing operational evidence into their decisions", "confidence": 0.9}
+{"type": "TEACHES", "talk": "TRU1792D", "concept": "human_in_the_loop_oversight", "evidence": "keep humans in the loop", "confidence": 0.88}
+{"type": "TEACHES", "talk": "TRU1792D", "concept": "agent_governance_permissions", "evidence": "keeping authority and verification in place", "confidence": 0.68}
+{"type": "TEACHES", "talk": "BLD2452D", "concept": "agentic_workflows", "evidence": "repetitive work across the software lifecycle", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD2452D", "concept": "copilot_customization", "evidence": "give Copilot clear instructions to help with recurring engineering work", "confidence": 0.74}
+{"type": "TEACHES", "talk": "BLD2452D", "concept": "incident_rca_agents", "evidence": "investigating production errors", "confidence": 0.62}
+{"type": "REQUIRES", "talk": "BLD1788B", "concept": "git_and_pull_request_basics", "evidence": "opening a pull request", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1788B", "concept": "ci_cd_basics", "evidence": "deploying the app", "confidence": 0.67}
+{"type": "TEACHES", "talk": "BLD1788B", "concept": "delegating_to_agents", "evidence": "simply ask your agent to publish it", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD1788B", "concept": "human_in_the_loop_oversight", "evidence": "captured in a diff you approve", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1788B", "concept": "github_configuration_as_code", "evidence": "every change to who can get in is captured in a diff", "confidence": 0.7}
+{"type": "TEACHES", "talk": "BLD1788B", "concept": "identity_based_agent_auth", "evidence": "identity decides who gets access", "confidence": 0.56}
+{"type": "REQUIRES", "talk": "BLD1596H", "concept": "open_source_basics", "evidence": "Level 200: Intermediate", "confidence": 0.63}
+{"type": "TEACHES", "talk": "BLD1596H", "concept": "requirements_from_feedback", "evidence": "using what Issues, Projects, and Discussions have become", "confidence": 0.95}
+{"type": "TEACHES", "talk": "TRU1397B", "concept": "agentic_workflows", "evidence": "agent working on your security alongside you", "confidence": 0.83}
+{"type": "TEACHES", "talk": "TRU1397B", "concept": "security_alert_autofix", "evidence": "find and fix the risks that matter most", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "TRU1775D", "concept": "git_and_pull_request_basics", "evidence": "critical path of every push", "confidence": 0.69}
+{"type": "TEACHES", "talk": "TRU1775D", "concept": "secret_scanning_push_protection", "evidence": "push protection, where unstructured credentials are blocked before they land in a repository", "confidence": 0.98}
+{"type": "REQUIRES", "talk": "LDR1781S", "concept": "github_copilot_basics", "evidence": "Your team uses GitHub Copilot to write code.", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1781S", "concept": "agentic_workflows", "evidence": "repeatable patterns for non-code workflows", "confidence": 0.83}
+{"type": "TEACHES", "talk": "LDR1781S", "concept": "requirements_from_feedback", "evidence": "triaging feedback and automating recurring reports", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "LDR1145B", "concept": "github_copilot_basics", "evidence": "Evaluating GitHub Copilot across thousands of engineers", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1145B", "concept": "ai_adoption_measurement", "evidence": "which metrics matter at different stages of adoption", "confidence": 0.95}
+{"type": "REQUIRES", "talk": "TRU1798D", "concept": "github_copilot_basics", "evidence": "Level 300: Advanced", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "TRU1798D", "concept": "git_and_pull_request_basics", "evidence": "Follow one pull request from end to end", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "TRU1798D", "concept": "github_actions_workflows", "evidence": "scaled in parallel through GitHub Actions", "confidence": 0.7}
+{"type": "REQUIRES", "talk": "TRU1798D", "concept": "self_validating_agentic_loops", "evidence": "Build a self-validating agentic loop with GitHub Copilot", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "BLD1795D", "concept": "ci_cd_basics", "evidence": "complete the first successful deployment", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1795D", "concept": "agentic_workflows", "evidence": "AI agents across the full delivery lifecycle", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD1795D", "concept": "incident_rca_agents", "evidence": "diagnoses the issue, runs the approved remediation, and redeploys", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1795D", "concept": "human_in_the_loop_oversight", "evidence": "human approvals, runbooks, and deployment controls", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1795D", "concept": "agent_governance_permissions", "evidence": "automate recovery without sacrificing governance", "confidence": 0.76}
 {"type": "TEACHES", "talk": "BLD1581D", "concept": "requirements_from_feedback", "evidence": "Turning user feedback into requirements", "confidence": 0.98}
 {"type": "TEACHES", "talk": "BLD1581D", "concept": "custom_agents_plugins", "evidence": "custom Copilot agent", "confidence": 0.86}
-{"type": "REQUIRES", "talk": "TRU1556M", "concept": "github_actions_workflows", "evidence": "GitHub Actions controls available today", "confidence": 0.86}
-{"type": "TEACHES", "talk": "TRU1556M", "concept": "software_supply_chain_security", "evidence": "threat framework for software supply chain attacks", "confidence": 0.92}
+{"type": "REQUIRES", "talk": "TRU1556M", "concept": "ci_cd_basics", "evidence": "adversaries are targeting CI/CD itself", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "TRU1556M", "concept": "github_actions_workflows", "evidence": "GitHub Actions controls available today", "confidence": 0.84}
+{"type": "TEACHES", "talk": "TRU1556M", "concept": "software_supply_chain_security", "evidence": "software supply chain attacks", "confidence": 0.9}
 {"type": "TEACHES", "talk": "TRU1556M", "concept": "actions_security_hardening", "evidence": "hardening Actions across three layers", "confidence": 0.93}
-{"type": "TEACHES", "talk": "TRU1556M", "concept": "runner_security", "evidence": "and the runner infrastructure", "confidence": 0.72}
-{"type": "REQUIRES", "talk": "TRU1798D", "concept": "self_validating_agentic_loops", "evidence": "build a self-validating agentic loop with GitHub Copilot", "confidence": 0.96}
-{"type": "REQUIRES", "talk": "TRU1798D", "concept": "ai_coding_agents", "evidence": "AI agents are writing more of your codebase every day", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "TRU1798D", "concept": "github_actions_workflows", "evidence": "scaled in parallel through GitHub Actions", "confidence": 0.76}
-{"type": "REQUIRES", "talk": "TRU1798D", "concept": "pull_request_review_workflows", "evidence": "Follow one pull request from end to end", "confidence": 0.66}
-{"type": "TEACHES", "talk": "TRU1798D", "concept": "automated_test_generation", "evidence": "use cases become tests", "confidence": 0.8}
-{"type": "TEACHES", "talk": "TRU1179D", "concept": "vulnerability_reachability", "evidence": "Reachability adds application-specific context by showing whether your code can call the vulnerable function.", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD1398H", "concept": "specifications_as_hypotheses", "evidence": "shift specifications from contracts to hypotheses", "confidence": 0.98}
-{"type": "REQUIRES", "talk": "BLD1799D", "concept": "agentic_workflows", "evidence": "GitHub Agentic Workflows can interpret the situation, decide what to do next, and take action", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1799D", "concept": "agent_governance_permissions", "evidence": "including scoped permissions, workflow governance, safe execution patterns", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD1799D", "concept": "human_in_the_loop_oversight", "evidence": "keeping permissions, security, and review under human control", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1799D", "concept": "pull_request_review_workflows", "evidence": "review of agent contributions", "confidence": 0.64}
-{"type": "TEACHES", "talk": "BLD1491D", "concept": "copilot_cli_workflows", "evidence": "real workflows using GitHub CLI, Git, Gum, and GitHub Copilot CLI", "confidence": 0.77}
-{"type": "TEACHES", "talk": "BLD1919M", "concept": "proactive_agents", "evidence": "acting on needs without a prompt", "confidence": 0.96}
-{"type": "TEACHES", "talk": "BLD1919M", "concept": "human_in_the_loop_oversight", "evidence": "which decisions still need a human", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1919M", "concept": "agentic_workflows", "evidence": "design agents that decide what to do next", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1640W", "concept": "prompt_assembly_context_window", "evidence": "Every GitHub Copilot interaction assembles a layered prompt", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD1640W", "concept": "token_usage_optimization", "evidence": "maximum signal and minimum waste", "confidence": 0.88}
-{"type": "REQUIRES", "talk": "BLD1463B", "concept": "ai_coding_agents", "evidence": "feed that context directly into the GitHub Copilot cloud agent", "confidence": 0.84}
-{"type": "TEACHES", "talk": "BLD1463B", "concept": "model_context_protocol", "evidence": "connects Figma and GitHub Copilot through MCP", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1463B", "concept": "plan_first_review", "evidence": "see what's being built before it happens", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1463B", "concept": "agentic_workflows", "evidence": "leave with a repeatable workflow that plugs into your existing GitHub and Figma setup", "confidence": 0.75}
-{"type": "TEACHES", "talk": "LDR1874S", "concept": "enterprise_copilot_administration", "evidence": "Copilot’s enterprise controls", "confidence": 0.96}
-{"type": "TEACHES", "talk": "TRU1672B", "concept": "github_configuration_as_code", "evidence": "managing repos with infrastructure as code", "confidence": 0.96}
-{"type": "TEACHES", "talk": "TRU1672B", "concept": "repository_rulesets", "evidence": "choosing between branch protection and rulesets", "confidence": 0.98}
-{"type": "REQUIRES", "talk": "LDR1797D", "concept": "ai_coding_agents", "evidence": "what high-performing teams do differently with AI coding", "confidence": 0.7}
-{"type": "TEACHES", "talk": "LDR1797D", "concept": "ai_adoption_measurement", "evidence": "connect Copilot activity to metrics your business cares about", "confidence": 0.95}
-{"type": "REQUIRES", "talk": "BLD1402H", "concept": "ai_coding_agents", "evidence": "running agents in the cloud", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1402H", "concept": "cloud_agent_sandboxes", "evidence": "isolated sandboxes", "confidence": 0.94}
-{"type": "TEACHES", "talk": "BLD1402H", "concept": "agent_governance_permissions", "evidence": "identity, and permissions", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1402H", "concept": "human_in_the_loop_oversight", "evidence": "delegation and review", "confidence": 0.74}
-{"type": "TEACHES", "talk": "BLD1402H", "concept": "multi_agent_orchestration", "evidence": "orchestration, identity, and permissions", "confidence": 0.7}
-{"type": "TEACHES", "talk": "BLD1454D", "concept": "pull_request_review_workflows", "evidence": "what Copilot code review handles out of the box", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1454D", "concept": "custom_agents_plugins", "evidence": "builds a custom agent using the Copilot SDK", "confidence": 0.94}
-{"type": "TEACHES", "talk": "BLD1454D", "concept": "multi_agent_orchestration", "evidence": "focused sub-agents for concerns like performance and architecture", "confidence": 0.78}
-{"type": "REQUIRES", "talk": "BLD1353D", "concept": "ai_coding_agents", "evidence": "spent weeks working with the agent", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1398H", "concept": "specification_driven_development", "evidence": "How to shift specifications from contracts to hypotheses", "confidence": 0.98}
+{"type": "REQUIRES", "talk": "TRU1324H", "concept": "github_copilot_basics", "evidence": "GitHub Copilot and coding agents", "confidence": 0.62}
+{"type": "REQUIRES", "talk": "TRU1324H", "concept": "agentic_workflows", "evidence": "write, commit, and deploy code autonomously", "confidence": 0.78}
+{"type": "TEACHES", "talk": "TRU1324H", "concept": "runtime_observability", "evidence": "eBPF-based runtime observability extends that model down into the kernel", "confidence": 0.95}
+{"type": "TEACHES", "talk": "BLD1799D", "concept": "agentic_workflows", "evidence": "GitHub Agentic Workflows can interpret the situation", "confidence": 0.92}
+{"type": "TEACHES", "talk": "BLD1799D", "concept": "agent_governance_permissions", "evidence": "including scoped permissions, workflow governance", "confidence": 0.95}
+{"type": "TEACHES", "talk": "BLD1799D", "concept": "human_in_the_loop_oversight", "evidence": "review under human control", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "TRU1179D", "concept": "vulnerability_basics", "evidence": "Vulnerability prioritization is hard.", "confidence": 0.87}
+{"type": "TEACHES", "talk": "TRU1179D", "concept": "vulnerability_reachability", "evidence": "showing whether your code can call the vulnerable function", "confidence": 0.98}
+{"type": "TEACHES", "talk": "BLD1491D", "concept": "command_line_basics", "evidence": "fundamentals like Unix pipes and shell scripts", "confidence": 0.97}
+{"type": "TEACHES", "talk": "BLD1491D", "concept": "copilot_cli_workflows", "evidence": "workflows using GitHub CLI, Git, Gum, and GitHub Copilot CLI", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1919M", "concept": "llm_basics", "evidence": "Level 200: Intermediate", "confidence": 0.6}
+{"type": "TEACHES", "talk": "BLD1919M", "concept": "agentic_workflows", "evidence": "design agents that decide what to do next", "confidence": 0.88}
+{"type": "TEACHES", "talk": "BLD1919M", "concept": "human_in_the_loop_oversight", "evidence": "which decisions still need a human", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "LDR1789B", "concept": "ci_cd_basics", "evidence": "show the pipeline itti built", "confidence": 0.55}
+{"type": "TEACHES", "talk": "LDR1789B", "concept": "delegating_to_agents", "evidence": "one product manager directing agents on GitHub", "confidence": 0.87}
+{"type": "TEACHES", "talk": "LDR1789B", "concept": "human_in_the_loop_oversight", "evidence": "where humans need to stay in the loop", "confidence": 0.96}
+{"type": "TEACHES", "talk": "LDR1789B", "concept": "signed_evidence_audit_trails", "evidence": "approve and trace every step", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1789B", "concept": "agent_governance_permissions", "evidence": "gates that got it through cybersecurity review", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "TRU2230D", "concept": "vulnerability_basics", "evidence": "Vulnerabilities reach developers from two directions.", "confidence": 0.8}
+{"type": "REQUIRES", "talk": "TRU2230D", "concept": "git_and_pull_request_basics", "evidence": "before a pull request exists", "confidence": 0.69}
+{"type": "TEACHES", "talk": "TRU2230D", "concept": "security_alert_autofix", "evidence": "fix issues before a pull request exists", "confidence": 0.86}
+{"type": "TEACHES", "talk": "TRU2230D", "concept": "agentic_workflows", "evidence": "developers building with agents can move security ahead of the code", "confidence": 0.61}
+{"type": "REQUIRES", "talk": "LDR1874S", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1874S", "concept": "enterprise_copilot_administration", "evidence": "Copilot’s enterprise controls", "confidence": 0.95}
+{"type": "REQUIRES", "talk": "LDR1797D", "concept": "github_copilot_basics", "evidence": "Is GitHub Copilot working?", "confidence": 0.84}
+{"type": "REQUIRES", "talk": "LDR1797D", "concept": "git_and_pull_request_basics", "evidence": "100M pull requests", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1797D", "concept": "llm_basics", "evidence": "90+ million prompts, and 150+ trillion tokens", "confidence": 0.61}
+{"type": "TEACHES", "talk": "LDR1797D", "concept": "ai_adoption_measurement", "evidence": "how to connect Copilot activity to metrics your business cares about", "confidence": 0.93}
+{"type": "TEACHES", "talk": "BLD1779P", "concept": "open_source_basics", "evidence": "what maintainers are doing right now", "confidence": 0.55}
+{"type": "REQUIRES", "talk": "BLD1640W", "concept": "github_copilot_basics", "evidence": "Every GitHub Copilot interaction", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "BLD1640W", "concept": "llm_basics", "evidence": "Level 200: Intermediate", "confidence": 0.65}
+{"type": "TEACHES", "talk": "BLD1640W", "concept": "prompt_assembly_context_window", "evidence": "assembles a layered prompt before anything reaches the model", "confidence": 0.97}
+{"type": "TEACHES", "talk": "BLD1640W", "concept": "agent_tracing", "evidence": "what real-world patterns look like in the debug logs", "confidence": 0.54}
+{"type": "REQUIRES", "talk": "TRU1672B", "concept": "git_and_pull_request_basics", "evidence": "Level 200: Intermediate", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "TRU1672B", "concept": "api_authentication_basics", "evidence": "migrating from personal access tokens (PATs) to GitHub Apps", "confidence": 0.66}
+{"type": "TEACHES", "talk": "TRU1672B", "concept": "github_configuration_as_code", "evidence": "managing repos with infrastructure as code", "confidence": 0.9}
+{"type": "TEACHES", "talk": "TRU1672B", "concept": "repository_rulesets", "evidence": "choosing between branch protection and rulesets", "confidence": 0.93}
+{"type": "REQUIRES", "talk": "LDR1725D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.75}
+{"type": "REQUIRES", "talk": "LDR1725D", "concept": "ci_cd_basics", "evidence": "GitHub Actions", "confidence": 0.6}
+{"type": "REQUIRES", "talk": "LDR1725D", "concept": "vulnerability_basics", "evidence": "remediate vulnerabilities", "confidence": 0.65}
+{"type": "TEACHES", "talk": "LDR1725D", "concept": "legacy_app_modernization", "evidence": "upgrading and migrating legacy applications", "confidence": 0.98}
+{"type": "TEACHES", "talk": "LDR1725D", "concept": "agentic_workflows", "evidence": "analyze, plan, refactor, test, secure, and migrate", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1725D", "concept": "human_in_the_loop_oversight", "evidence": "with a human in the loop at each step", "confidence": 0.85}
+{"type": "REQUIRES", "talk": "BLD1463B", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.72}
+{"type": "TEACHES", "talk": "BLD1463B", "concept": "human_in_the_loop_oversight", "evidence": "see what's being built before it happens", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD1463B", "concept": "model_context_protocol", "evidence": "connects Figma and GitHub Copilot through MCP", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1463B", "concept": "cloud_agent_sandboxes", "evidence": "GitHub Copilot cloud agent", "confidence": 0.77}
+{"type": "TEACHES", "talk": "BLD1463B", "concept": "agentic_workflows", "evidence": "leave with a repeatable workflow", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "BLD1454D", "concept": "git_and_pull_request_basics", "evidence": "merging more pull requests per day", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1454D", "concept": "pull_request_review_workflows", "evidence": "what Copilot code review handles out of the box", "confidence": 0.96}
+{"type": "TEACHES", "talk": "BLD1454D", "concept": "custom_agents_plugins", "evidence": "builds a custom agent using the Copilot SDK", "confidence": 0.95}
+{"type": "TEACHES", "talk": "BLD1454D", "concept": "multi_agent_orchestration", "evidence": "focused sub-agents for concerns like performance and architecture", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "BLD1353D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.77}
+{"type": "REQUIRES", "talk": "BLD1353D", "concept": "command_line_basics", "evidence": "could Copilot CLI generate", "confidence": 0.67}
+{"type": "TEACHES", "talk": "BLD1353D", "concept": "agent_skills", "evidence": "Xin Wu wrote a single skill", "confidence": 0.94}
 {"type": "TEACHES", "talk": "BLD1353D", "concept": "copilot_cli_workflows", "evidence": "could Copilot CLI generate a real health report", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1353D", "concept": "agent_skills", "evidence": "Xin Wu wrote a single skill", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1353D", "concept": "human_in_the_loop_oversight", "evidence": "how to review AI-generated output without redoing all the work", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "BLD1460H", "concept": "mcp_servers", "evidence": "single source of truth for MCP servers, skills, and agents", "confidence": 0.8}
-{"type": "REQUIRES", "talk": "BLD1460H", "concept": "agent_skills", "evidence": "single source of truth for MCP servers, skills, and agents", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1460H", "concept": "ai_context_infrastructure", "evidence": "shows how a personal productivity hack became org-wide infrastructure", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1460H", "concept": "skill_discovery_management", "evidence": "build an internal AI tool catalog on GitHub", "confidence": 0.86}
+{"type": "TEACHES", "talk": "BLD1353D", "concept": "human_in_the_loop_oversight", "evidence": "how to review AI-generated output without redoing all the work", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1402H", "concept": "github_copilot_basics", "evidence": "Level 300: Advanced", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "BLD1402H", "concept": "cloud_agent_sandboxes", "evidence": "running agents in the cloud", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1402H", "concept": "delegating_to_agents", "evidence": "from delegation and review", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1402H", "concept": "human_in_the_loop_oversight", "evidence": "delegation and review to isolated sandboxes", "confidence": 0.68}
+{"type": "TEACHES", "talk": "BLD1402H", "concept": "multi_agent_orchestration", "evidence": "isolated sandboxes, orchestration, identity, and permissions", "confidence": 0.8}
+{"type": "TEACHES", "talk": "BLD1402H", "concept": "agent_governance_permissions", "evidence": "the right access to repositories and tools", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "BLD1460H", "concept": "model_context_protocol", "evidence": "single source of truth for MCP servers", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1460H", "concept": "agent_skills", "evidence": "MCP servers, skills, and agents", "confidence": 0.67}
+{"type": "TEACHES", "talk": "BLD1460H", "concept": "copilot_customization", "evidence": "How a shared AI config became Slack's internal tool platform", "confidence": 0.76}
 {"type": "TEACHES", "talk": "BLD1460H", "concept": "ai_adoption_measurement", "evidence": "measure adoption with real data instead of surveys", "confidence": 0.95}
-{"type": "REQUIRES", "talk": "BLD1241D", "concept": "ai_coding_agents", "evidence": "GitHub Copilot's default agent mode on real repository tasks", "confidence": 0.65}
-{"type": "TEACHES", "talk": "BLD1241D", "concept": "open_weight_coding_models", "evidence": "benchmarking three open-weight coders on a single RTX 4090", "confidence": 0.96}
-{"type": "TEACHES", "talk": "BLD1241D", "concept": "local_and_cloud_models", "evidence": "which workload patterns on real tasks favor a local GPU, which favor Copilot out of the box", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1241D", "concept": "coding_model_evaluations", "evidence": "reporting time to first token, tool-call accuracy, and task completion rate", "confidence": 0.94}
-{"type": "TEACHES", "talk": "BLD1916M", "concept": "ai_fluency_enablement", "evidence": "why a successful proof of concept can still be hard to integrate", "confidence": 0.68}
-{"type": "REQUIRES", "talk": "LDR1725D", "concept": "ai_coding_agents", "evidence": "GitHub's AI-powered toolset for upgrading and migrating legacy applications", "confidence": 0.66}
-{"type": "REQUIRES", "talk": "LDR1725D", "concept": "github_actions_workflows", "evidence": "GitHub Copilot app modernization, GitHub Actions", "confidence": 0.58}
-{"type": "TEACHES", "talk": "LDR1725D", "concept": "legacy_app_modernization", "evidence": "upgrading and migrating legacy applications", "confidence": 0.95}
-{"type": "TEACHES", "talk": "LDR1725D", "concept": "agentic_workflows", "evidence": "analyze, plan, refactor, test, secure, and migrate", "confidence": 0.86}
-{"type": "TEACHES", "talk": "LDR1725D", "concept": "human_in_the_loop_oversight", "evidence": "with a human in the loop at each step", "confidence": 0.78}
-{"type": "REQUIRES", "talk": "BLD1784D", "concept": "ai_coding_agents", "evidence": "GitHub Copilot use the Arm MCP server", "confidence": 0.62}
-{"type": "REQUIRES", "talk": "BLD1784D", "concept": "github_actions_workflows", "evidence": "through GitHub Actions and deployment", "confidence": 0.66}
-{"type": "TEACHES", "talk": "BLD1784D", "concept": "mcp_servers", "evidence": "use the Arm MCP server", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1784D", "concept": "agentic_workflows", "evidence": "real migration workflow", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1784D", "concept": "legacy_app_modernization", "evidence": "Migrating a Large-Scale Linux Web App", "confidence": 0.76}
-{"type": "TEACHES", "talk": "BLD1784D", "concept": "coding_model_evaluations", "evidence": "task success, task time, and cost per successful task", "confidence": 0.58}
-{"type": "TEACHES", "talk": "BLD2008D", "concept": "copilot_customization", "evidence": "Extending and customizing GitHub Copilot is now easier than ever!", "confidence": 0.95}
-{"type": "TEACHES", "talk": "BLD2008D", "concept": "skill_discovery_management", "evidence": "learn how to discover exactly what agent skills, plugins, and MCP servers", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD2008D", "concept": "mcp_servers", "evidence": "plugins, and MCP servers you need", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD2008D", "concept": "mcp_authorization", "evidence": "you can discover, authorize once, and instantly use your favorite services", "confidence": 0.7}
-{"type": "TEACHES", "talk": "TRU1476B", "concept": "software_supply_chain_security", "evidence": "what it really depends on: who can publish a package", "confidence": 0.93}
-{"type": "TEACHES", "talk": "TRU1476B", "concept": "package_provenance_oidc", "evidence": "provenance and OpenID Connect (OIDC)", "confidence": 0.98}
-{"type": "TEACHES", "talk": "TRU1476B", "concept": "dependency_screening", "evidence": "concrete checks to run before you trust the next package", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "TRU1333B", "concept": "github_actions_workflows", "evidence": "GitHub Actions has a reputation for insecure defaults", "confidence": 0.87}
+{"type": "REQUIRES", "talk": "LDR1107B", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.62}
+{"type": "TEACHES", "talk": "LDR1107B", "concept": "ai_adoption_measurement", "evidence": "how to measure meaningful adoption through impact", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "BLD1241D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "BLD1241D", "concept": "agent_mode", "evidence": "GitHub Copilot's default agent mode", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "BLD1241D", "concept": "llm_basics", "evidence": "time to first token", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1241D", "concept": "model_routing", "evidence": "which workload patterns on real tasks favor a local GPU", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1241D", "concept": "coding_model_evaluations", "evidence": "benchmarking three open-weight coders", "confidence": 0.93}
+{"type": "REQUIRES", "talk": "BLD1784D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "BLD1784D", "concept": "ci_cd_basics", "evidence": "from development and builds through GitHub Actions and deployment", "confidence": 0.66}
+{"type": "TEACHES", "talk": "BLD1784D", "concept": "agentic_workflows", "evidence": "fit into agentic development", "confidence": 0.8}
+{"type": "TEACHES", "talk": "BLD1784D", "concept": "model_context_protocol", "evidence": "use the Arm MCP server", "confidence": 0.76}
+{"type": "TEACHES", "talk": "BLD1784D", "concept": "github_actions_workflows", "evidence": "through GitHub Actions and deployment", "confidence": 0.64}
+{"type": "TEACHES", "talk": "BLD1784D", "concept": "coding_model_evaluations", "evidence": "task success, task time, and cost per successful task", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "TRU1333B", "concept": "github_actions_workflows", "evidence": "GitHub Actions has a reputation for insecure defaults", "confidence": 0.88}
 {"type": "TEACHES", "talk": "TRU1333B", "concept": "actions_security_hardening", "evidence": "Actions' best-known footguns and their fixes", "confidence": 0.94}
-{"type": "REQUIRES", "talk": "LDR1107B", "concept": "ai_coding_agents", "evidence": "78% agent-written code", "confidence": 0.55}
-{"type": "TEACHES", "talk": "LDR1107B", "concept": "ai_adoption_measurement", "evidence": "measure meaningful adoption through impact", "confidence": 0.94}
-{"type": "TEACHES", "talk": "LDR1107B", "concept": "ai_fluency_enablement", "evidence": "combining grassroots engagement, storytelling, and innersource", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1819H", "concept": "agentic_workflows", "evidence": "concrete pattern for adding agents to an existing CI/CD workflow", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1819H", "concept": "reproducible_gitops_pipelines", "evidence": "CI/CD, GitOps, and open source projects can work together in a reproducible software supply chain", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1819H", "concept": "human_in_the_loop_oversight", "evidence": "the people reviewing its changes", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1819H", "concept": "software_supply_chain_security", "evidence": "reviewable, traceable, and safe to reproduce", "confidence": 0.63}
-{"type": "REQUIRES", "talk": "BLD1636S", "concept": "model_context_protocol", "evidence": "another MCP-compatible editor reads documentation", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD1636S", "concept": "mcp_servers", "evidence": "fork an open source reference server, install it in your editor", "confidence": 0.94}
-{"type": "TEACHES", "talk": "BLD1636S", "concept": "developer_knowledge_bases", "evidence": "reads documentation through an opinionated MCP server", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1636S", "concept": "copilot_customization", "evidence": "watch agent behavior change side by side", "confidence": 0.67}
-{"type": "TEACHES", "talk": "BLD1072S", "concept": "ai_coding_agents", "evidence": "trusting AI to handle complex tasks on its own", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD1072S", "concept": "copilot_customization", "evidence": "Your repository's Copilot configuration", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1072S", "concept": "prompt_assembly_context_window", "evidence": "how Copilot spends context and tokens", "confidence": 0.93}
-{"type": "TEACHES", "talk": "BLD1072S", "concept": "token_usage_optimization", "evidence": "efficiency gains measurable", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD1824W", "concept": "enterprise_copilot_administration", "evidence": "policies and access decisions that shape Copilot management", "confidence": 0.93}
-{"type": "TEACHES", "talk": "BLD1824W", "concept": "ai_adoption_measurement", "evidence": "assess usage and adoption", "confidence": 0.78}
-{"type": "REQUIRES", "talk": "LDR1869H", "concept": "ai_coding_agents", "evidence": "GitHub Copilot changed how developers at Micron write code", "confidence": 0.71}
-{"type": "TEACHES", "talk": "LDR1869H", "concept": "agentic_workflows", "evidence": "enable agentic workflows across planning, development, testing, documentation, and delivery", "confidence": 0.94}
-{"type": "TEACHES", "talk": "LDR1869H", "concept": "ai_context_infrastructure", "evidence": "treat context as shared infrastructure for agentic work", "confidence": 0.97}
-{"type": "TEACHES", "talk": "LDR1869H", "concept": "ai_adoption_measurement", "evidence": "drives measurable gains in productivity, quality, and speed", "confidence": 0.62}
-{"type": "REQUIRES", "talk": "BLD1644H", "concept": "ai_coding_agents", "evidence": "Building domain-specific AI agents for hardware reliability at NVIDIA", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD1644H", "concept": "custom_agents_plugins", "evidence": "build domain-specific agents trained on internal logs and diagnostics", "confidence": 0.92}
-{"type": "TEACHES", "talk": "BLD1644H", "concept": "agentic_workflows", "evidence": "design a layered AI workflow", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD1644H", "concept": "automated_test_generation", "evidence": "test generation at pre-commit", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1644H", "concept": "pull_request_review_workflows", "evidence": "AI-assisted code review at commit time", "confidence": 0.78}
-{"type": "REQUIRES", "talk": "LDR1800D", "concept": "github_actions_workflows", "evidence": "GitHub Actions has become home to a whole generation of custom agents", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "LDR1800D", "concept": "ai_coding_agents", "evidence": "custom agents: triaging issues, iterating on pull requests, reviewing diffs", "confidence": 0.78}
-{"type": "TEACHES", "talk": "LDR1800D", "concept": "agent_tracing", "evidence": "Agent tracing from Sentry show you what actually happened", "confidence": 0.98}
-{"type": "TEACHES", "talk": "LDR1800D", "concept": "mcp_servers", "evidence": "Connect Copilot to Sentry's MCP server to pull that data on demand", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1810D", "concept": "repository_rulesets", "evidence": "point a GitHub ruleset at critical services", "confidence": 0.94}
-{"type": "TEACHES", "talk": "TRU1100B", "concept": "secret_scanning_push_protection", "evidence": "stopping a push that carries a secret", "confidence": 0.95}
-{"type": "TEACHES", "talk": "TRU1100B", "concept": "devsecops_pipeline", "evidence": "how alerts get routed and prioritized, who owns a finding", "confidence": 0.62}
-{"type": "REQUIRES", "talk": "TRU1821B", "concept": "ai_coding_agents", "evidence": "Your coding agent just shipped a feature", "confidence": 0.86}
-{"type": "REQUIRES", "talk": "TRU1821B", "concept": "browser_agent_testing", "evidence": "explore an application in a real browser", "confidence": 0.84}
-{"type": "TEACHES", "talk": "TRU1821B", "concept": "self_validating_agentic_loops", "evidence": "gather evidence, reproduce failures, and distinguish product bugs", "confidence": 0.78}
-{"type": "TEACHES", "talk": "TRU1821B", "concept": "agent_governance_permissions", "evidence": "deterministic controls keep agents within safe boundaries", "confidence": 0.76}
-{"type": "TEACHES", "talk": "TRU1821B", "concept": "human_in_the_loop_oversight", "evidence": "when a human needs to step in", "confidence": 0.88}
-{"type": "TEACHES", "talk": "TRU1821B", "concept": "automated_test_generation", "evidence": "keep tests current as the product changes", "confidence": 0.64}
-{"type": "TEACHES", "talk": "LDR1358D", "concept": "github_configuration_as_code", "evidence": "codifying critical GitHub configurations through Terraform", "confidence": 0.98}
-{"type": "TEACHES", "talk": "LDR1358D", "concept": "pull_request_review_workflows", "evidence": "every change proposed and reviewed through pull requests", "confidence": 0.8}
-{"type": "TEACHES", "talk": "LDR1358D", "concept": "agentic_workflows", "evidence": "automate routine requests with Copilot", "confidence": 0.62}
-{"type": "TEACHES", "talk": "LDR1358D", "concept": "ai_fluency_enablement", "evidence": "practical AI agent adoption", "confidence": 0.55}
-{"type": "REQUIRES", "talk": "LDR1872D", "concept": "ai_coding_agents", "evidence": "Coding agents can write and ship software quickly", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1872D", "concept": "requirements_from_feedback", "evidence": "connects user behavior to the codebase", "confidence": 0.78}
-{"type": "TEACHES", "talk": "LDR1872D", "concept": "agentic_workflows", "evidence": "move from product discovery to development", "confidence": 0.65}
-{"type": "REQUIRES", "talk": "BLD1657H", "concept": "runtime_observability", "evidence": "jumping between Grafana, Jaeger, and logs", "confidence": 0.84}
-{"type": "REQUIRES", "talk": "BLD1657H", "concept": "incident_rca_agents", "evidence": "The 2am RCA Agent", "confidence": 0.78}
-{"type": "TEACHES", "talk": "BLD1657H", "concept": "observability_for_agents", "evidence": "Signal fetching, BFS topology traversal, correlation, and scoring", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "TRU1148D", "concept": "pull_request_review_workflows", "evidence": "remediation becomes a pull request review instead", "confidence": 0.72}
-{"type": "TEACHES", "talk": "TRU1148D", "concept": "security_alert_autofix", "evidence": "Agentic autofix helps you reduce the amount of time", "confidence": 0.96}
-{"type": "TEACHES", "talk": "BLD1864D", "concept": "release_impact_measurement", "evidence": "feature gates, experiments, and product metrics", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD2151D", "concept": "specification_driven_development", "evidence": "specification-driven development, AI agents, and proof-based validation", "confidence": 0.96}
-{"type": "TEACHES", "talk": "BLD2151D", "concept": "agentic_workflows", "evidence": "while agents work toward verifiable outcomes", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD2151D", "concept": "human_in_the_loop_oversight", "evidence": "intervene at key decision points", "confidence": 0.88}
-{"type": "TEACHES", "talk": "BLD2151D", "concept": "self_validating_agentic_loops", "evidence": "proof-based validation across the software delivery lifecycle", "confidence": 0.8}
-{"type": "TEACHES", "talk": "BLD1487S", "concept": "agent_skills", "evidence": "building a skill from scratch", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD1487S", "concept": "copilot_cli_workflows", "evidence": "reusable GitHub Copilot CLI assets", "confidence": 0.94}
-{"type": "TEACHES", "talk": "BLD1487S", "concept": "copilot_customization", "evidence": "full Copilot CLI customization stack", "confidence": 0.96}
-{"type": "REQUIRES", "talk": "BLD1776B", "concept": "ai_coding_agents", "evidence": "agents write the diffs", "confidence": 0.93}
-{"type": "REQUIRES", "talk": "BLD1776B", "concept": "pull_request_review_workflows", "evidence": "What happens to peer review", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1776B", "concept": "plan_first_review", "evidence": "review the plan a human writes before the agent builds", "confidence": 0.97}
-{"type": "TEACHES", "talk": "BLD1776B", "concept": "human_in_the_loop_oversight", "evidence": "The human loop came back", "confidence": 0.86}
-{"type": "TEACHES", "talk": "LDR1456B", "concept": "ai_fluency_enablement", "evidence": "progress from AI-assisted work toward agent-enabled delivery", "confidence": 0.9}
-{"type": "TEACHES", "talk": "LDR1456B", "concept": "agentic_workflows", "evidence": "From AI-assisted work to agent-enabled delivery", "confidence": 0.7}
-{"type": "TEACHES", "talk": "LDR1456B", "concept": "ai_adoption_measurement", "evidence": "applying a structured AI maturity framework", "confidence": 0.6}
-{"type": "TEACHES", "talk": "LDR1594H", "concept": "model_context_protocol", "evidence": "an MCP-powered loop where AI agents read live infrastructure context", "confidence": 0.86}
-{"type": "TEACHES", "talk": "LDR1594H", "concept": "ai_coding_agents", "evidence": "watching the agent ship the change, file the docs", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1594H", "concept": "agentic_workflows", "evidence": "The documentation stays current because producing it is part of doing the work", "confidence": 0.8}
-{"type": "TEACHES", "talk": "LDR1594H", "concept": "ai_context_infrastructure", "evidence": "read live infrastructure context to ship real work", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1979D", "concept": "coding_model_evaluations", "evidence": "training and evaluation to performance, safety, and real-world developer feedback", "confidence": 0.82}
-{"type": "TEACHES", "talk": "TRU1394M", "concept": "open_source_security_governance", "evidence": "secure the open source ecosystem", "confidence": 0.83}
-{"type": "REQUIRES", "talk": "TRU1322H", "concept": "mcp_servers", "evidence": "hosted MCP servers", "confidence": 0.82}
-{"type": "TEACHES", "talk": "TRU1322H", "concept": "mcp_authorization", "evidence": "adds per-identity authorization in front of any hosted MCP server", "confidence": 0.97}
-{"type": "TEACHES", "talk": "TRU1322H", "concept": "agent_governance_permissions", "evidence": "Maybe an agent should open a pull request and leave the merge to a human", "confidence": 0.87}
-{"type": "TEACHES", "talk": "TRU1322H", "concept": "human_in_the_loop_oversight", "evidence": "leaving the merge to a reviewer", "confidence": 0.72}
-{"type": "REQUIRES", "talk": "TRU2239B", "concept": "ai_coding_agents", "evidence": "brief a coding agent on a microservice app", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "TRU2239B", "concept": "runtime_observability", "evidence": "checks error rates and SLOs for regressions", "confidence": 0.76}
-{"type": "TEACHES", "talk": "TRU2239B", "concept": "observability_for_agents", "evidence": "use OpenTelemetry data to brief a coding agent", "confidence": 0.93}
+{"type": "REQUIRES", "talk": "BLD2008D", "concept": "github_copilot_basics", "evidence": "anywhere you use Copilot", "confidence": 0.7}
+{"type": "TEACHES", "talk": "BLD2008D", "concept": "copilot_customization", "evidence": "Extending and customizing GitHub Copilot", "confidence": 0.92}
+{"type": "TEACHES", "talk": "BLD2008D", "concept": "agent_skills", "evidence": "what agent skills, plugins, and MCP servers you need", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD2008D", "concept": "custom_agents_plugins", "evidence": "agent skills, plugins, and MCP servers", "confidence": 0.76}
+{"type": "TEACHES", "talk": "BLD2008D", "concept": "model_context_protocol", "evidence": "MCP servers you need", "confidence": 0.84}
+{"type": "REQUIRES", "talk": "TRU1476B", "concept": "command_line_basics", "evidence": "when you run npm install", "confidence": 0.74}
+{"type": "TEACHES", "talk": "TRU1476B", "concept": "software_supply_chain_security", "evidence": "what stops them from shipping something malicious", "confidence": 0.92}
+{"type": "REQUIRES", "talk": "BLD1636S", "concept": "github_copilot_basics", "evidence": "AI agent in GitHub Copilot", "confidence": 0.73}
+{"type": "REQUIRES", "talk": "BLD1636S", "concept": "git_and_pull_request_basics", "evidence": "you'll fork an open source reference server", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1636S", "concept": "model_context_protocol", "evidence": "MCP-compatible editor reads documentation through an opinionated MCP server", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1636S", "concept": "copilot_customization", "evidence": "watch agent behavior change side by side", "confidence": 0.81}
+{"type": "TEACHES", "talk": "BLD1636S", "concept": "retrieval_grounding", "evidence": "reads documentation through an opinionated MCP server", "confidence": 0.74}
+{"type": "REQUIRES", "talk": "BLD1824W", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.72}
+{"type": "TEACHES", "talk": "BLD1824W", "concept": "enterprise_copilot_administration", "evidence": "practice navigating administrative settings", "confidence": 0.94}
+{"type": "TEACHES", "talk": "BLD1824W", "concept": "ai_adoption_measurement", "evidence": "explore how to assess usage and adoption", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "LDR1869H", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.74}
+{"type": "TEACHES", "talk": "LDR1869H", "concept": "agentic_workflows", "evidence": "enable agentic workflows across planning, development, testing, documentation, and delivery", "confidence": 0.92}
+{"type": "TEACHES", "talk": "LDR1869H", "concept": "copilot_customization", "evidence": "how to treat context as shared infrastructure for agentic work", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1072S", "concept": "copilot_customization", "evidence": "repository's Copilot configuration", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1072S", "concept": "delegating_to_agents", "evidence": "trusting AI to handle complex tasks on its own", "confidence": 0.84}
+{"type": "TEACHES", "talk": "BLD1072S", "concept": "prompt_assembly_context_window", "evidence": "how Copilot spends context and tokens", "confidence": 0.92}
+{"type": "REQUIRES", "talk": "BLD1644H", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.64}
+{"type": "REQUIRES", "talk": "BLD1644H", "concept": "ci_cd_basics", "evidence": "system validation in CI/CD", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "BLD1644H", "concept": "llm_basics", "evidence": "model improvement", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1644H", "concept": "custom_agents_plugins", "evidence": "build domain-specific agents trained on internal logs and diagnostics", "confidence": 0.95}
+{"type": "TEACHES", "talk": "BLD1644H", "concept": "agentic_workflows", "evidence": "integrating AI across the full engineering lifecycle", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1644H", "concept": "pull_request_review_workflows", "evidence": "AI-assisted code review at commit time", "confidence": 0.83}
+{"type": "REQUIRES", "talk": "BLD2049B", "concept": "git_and_pull_request_basics", "evidence": "Git repository data", "confidence": 0.55}
+{"type": "REQUIRES", "talk": "BLD1819H", "concept": "ci_cd_basics", "evidence": "existing CI/CD workflow", "confidence": 0.68}
+{"type": "REQUIRES", "talk": "BLD1819H", "concept": "containers_basics", "evidence": "containerized operating system", "confidence": 0.55}
+{"type": "TEACHES", "talk": "BLD1819H", "concept": "agentic_workflows", "evidence": "where agents can help", "confidence": 0.88}
+{"type": "TEACHES", "talk": "BLD1819H", "concept": "reproducible_gitops_pipelines", "evidence": "CI/CD, GitOps, and open source projects can work together", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD1819H", "concept": "human_in_the_loop_oversight", "evidence": "people reviewing its changes", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD1819H", "concept": "software_supply_chain_security", "evidence": "reproducible software supply chain", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "TRU1100B", "concept": "api_authentication_basics", "evidence": "revoking and rotating the credential", "confidence": 0.74}
+{"type": "TEACHES", "talk": "TRU1100B", "concept": "secret_scanning_push_protection", "evidence": "stopping a push that carries a secret", "confidence": 0.98}
+{"type": "REQUIRES", "talk": "LDR1358D", "concept": "git_and_pull_request_basics", "evidence": "through pull request-based workflows", "confidence": 0.83}
+{"type": "TEACHES", "talk": "LDR1358D", "concept": "github_configuration_as_code", "evidence": "GitHub configuration as code", "confidence": 0.98}
+{"type": "REQUIRES", "talk": "TRU1821B", "concept": "self_validating_agentic_loops", "evidence": "How agents verify AI-generated code", "confidence": 0.94}
+{"type": "TEACHES", "talk": "TRU1821B", "concept": "human_in_the_loop_oversight", "evidence": "when a human needs to step in", "confidence": 0.86}
+{"type": "TEACHES", "talk": "TRU1821B", "concept": "agent_governance_permissions", "evidence": "deterministic controls keep agents within safe boundaries", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1872D", "concept": "delegating_to_agents", "evidence": "Coding agents can write and ship software quickly", "confidence": 0.71}
+{"type": "TEACHES", "talk": "LDR1872D", "concept": "requirements_from_feedback", "evidence": "turn product signals into action", "confidence": 0.88}
+{"type": "TEACHES", "talk": "LDR1872D", "concept": "agentic_workflows", "evidence": "move from product discovery to development", "confidence": 0.74}
+{"type": "REQUIRES", "talk": "BLD1657H", "concept": "incident_rca_agents", "evidence": "The 2am RCA Agent", "confidence": 0.95}
+{"type": "REQUIRES", "talk": "BLD1657H", "concept": "runtime_observability", "evidence": "jumping between Grafana, Jaeger, and logs", "confidence": 0.85}
+{"type": "REQUIRES", "talk": "BLD1657H", "concept": "llm_basics", "evidence": "the LLM only handles 4 of 10 nodes", "confidence": 0.7}
+{"type": "REQUIRES", "talk": "BLD1810D", "concept": "git_and_pull_request_basics", "evidence": "still carries the merge requirements it launched with", "confidence": 0.57}
+{"type": "TEACHES", "talk": "BLD1810D", "concept": "repository_rulesets", "evidence": "point a GitHub ruleset at critical services", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "TRU1148D", "concept": "vulnerability_basics", "evidence": "resolve your security alerts", "confidence": 0.74}
+{"type": "REQUIRES", "talk": "TRU1148D", "concept": "git_and_pull_request_basics", "evidence": "pull request review", "confidence": 0.7}
+{"type": "TEACHES", "talk": "TRU1148D", "concept": "security_alert_autofix", "evidence": "It generates mergeable fixes for them in minutes", "confidence": 0.95}
+{"type": "REQUIRES", "talk": "LDR1800D", "concept": "github_actions_workflows", "evidence": "GitHub Actions has become home to", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "LDR1800D", "concept": "agentic_workflows", "evidence": "triaging issues, iterating on pull requests, reviewing diffs", "confidence": 0.73}
+{"type": "REQUIRES", "talk": "LDR1800D", "concept": "llm_basics", "evidence": "how many tokens got consumed", "confidence": 0.55}
+{"type": "TEACHES", "talk": "LDR1800D", "concept": "agent_tracing", "evidence": "turn a silent pass/fail into a full trace you can debug", "confidence": 0.96}
+{"type": "TEACHES", "talk": "LDR1800D", "concept": "model_context_protocol", "evidence": "Connect Copilot to Sentry's MCP server", "confidence": 0.62}
+{"type": "TEACHES", "talk": "BLD1864D", "concept": "release_impact_measurement", "evidence": "feature gates, experiments, and product metrics", "confidence": 0.97}
+{"type": "TEACHES", "talk": "BLD2151D", "concept": "specification_driven_development", "evidence": "specification-driven development", "confidence": 0.98}
+{"type": "TEACHES", "talk": "BLD2151D", "concept": "agentic_workflows", "evidence": "AI agents, and proof-based validation across the software delivery lifecycle", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD2151D", "concept": "human_in_the_loop_oversight", "evidence": "intervene at key decision points while agents work", "confidence": 0.92}
+{"type": "TEACHES", "talk": "BLD2151D", "concept": "signed_evidence_audit_trails", "evidence": "proof-based validation across the software delivery lifecycle", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "BLD1776B", "concept": "git_and_pull_request_basics", "evidence": "peer review when agents write the diffs", "confidence": 0.83}
+{"type": "REQUIRES", "talk": "BLD1776B", "concept": "agentic_workflows", "evidence": "Then agents wrote the code", "confidence": 0.74}
+{"type": "TEACHES", "talk": "BLD1776B", "concept": "human_in_the_loop_oversight", "evidence": "review the plan a human writes before the agent builds", "confidence": 0.94}
+{"type": "TEACHES", "talk": "LDR1456B", "concept": "ai_adoption_measurement", "evidence": "Scaling AI across product teams", "confidence": 0.92}
+{"type": "TEACHES", "talk": "LDR1456B", "concept": "agentic_workflows", "evidence": "toward agent-enabled delivery", "confidence": 0.68}
+{"type": "TEACHES", "talk": "LDR1594H", "concept": "model_context_protocol", "evidence": "MCP-powered loop where AI agents read live infrastructure context", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1594H", "concept": "agentic_workflows", "evidence": "watching the agent ship the change, file the docs", "confidence": 0.88}
+{"type": "TEACHES", "talk": "LDR1594H", "concept": "retrieval_grounding", "evidence": "AI agents read live infrastructure context to ship real work", "confidence": 0.63}
+{"type": "REQUIRES", "talk": "TRU2239B", "concept": "git_and_pull_request_basics", "evidence": "agent opens a pull request", "confidence": 0.85}
+{"type": "REQUIRES", "talk": "TRU2239B", "concept": "ci_cd_basics", "evidence": "pull request passed CI and merged", "confidence": 0.72}
+{"type": "TEACHES", "talk": "TRU2239B", "concept": "runtime_observability", "evidence": "use OpenTelemetry data to brief a coding agent", "confidence": 0.9}
+{"type": "TEACHES", "talk": "TRU2239B", "concept": "incident_rca_agents", "evidence": "evidence-backed diagnosis and proposed fix", "confidence": 0.87}
 {"type": "TEACHES", "talk": "TRU2239B", "concept": "self_validating_agentic_loops", "evidence": "practical model for verifying agent-written changes", "confidence": 0.88}
-{"type": "TEACHES", "talk": "TRU2239B", "concept": "release_impact_measurement", "evidence": "checks error rates and SLOs for regressions", "confidence": 0.77}
 {"type": "TEACHES", "talk": "TRU2239B", "concept": "human_in_the_loop_oversight", "evidence": "where human review, escalation, and a kill switch belong", "confidence": 0.86}
-{"type": "REQUIRES", "talk": "LDR1281D", "concept": "copilot_cli_workflows", "evidence": "GitHub Copilot CLI and GitHub Actions", "confidence": 0.86}
-{"type": "REQUIRES", "talk": "LDR1281D", "concept": "github_actions_workflows", "evidence": "GitHub Copilot CLI and GitHub Actions", "confidence": 0.88}
-{"type": "TEACHES", "talk": "LDR1281D", "concept": "automated_test_generation", "evidence": "generate documentation, create unit tests, and run security checks", "confidence": 0.9}
-{"type": "TEACHES", "talk": "LDR1281D", "concept": "devsecops_pipeline", "evidence": "run security checks on every commit and pull request", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1281D", "concept": "pull_request_review_workflows", "evidence": "Pull requests are often where quality deteriorates", "confidence": 0.72}
-{"type": "REQUIRES", "talk": "LDR1161H", "concept": "pull_request_review_workflows", "evidence": "logic embedded in pull requests, CI/CD pipelines, and automated checks", "confidence": 0.72}
-{"type": "REQUIRES", "talk": "LDR1161H", "concept": "github_actions_workflows", "evidence": "CI/CD pipelines, and automated checks", "confidence": 0.58}
-{"type": "TEACHES", "talk": "LDR1161H", "concept": "devsecops_pipeline", "evidence": "governance evolved from documents and approvals into logic embedded in pull requests", "confidence": 0.63}
-{"type": "TEACHES", "talk": "LDR1161H", "concept": "repository_rulesets", "evidence": "logic embedded in pull requests, CI/CD pipelines, and automated checks", "confidence": 0.46}
+{"type": "REQUIRES", "talk": "BLD1487S", "concept": "command_line_basics", "evidence": "GitHub Copilot CLI skills", "confidence": 0.66}
+{"type": "TEACHES", "talk": "BLD1487S", "concept": "agent_skills", "evidence": "building a skill from scratch", "confidence": 0.97}
+{"type": "TEACHES", "talk": "BLD1487S", "concept": "copilot_customization", "evidence": "full Copilot CLI customization stack", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1487S", "concept": "copilot_cli_workflows", "evidence": "turn your team's repeated workflows into GitHub Copilot CLI skills", "confidence": 0.84}
+{"type": "TEACHES", "talk": "TRU1394M", "concept": "open_source_security_governance", "evidence": "principles you can apply to make security stick in your own projects and communities", "confidence": 0.88}
+{"type": "REQUIRES", "talk": "BLD2450D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "BLD2450D", "concept": "llm_basics", "evidence": "where inference runs", "confidence": 0.78}
+{"type": "TEACHES", "talk": "BLD2450D", "concept": "model_routing", "evidence": "launch a local model with llama.cpp", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "LDR1281D", "concept": "git_and_pull_request_basics", "evidence": "Pull requests are often where quality deteriorates", "confidence": 0.83}
+{"type": "REQUIRES", "talk": "LDR1281D", "concept": "github_copilot_basics", "evidence": "Level 300: Advanced", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "LDR1281D", "concept": "ci_cd_basics", "evidence": "on every commit and pull request", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1281D", "concept": "command_line_basics", "evidence": "Copilot CLI", "confidence": 0.66}
+{"type": "TEACHES", "talk": "LDR1281D", "concept": "copilot_cli_workflows", "evidence": "GitHub Copilot CLI and GitHub Actions can generate documentation", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1281D", "concept": "github_actions_workflows", "evidence": "run security checks on every commit and pull request", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "LDR1979D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.74}
+{"type": "REQUIRES", "talk": "LDR1979D", "concept": "llm_basics", "evidence": "coding models optimized for GitHub Copilot", "confidence": 0.67}
+{"type": "TEACHES", "talk": "LDR1979D", "concept": "coding_model_evaluations", "evidence": "training and evaluation to performance, safety", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "TRU1322H", "concept": "model_context_protocol", "evidence": "Hosted MCP servers all work the same way", "confidence": 0.88}
+{"type": "REQUIRES", "talk": "TRU1322H", "concept": "api_authentication_basics", "evidence": "OAuth in, broad scope out", "confidence": 0.82}
+{"type": "REQUIRES", "talk": "TRU1322H", "concept": "git_and_pull_request_basics", "evidence": "open a pull request and leave the merge", "confidence": 0.72}
+{"type": "TEACHES", "talk": "TRU1322H", "concept": "mcp_security", "evidence": "Fine-grained authorization for hosted MCP servers", "confidence": 0.97}
+{"type": "TEACHES", "talk": "TRU1322H", "concept": "agent_governance_permissions", "evidence": "agent should open a pull request and leave the merge to a human", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "BLD2010D", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.76}
+{"type": "TEACHES", "talk": "BLD2010D", "concept": "retrieval_grounding", "evidence": "add relevant context from your Microsoft 365 meetings and documents", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD2010D", "concept": "copilot_customization", "evidence": "see how to connect the two", "confidence": 0.72}
 {"type": "TEACHES", "talk": "LDR1765B", "concept": "github_actions_workflows", "evidence": "building a custom GitHub Actions pipeline", "confidence": 0.87}
-{"type": "TEACHES", "talk": "LDR1765B", "concept": "agentic_workflows", "evidence": "deploying an AI agent that drove 99% self-service", "confidence": 0.74}
-{"type": "TEACHES", "talk": "TRU1623S", "concept": "open_source_security_governance", "evidence": "practical way to handle the flood", "confidence": 0.9}
-{"type": "REQUIRES", "talk": "BLD2010D", "concept": "ai_coding_agents", "evidence": "GitHub Copilot can draw on your code", "confidence": 0.65}
-{"type": "TEACHES", "talk": "BLD2010D", "concept": "developer_knowledge_bases", "evidence": "relevant context from your Microsoft 365 meetings and documents", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD2010D", "concept": "copilot_customization", "evidence": "see how to connect the two", "confidence": 0.7}
-{"type": "TEACHES", "talk": "BLD2010D", "concept": "retrieval_grounding", "evidence": "trace a requirement from a meeting transcript and design doc to its implementation", "confidence": 0.64}
-{"type": "REQUIRES", "talk": "TRU1815D", "concept": "ai_coding_agents", "evidence": "AI agents now push code at machine speed", "confidence": 0.82}
-{"type": "REQUIRES", "talk": "TRU1815D", "concept": "github_actions_workflows", "evidence": "It's your Issues, Actions, Projects, and Wikis", "confidence": 0.55}
-{"type": "TEACHES", "talk": "TRU1815D", "concept": "agent_governance_permissions", "evidence": "a single rogue agent or stolen identity can wipe a repo", "confidence": 0.66}
-{"type": "TEACHES", "talk": "TRU1815D", "concept": "repository_rulesets", "evidence": "Native controls like rulesets and immutable releases are your first line of defense", "confidence": 0.72}
-{"type": "REQUIRES", "talk": "BLD1428W", "concept": "copilot_customization", "evidence": "Advanced customization for developers and platform teams", "confidence": 0.93}
-{"type": "REQUIRES", "talk": "BLD1428W", "concept": "ai_coding_agents", "evidence": "You know how to use GitHub Copilot.", "confidence": 0.68}
-{"type": "TEACHES", "talk": "BLD1428W", "concept": "ai_context_infrastructure", "evidence": "governance model for distributing customizations across your team or enterprise", "confidence": 0.74}
-{"type": "TEACHES", "talk": "BLD1553D", "concept": "model_routing", "evidence": "Copilot's auto model selection", "confidence": 0.98}
+{"type": "TEACHES", "talk": "LDR1765B", "concept": "agentic_workflows", "evidence": "deploying an AI agent that drove 99% self-service", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1161H", "concept": "git_and_pull_request_basics", "evidence": "logic embedded in pull requests", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "LDR1161H", "concept": "ci_cd_basics", "evidence": "CI/CD pipelines, and automated checks", "confidence": 0.87}
+{"type": "TEACHES", "talk": "LDR1161H", "concept": "repository_rulesets", "evidence": "governance evolved from documents and approvals into logic embedded in pull requests", "confidence": 0.55}
+{"type": "REQUIRES", "talk": "BLD1428W", "concept": "github_copilot_basics", "evidence": "You know how to use GitHub Copilot.", "confidence": 0.98}
+{"type": "REQUIRES", "talk": "BLD1428W", "concept": "copilot_customization", "evidence": "Advanced customization for developers and platform teams", "confidence": 0.9}
+{"type": "TEACHES", "talk": "BLD1428W", "concept": "enterprise_copilot_administration", "evidence": "governance model for distributing customizations across your team or enterprise", "confidence": 0.66}
+{"type": "REQUIRES", "talk": "TRU1623S", "concept": "open_source_basics", "evidence": "Open source maintainers are drowning", "confidence": 0.7}
+{"type": "REQUIRES", "talk": "TRU1623S", "concept": "vulnerability_basics", "evidence": "AI-generated vulnerability reports", "confidence": 0.65}
+{"type": "TEACHES", "talk": "TRU1623S", "concept": "open_source_security_governance", "evidence": "private vulnerability reporting features to route reports where they belong", "confidence": 0.95}
+{"type": "REQUIRES", "talk": "TRU1173D", "concept": "github_actions_workflows", "evidence": "Your GitHub Actions workflows have full access to the public internet.", "confidence": 0.95}
+{"type": "TEACHES", "talk": "TRU1173D", "concept": "actions_security_hardening", "evidence": "GitHub Actions firewall sits between your workflows and the public internet.", "confidence": 0.96}
+{"type": "REQUIRES", "talk": "TRU1815D", "concept": "git_and_pull_request_basics", "evidence": "wipe a repo, overwrite history", "confidence": 0.86}
+{"type": "REQUIRES", "talk": "TRU1815D", "concept": "ci_cd_basics", "evidence": "code and pipelines it's meant to protect", "confidence": 0.74}
+{"type": "REQUIRES", "talk": "TRU1815D", "concept": "agentic_workflows", "evidence": "AI agents now push code at machine speed", "confidence": 0.7}
+{"type": "TEACHES", "talk": "TRU1815D", "concept": "repository_rulesets", "evidence": "Native controls like rulesets and immutable releases", "confidence": 0.56}
+{"type": "REQUIRES", "talk": "LDR1863B", "concept": "github_copilot_basics", "evidence": "GitHub Copilot across engineering", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1863B", "concept": "git_and_pull_request_basics", "evidence": "pull request merge time is down 49%", "confidence": 0.68}
+{"type": "TEACHES", "talk": "LDR1863B", "concept": "ai_adoption_measurement", "evidence": "measure success as AI changes the shape of the work", "confidence": 0.93}
+{"type": "REQUIRES", "talk": "BLD1553D", "concept": "github_copilot_basics", "evidence": "When you use GitHub Copilot in auto mode", "confidence": 0.64}
+{"type": "TEACHES", "talk": "BLD1553D", "concept": "model_routing", "evidence": "auto picks the right model for every task", "confidence": 0.98}
 {"type": "TEACHES", "talk": "BLD1553D", "concept": "prompt_assembly_context_window", "evidence": "best practices for context management and planning", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1863B", "concept": "ai_adoption_measurement", "evidence": "share how to measure success as AI changes the shape of the work", "confidence": 0.95}
-{"type": "REQUIRES", "talk": "TRU1173D", "concept": "github_actions_workflows", "evidence": "Your GitHub Actions workflows have full access to the public internet", "confidence": 0.92}
-{"type": "TEACHES", "talk": "TRU1173D", "concept": "build_egress_control", "evidence": "It records every outbound request", "confidence": 0.97}
-{"type": "REQUIRES", "talk": "LDR1684B", "concept": "ai_coding_agents", "evidence": "GitHub Copilot cloud agents", "confidence": 0.85}
-{"type": "REQUIRES", "talk": "LDR1684B", "concept": "github_actions_workflows", "evidence": "self-hosted GitHub Actions infrastructure", "confidence": 0.78}
-{"type": "TEACHES", "talk": "LDR1684B", "concept": "agentic_workflows", "evidence": "putting Copilot agents to work on your own platform maintenance", "confidence": 0.92}
-{"type": "TEACHES", "talk": "LDR1684B", "concept": "proactive_agents", "evidence": "proactively update dependencies", "confidence": 0.9}
-{"type": "TEACHES", "talk": "LDR1684B", "concept": "agent_governance_permissions", "evidence": "how to gate risky changes behind policy", "confidence": 0.88}
-{"type": "TEACHES", "talk": "LDR1684B", "concept": "human_in_the_loop_oversight", "evidence": "keep humans in control of everything that matters", "confidence": 0.9}
-{"type": "REQUIRES", "talk": "LDR1185D", "concept": "ai_coding_agents", "evidence": "Developers know agents exist", "confidence": 0.77}
-{"type": "TEACHES", "talk": "LDR1185D", "concept": "custom_agents_plugins", "evidence": "custom agent plugin is built from scratch", "confidence": 0.96}
-{"type": "TEACHES", "talk": "LDR1185D", "concept": "agent_skills", "evidence": "plugins, skills, hooks, and MCP servers work together", "confidence": 0.87}
-{"type": "TEACHES", "talk": "LDR1185D", "concept": "agent_lifecycle_hooks", "evidence": "plugins, skills, hooks, and MCP servers work together", "confidence": 0.88}
-{"type": "TEACHES", "talk": "LDR1185D", "concept": "mcp_servers", "evidence": "plugins, skills, hooks, and MCP servers work together", "confidence": 0.9}
-{"type": "TEACHES", "talk": "TRU1405H", "concept": "devsecops_pipeline", "evidence": "auditable DevSecOps CI/CD pipeline", "confidence": 0.95}
-{"type": "TEACHES", "talk": "TRU1405H", "concept": "static_analysis_feedback", "evidence": "embedding immediate security feedback directly into GitHub", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1236S", "concept": "model_context_protocol", "evidence": "MCP, skills, or custom agents", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1236S", "concept": "agent_skills", "evidence": "MCP tools, skills, and custom agents", "confidence": 0.92}
+{"type": "REQUIRES", "talk": "BLD1236S", "concept": "github_copilot_basics", "evidence": "GitHub Copilot gives you", "confidence": 0.66}
+{"type": "TEACHES", "talk": "BLD1236S", "concept": "model_context_protocol", "evidence": "MCP tools, skills, and custom agents", "confidence": 0.92}
+{"type": "TEACHES", "talk": "BLD1236S", "concept": "agent_skills", "evidence": "MCP tools, skills, and custom agents", "confidence": 0.91}
 {"type": "TEACHES", "talk": "BLD1236S", "concept": "custom_agents_plugins", "evidence": "MCP tools, skills, and custom agents", "confidence": 0.9}
-{"type": "TEACHES", "talk": "BLD1236S", "concept": "copilot_customization", "evidence": "matching the right capability to the right task", "confidence": 0.72}
-{"type": "REQUIRES", "talk": "TRU1452D", "concept": "agent_skills", "evidence": "Agent skills make agentic workflows far more capable", "confidence": 0.83}
-{"type": "REQUIRES", "talk": "TRU1452D", "concept": "agentic_workflows", "evidence": "Agent skills make agentic workflows far more capable", "confidence": 0.68}
-{"type": "TEACHES", "talk": "TRU1452D", "concept": "skill_discovery_management", "evidence": "finding skills, installing them into your agent, and managing them", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD1638D", "concept": "database_branching", "evidence": "Database branching changes that.", "confidence": 0.98}
-{"type": "TEACHES", "talk": "BLD1638D", "concept": "agentic_workflows", "evidence": "safe for agentic workflows", "confidence": 0.86}
-{"type": "TEACHES", "talk": "BLD1638D", "concept": "model_context_protocol", "evidence": "using tools like MCP and GitHub Actions", "confidence": 0.74}
+{"type": "REQUIRES", "talk": "LDR1185D", "concept": "github_copilot_basics", "evidence": "Extending GitHub Copilot live", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1185D", "concept": "custom_agents_plugins", "evidence": "custom agent plugin is built from scratch", "confidence": 0.98}
+{"type": "TEACHES", "talk": "LDR1185D", "concept": "agent_skills", "evidence": "plugins, skills, hooks, and MCP servers work together", "confidence": 0.88}
+{"type": "TEACHES", "talk": "LDR1185D", "concept": "agent_lifecycle_hooks", "evidence": "plugins, skills, hooks, and MCP servers work together", "confidence": 0.86}
+{"type": "TEACHES", "talk": "LDR1185D", "concept": "model_context_protocol", "evidence": "plugins, skills, hooks, and MCP servers work together", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "LDR1684B", "concept": "github_actions_workflows", "evidence": "self-hosted GitHub Actions infrastructure", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "LDR1684B", "concept": "git_and_pull_request_basics", "evidence": "open PRs, classify operational changes by risk", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1684B", "concept": "ci_cd_basics", "evidence": "auto-deploy the changes that policy already approves", "confidence": 0.65}
+{"type": "TEACHES", "talk": "LDR1684B", "concept": "cloud_agent_sandboxes", "evidence": "GitHub Copilot cloud agents maintains", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1684B", "concept": "delegating_to_agents", "evidence": "putting Copilot agents to work on your own platform maintenance", "confidence": 0.84}
+{"type": "TEACHES", "talk": "LDR1684B", "concept": "agent_governance_permissions", "evidence": "how to gate risky changes behind policy", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1684B", "concept": "human_in_the_loop_oversight", "evidence": "keep humans in control of everything that matters", "confidence": 0.93}
+{"type": "REQUIRES", "talk": "BLD1124B", "concept": "command_line_basics", "evidence": "open source CLI built to manage", "confidence": 0.81}
+{"type": "TEACHES", "talk": "BLD1638D", "concept": "database_branching", "evidence": "Database branching changes that", "confidence": 0.98}
+{"type": "TEACHES", "talk": "BLD1638D", "concept": "model_context_protocol", "evidence": "using tools like MCP and GitHub Actions", "confidence": 0.75}
 {"type": "TEACHES", "talk": "BLD1638D", "concept": "github_actions_workflows", "evidence": "using tools like MCP and GitHub Actions", "confidence": 0.72}
-{"type": "TEACHES", "talk": "BLD1332H", "concept": "mcp_servers", "evidence": "shows how anyone can build their own MCP server", "confidence": 0.97}
-{"type": "TEACHES", "talk": "BLD1332H", "concept": "model_context_protocol", "evidence": "using GitHub Copilot and its MCP support", "confidence": 0.7}
-{"type": "TEACHES", "talk": "BLD1616M", "concept": "ai_fluency_enablement", "evidence": "practical approaches for integrating AI into your workflow", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1768B", "concept": "ai_context_infrastructure", "evidence": "treat your AI context as infrastructure", "confidence": 0.98}
-{"type": "TEACHES", "talk": "LDR1768B", "concept": "copilot_customization", "evidence": "custom agents, agent skills, instructions files, MCP servers, extensions, and plugins", "confidence": 0.93}
-{"type": "TEACHES", "talk": "LDR1768B", "concept": "custom_agents_plugins", "evidence": "custom agents, agent skills, instructions files, MCP servers, extensions, and plugins", "confidence": 0.78}
-{"type": "TEACHES", "talk": "LDR1768B", "concept": "mcp_servers", "evidence": "custom agents, agent skills, instructions files, MCP servers, extensions, and plugins", "confidence": 0.72}
-{"type": "TEACHES", "talk": "LDR1905B", "concept": "github_actions_workflows", "evidence": "pipelines in GitHub Actions", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1905B", "concept": "cicd_modernization", "evidence": "Using a migration to rethink how you build", "confidence": 0.66}
-{"type": "REQUIRES", "talk": "LDR1434D", "concept": "ai_coding_agents", "evidence": "ship a coding agent", "confidence": 0.78}
-{"type": "TEACHES", "talk": "LDR1434D", "concept": "coding_model_evaluations", "evidence": "evaluation framework the GitHub Copilot team uses", "confidence": 0.96}
-{"type": "REQUIRES", "talk": "LDR1516M", "concept": "ai_coding_agents", "evidence": "specialized AI agents now handle requirements", "confidence": 0.86}
-{"type": "REQUIRES", "talk": "LDR1516M", "concept": "agentic_workflows", "evidence": "adopting agents across your own lifecycle", "confidence": 0.9}
-{"type": "REQUIRES", "talk": "LDR1516M", "concept": "multi_agent_orchestration", "evidence": "enterprise multi-agent software development lifecycle", "confidence": 0.95}
-{"type": "REQUIRES", "talk": "LDR1516M", "concept": "model_context_protocol", "evidence": "New Relic through MCP", "confidence": 0.82}
-{"type": "TEACHES", "talk": "LDR1516M", "concept": "custom_agents_plugins", "evidence": "GitHub Copilot's custom agents platform", "confidence": 0.87}
-{"type": "TEACHES", "talk": "LDR1516M", "concept": "human_in_the_loop_oversight", "evidence": "where human oversight belongs", "confidence": 0.94}
-{"type": "TEACHES", "talk": "LDR1516M", "concept": "pull_request_review_workflows", "evidence": "Every pull request is reviewed by 5 to 11 independent agents", "confidence": 0.74}
-{"type": "REQUIRES", "talk": "LDR1341H", "concept": "pull_request_review_workflows", "evidence": "every decision shipped through a pull request", "confidence": 0.74}
-{"type": "REQUIRES", "talk": "LDR1341H", "concept": "github_actions_workflows", "evidence": "a GitHub Action automatically re-scores every dependent initiative", "confidence": 0.66}
-{"type": "TEACHES", "talk": "LDR1341H", "concept": "prioritization_as_code", "evidence": "Rubrics, assumptions, OKRs, and every scored initiative live in Markdown", "confidence": 0.97}
-{"type": "TEACHES", "talk": "LDR1341H", "concept": "human_in_the_loop_oversight", "evidence": "An AI agent drafts the scores, but humans own the judgment", "confidence": 0.82}
-{"type": "TEACHES", "talk": "BLD2450D", "concept": "local_and_cloud_models", "evidence": "greater control over where inference runs", "confidence": 0.93}
-{"type": "TEACHES", "talk": "BLD2450D", "concept": "open_weight_coding_models", "evidence": "launch a local model with llama.cpp", "confidence": 0.62}
-{"type": "REQUIRES", "talk": "TRU2230D", "concept": "ai_coding_agents", "evidence": "developers building with agents", "confidence": 0.72}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "static_analysis_feedback", "evidence": "Copilot can explain them, turn a long list into a clear fix-first plan", "confidence": 0.87}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "security_alert_autofix", "evidence": "help you fix them as you build", "confidence": 0.68}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "devsecops_pipeline", "evidence": "fix issues before a pull request exists", "confidence": 0.58}
+{"type": "TEACHES", "talk": "BLD1638D", "concept": "agentic_workflows", "evidence": "safe for agentic workflows", "confidence": 0.7}
+{"type": "TEACHES", "talk": "BLD1332H", "concept": "model_context_protocol", "evidence": "shows how anyone can build their own MCP server", "confidence": 0.96}
+{"type": "REQUIRES", "talk": "TRU1452D", "concept": "command_line_basics", "evidence": "from your terminal", "confidence": 0.9}
+{"type": "REQUIRES", "talk": "TRU1452D", "concept": "git_and_pull_request_basics", "evidence": "using Git primitives", "confidence": 0.75}
+{"type": "REQUIRES", "talk": "TRU1452D", "concept": "agentic_workflows", "evidence": "Agent skills make agentic workflows far more capable", "confidence": 0.7}
+{"type": "TEACHES", "talk": "TRU1452D", "concept": "agent_skills", "evidence": "discovering, installing, and managing them across environments", "confidence": 0.98}
+{"type": "REQUIRES", "talk": "TRU1405H", "concept": "vulnerability_basics", "evidence": "legacy vulnerabilities pile up under delivery pressure", "confidence": 0.87}
+{"type": "REQUIRES", "talk": "TRU1405H", "concept": "ci_cd_basics", "evidence": "DevSecOps CI/CD pipeline that catches security", "confidence": 0.78}
+{"type": "TEACHES", "talk": "TRU1405H", "concept": "security_alert_autofix", "evidence": "embedding immediate security feedback directly into GitHub", "confidence": 0.62}
+{"type": "TEACHES", "talk": "TRU1405H", "concept": "github_actions_workflows", "evidence": "GitHub features enable an auditable DevSecOps CI/CD pipeline", "confidence": 0.55}
+{"type": "REQUIRES", "talk": "LDR1768B", "concept": "github_copilot_basics", "evidence": "Level 200: Intermediate", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1768B", "concept": "copilot_customization", "evidence": "how to standardize and distribute context across your organization", "confidence": 0.93}
+{"type": "TEACHES", "talk": "LDR1768B", "concept": "agent_skills", "evidence": "custom agents, agent skills, instructions files", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1768B", "concept": "model_context_protocol", "evidence": "MCP servers, extensions, and plugins", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1768B", "concept": "custom_agents_plugins", "evidence": "custom agents, agent skills, instructions files", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "LDR1905B", "concept": "ci_cd_basics", "evidence": "pipelines in GitHub Actions", "confidence": 0.78}
+{"type": "TEACHES", "talk": "LDR1905B", "concept": "cicd_modernization", "evidence": "Using a migration to rethink how you build", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1905B", "concept": "github_actions_workflows", "evidence": "approached pipelines in GitHub Actions", "confidence": 0.7}
+{"type": "REQUIRES", "talk": "LDR1516M", "concept": "github_copilot_basics", "evidence": "GitHub Copilot's custom agents platform", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "LDR1516M", "concept": "git_and_pull_request_basics", "evidence": "Every pull request is reviewed", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1516M", "concept": "model_context_protocol", "evidence": "New Relic through MCP", "confidence": 0.8}
+{"type": "REQUIRES", "talk": "LDR1516M", "concept": "multi_agent_orchestration", "evidence": "enterprise multi-agent software development lifecycle", "confidence": 0.74}
+{"type": "TEACHES", "talk": "LDR1516M", "concept": "agentic_workflows", "evidence": "adopting agents across your own lifecycle", "confidence": 0.86}
+{"type": "TEACHES", "talk": "LDR1516M", "concept": "human_in_the_loop_oversight", "evidence": "where human oversight belongs", "confidence": 0.93}
+{"type": "TEACHES", "talk": "LDR1516M", "concept": "pull_request_review_workflows", "evidence": "Every pull request is reviewed by 5 to 11 independent agents", "confidence": 0.83}
+{"type": "REQUIRES", "talk": "LDR1434D", "concept": "github_copilot_basics", "evidence": "GitHub Copilot for every new model", "confidence": 0.78}
+{"type": "REQUIRES", "talk": "LDR1434D", "concept": "llm_basics", "evidence": "across OpenAI, Claude, Gemini", "confidence": 0.72}
+{"type": "REQUIRES", "talk": "LDR1434D", "concept": "agentic_workflows", "evidence": "running thousands of autonomous coding tasks", "confidence": 0.62}
+{"type": "TEACHES", "talk": "LDR1434D", "concept": "coding_model_evaluations", "evidence": "evaluation framework the GitHub Copilot team uses", "confidence": 0.95}
+{"type": "TEACHES", "talk": "LDR1434D", "concept": "model_routing", "evidence": "evaluation criteria for model integrations", "confidence": 0.58}
+{"type": "REQUIRES", "talk": "LDR1341H", "concept": "git_and_pull_request_basics", "evidence": "every decision shipped through a pull request", "confidence": 0.82}
+{"type": "TEACHES", "talk": "LDR1341H", "concept": "requirements_from_feedback", "evidence": "moving prioritization into GitHub", "confidence": 0.9}
+{"type": "TEACHES", "talk": "LDR1341H", "concept": "human_in_the_loop_oversight", "evidence": "An AI agent drafts the scores, but humans own the judgment.", "confidence": 0.88}
+{"type": "TEACHES", "talk": "LDR1341H", "concept": "github_actions_workflows", "evidence": "a GitHub Action automatically re-scores every dependent initiative", "confidence": 0.72}

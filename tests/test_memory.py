@@ -63,6 +63,18 @@ def test_unmarking_a_known_concept(g, attendee):
     assert g.query("MATCH (:Attendee {code: $a})-[:KNOWS]->() RETURN count(*)", {"a": attendee}).result_set[0][0] == 0
 
 
+def test_experience_in_the_profile_skips_the_basics(g, attendee):
+    g.query(
+        "MERGE (c:Concept {id: 'copilot_basics'}) SET c.name = 'Copilot basics', c.basic = true "
+        "WITH c MATCH (t:Talk {code: 'LATE'}) MERGE (t)-[:REQUIRES {evidence: 'x', status: 'ok'}]->(c)"
+    )
+    planner.set_profile(g, attendee, "Dev", "new", [])
+    assert [s["concept"] for s in planner.learning_path(g, "LATE", attendee)["steps"]] == ["copilot_basics"]
+    planner.set_profile(g, attendee, "Dev", "some", [])
+    path = planner.learning_path(g, "LATE", attendee)
+    assert path["ready"] and {"concept": "copilot_basics", "how": "profile"} in path["already_known"]
+
+
 def test_forget_me_removes_profile_targets_and_chat(g):
     code = planner.new_attendee(g)
     planner.set_profile(g, code, "Dev", "new", ["x"])

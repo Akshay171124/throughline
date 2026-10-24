@@ -27,6 +27,7 @@ WITH DISTINCT d
 RETURN startNode(d).id, endNode(d).id, endNode(d).name, d.support, d.via
 """
 KNOWN = "MATCH (:Attendee {code: $attendee})-[k:KNOWS]->(c:Concept) RETURN c.id, k.how"
+BASICS = "MATCH (c:Concept) WHERE c.basic = true RETURN c.id"
 TEACHERS = """
 MATCH (c:Concept {id: $concept})<-[e:TEACHES]-(t:Talk)
 WHERE t.start_min >= $after AND t.end_min <= $before AND t.code <> $target
@@ -209,6 +210,10 @@ def learning_path(g: Graph, talk: str, attendee: str | None = None) -> dict:
     roots = g.query(PATH_ROOTS, params).result_set
     links = g.query(PATH_LINKS, params).result_set
     known = dict(g.query(KNOWN, params).result_set) if attendee else {}
+    if attendee and get_profile(g, attendee).get("experience") in ("some", "experienced"):
+        # Someone with experience already has the foundations; someone new sees them, with explainers.
+        for (cid,) in g.query(BASICS).result_set:
+            known.setdefault(cid, "profile")
 
     names = {cid: name for cid, name, *_ in roots}
     needs = {}  # concept -> concepts it depends on

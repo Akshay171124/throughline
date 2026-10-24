@@ -37,11 +37,11 @@ def load_concepts(g: Graph, concepts: list[dict]) -> int:
         """
         UNWIND $rows AS r
         MERGE (c:Concept {id: r.id})
-        SET c.name = r.name, c.aliases = r.aliases, c.definition = r.definition
+        SET c.name = r.name, c.aliases = r.aliases, c.definition = r.definition, c.basic = r.basic
         """,
         {"rows": [
             {"id": c["id"], "name": c["name"], "aliases": c.get("aliases", []),
-             "definition": c.get("definition", "")}
+             "definition": c.get("definition", ""), "basic": bool(c.get("basic"))}
             for c in concepts
         ]},
     )
@@ -50,10 +50,11 @@ def load_concepts(g: Graph, concepts: list[dict]) -> int:
 
 def load_edges(g: Graph, edges: list[dict]) -> dict:
     """Check each proposed edge word for word against its talk's title and abstract, then write the keepers."""
-    # The title is the speaker's own text too ("Advanced customization for…" is evidence of a prerequisite).
+    # The title and the stated level are published session text too ("Advanced customization for…",
+    # "Level 300: Advanced" are evidence that a talk assumes the basics). Concept definitions are not.
     abstracts = {
-        code: f"{title}\n{abstract}"
-        for code, title, abstract in g.query("MATCH (t:Talk) RETURN t.code, t.title, t.abstract").result_set
+        code: f"{title}\n{level or ''}\n{abstract}"
+        for code, title, level, abstract in g.query("MATCH (t:Talk) RETURN t.code, t.title, t.level, t.abstract").result_set
     }
     concept_ids = {row[0] for row in g.query("MATCH (c:Concept) RETURN c.id").result_set}
     kept, discarded = defaultdict(list), []
@@ -135,9 +136,14 @@ def derive_depends_on(g: Graph) -> int:
 def reload_all(g: Graph, concepts: list[dict], edges: list[dict]) -> dict:
     """Replace every concept-related edge with a fresh, evidence-checked load."""
     g.query("MATCH (:Talk)-[r:REQUIRES|TEACHES]->(:Concept) DELETE r")
+    # Concepts dropped or merged in a review go away with their explainer links and attendee ticks.
+    report_removed = g.query(
+        "MATCH (c:Concept) WHERE NOT c.id IN $ids DETACH DELETE c RETURN count(c)", {"ids": [c["id"] for c in concepts]}
+    ).result_set[0][0]
     load_concepts(g, concepts)
     report = load_edges(g, edges)
     report["depends_on"] = derive_depends_on(g)
+    report["concepts_removed"] = report_removed
     return report
 
 

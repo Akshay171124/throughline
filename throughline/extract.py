@@ -78,7 +78,8 @@ Rules:
 - An advanced, expert-level or deep-dive talk ON a topic REQUIRES that topic's concept: the attendee needs the basics before the deep dive. Put it in requires, not teaches.
 - A concept can't be in both lists.
 - At most 4 requires and 4 teaches. Empty lists are a valid answer, for example for keynotes and forward-looking panels.
-- evidence: copy a phrase of 3 to 20 words exactly as it appears in the title or the abstract, character for character, that shows the concept. Do not paraphrase, fix typos or join separate sentences.
+- Use the most specific concept that fits. Concepts marked [basic] are foundations: use them in requires when the talk builds on that foundation without teaching it (an intermediate or advanced talk on Copilot customization requires "GitHub Copilot basics").
+- evidence: copy a phrase of 3 to 20 words exactly as it appears in the title, the Level line, or the abstract, character for character, that shows the concept. For a [basic] concept in requires, the Level line itself (for example "Level 300: Advanced") or a phrase like "No beginner basics" is acceptable evidence. Do not paraphrase, fix typos or join separate sentences.
 - confidence: 0.0 to 1.0, how sure you are that the link is right.
 """
 
@@ -135,7 +136,9 @@ def run_concepts() -> None:
 
 
 def extract_talk(client: OpenAI, talk: dict, concepts: list[dict]) -> list[dict]:
-    concept_list = "\n".join(f"- {c['id']}: {c['name']} ({c['definition']})" for c in concepts)
+    concept_list = "\n".join(
+        f"- {c['id']}{' [basic]' if c.get('basic') else ''}: {c['name']} ({c['definition']})" for c in concepts
+    )
     user = f"Concept list:\n{concept_list}\n\nTalk:\n{_talk_block(talk)}"
     result = _ask(client, TALK_PROMPT, user, _talk_schema([c["id"] for c in concepts]))
     required = {r["concept"] for r in result["requires"]}
