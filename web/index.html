@@ -29,7 +29,7 @@
   <main class="layout">
     <section class="panel schedule">
       <input id="search" type="search" placeholder="Search talks, speakers, topics…" autocomplete="off">
-      <div id="talks" class="talks"></div>
+      <div id="talks" class="talks"><p class="muted pad">Loading the schedule…</p></div>
     </section>
 
     <section class="panel chat">
@@ -40,24 +40,49 @@
         </div>
       </div>
       <form id="composer" class="composer">
-        <input id="input" type="text" placeholder="Ask Throughline…" autocomplete="off">
+        <input id="input" type="text" placeholder="Ask Throughline… (Enter to send)" autocomplete="off" enterkeyhint="send">
         <button class="primary" type="submit">Send</button>
       </form>
     </section>
 
-    <section class="panel trace">
-      <div class="trace-head">
-        <h2>How I got this</h2>
-        <span class="muted">Every tool call and the Cypher it ran</span>
-      </div>
-      <div class="trace-body">
-        <div id="path" class="path"></div>
-        <div id="trace" class="trace-list"><p class="muted pad">Nothing yet.</p></div>
+    <section class="panel readiness">
+      <div id="ready-head" class="ready-head"></div>
+      <div class="ready-body">
+        <div id="graph-wrap" class="graph-wrap">
+          <div class="graph-bar">
+            <h3>The path, from the graph</h3>
+            <button class="link" id="toggle-alts" hidden></button>
+          </div>
+          <div id="graph" class="graph" hidden></div>
+          <div id="path" class="path"></div>
+          <div id="legend" class="legend" hidden>
+            <span><i class="sw sw-learn"></i>Where to learn</span>
+            <span><i class="sw sw-concept"></i>Concept to learn</span>
+            <span><i class="sw sw-known"></i>Already known</span>
+            <span><i class="sw sw-target"></i>Your talk</span>
+            <span class="muted"><span id="legend-faded">Faded = other options · </span>Click any box for the evidence</span>
+          </div>
+          <div class="graph-loading" aria-hidden="true"><span class="spinner"></span> Tracing the path…</div>
+        </div>
+        <div id="dayplan" class="dayplan"></div>
+        <details id="how" class="how">
+          <summary><strong>How I got this</strong> <span id="how-count" class="muted"></span>
+            <span class="muted how-sub">Every tool call and the Cypher it ran</span></summary>
+          <div id="trace" class="trace-list"><p class="muted pad">Nothing yet. Ask the agent, or use “Plan without AI” on a talk.</p></div>
+        </details>
       </div>
     </section>
   </main>
 
+  <dialog id="detail" class="detail" aria-label="Details">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div id="detail-body"></div>
+  </dialog>
+
   <footer class="status" id="status"></footer>
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="vendor/dagre.min.js"></script>
+  <script src="vendor/cytoscape-dagre.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
