@@ -26,6 +26,7 @@ from .config import ROOT, settings
 CACHE = ROOT / "data" / "briefings.json"
 SUMMARY_SOURCE = "AI summary of the abstract"
 KINDS = ["docs", "video", "article", "repo", "paper"]
+SHOW_READINGS = 3  # the best 3 by the model's ranking; up to 5 are stored
 # Not "outside sources": the conference's own pages, schedule platforms and social feeds.
 EXCLUDED = (
     "githubuniverse.com", "rainfocus.com", "sessionize.com", "sched.com", "eventbrite.com", "lu.ma", "luma.com",
@@ -187,8 +188,8 @@ def briefing(g: Graph, code: str) -> dict:
         {"title": t, "url": u, "domain": d, "kind": k, "why": w, "minutes": m}
         for t, u, d, k, w, m in g.query(
             "MATCH (r:Resource)-[e:READ_BEFORE]->(:Talk {code: $c}) "
-            "RETURN r.title, r.url, r.domain, r.kind, e.why, e.minutes ORDER BY e.rank",
-            {"c": code},
+            "RETURN r.title, r.url, r.domain, r.kind, e.why, e.minutes ORDER BY e.rank LIMIT $n",
+            {"c": code, "n": SHOW_READINGS},
         ).result_set
     ]
     return {"code": code, "status": "ready" if row[0] else "missing", "summary": row[0] or "",

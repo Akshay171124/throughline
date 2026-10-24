@@ -1266,14 +1266,16 @@ function renderDayPlan() {
 
 // ---- "About this talk": summary, key concepts, what to read first ------------------
 
-const ABOUT_KEY = "throughline.about-collapsed";
+// Collapsed by default; "1" here means the attendee opened it (new key, so earlier choices don't carry over).
+const ABOUT_KEY = "throughline.about-open";
+const MAX_READINGS = 3;
 const READING_KINDS = ["docs", "video", "article", "repo", "paper"];
 // code: the talk shown; data: briefing; abstract: from /api/talks; state: loading|ready|hidden
 // state: loading | ready | pending (server still building it; retried quietly) | hidden
 const about = { code: null, data: null, abstract: "", state: "hidden", turn: 0, openConcept: null, retries: 0, timer: 0 };
 
 function aboutCollapsed() {
-  return storageGet(ABOUT_KEY) === "1";
+  return storageGet(ABOUT_KEY) !== "1";
 }
 
 // "2026-10-24T13:40:12Z" -> "Oct 24"; anything unparseable is shown as-is (escaped by the caller).
@@ -1392,7 +1394,7 @@ function renderAbout() {
   }
   const b = about.data;
   const concepts = b.concepts || [];
-  const readings = (b.readings || []).slice(0, 5);
+  const readings = (b.readings || []).slice(0, MAX_READINGS);
   const knownIds = new Set([
     ...((view.plan && view.plan.already_known) || []).map((k) => k.concept),
     ...(view.known || []).map((k) => k.concept),
@@ -1438,7 +1440,7 @@ function setAbstractOpen(body, open) {
 
 function wireAbout() {
   document.getElementById("about-toggle").addEventListener("click", () => {
-    storageSet(ABOUT_KEY, aboutCollapsed() ? null : "1");
+    storageSet(ABOUT_KEY, aboutCollapsed() ? "1" : null);
     renderAbout();
   });
   document.getElementById("about-body").addEventListener("click", (e) => {
