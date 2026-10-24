@@ -4,6 +4,7 @@ Each function returns the Cypher it ran under "queries", so the trace panel can 
 """
 
 import secrets
+from datetime import datetime, timezone
 
 from falkordb import Graph
 
@@ -36,6 +37,14 @@ MATCH (r:Resource)-[e:EXPLAINS]->(:Concept {id: $concept})
 RETURN r.url, r.title, r.minutes, r.fetched_at, e.evidence
 LIMIT 1
 """
+
+
+def format_minutes(minutes: int | None) -> str | None:
+    """Conference wall-clock minutes (see catalog.to_minutes) as e.g. "Wed Oct 28, 8:30 AM"."""
+    if minutes is None:
+        return None
+    moment = datetime.fromtimestamp(minutes * 60, tz=timezone.utc)
+    return f"{moment:%a %b} {moment.day}, {moment.hour % 12 or 12}:{moment:%M %p}"
 
 
 # --- attendee memory -------------------------------------------------------

@@ -19,6 +19,13 @@ from .evidence import phrase_in_source
 
 EDGE_TYPES = {"REQUIRES", "TEACHES"}
 UNSURE_BELOW = 0.6
+# A single talk is enough evidence for "B depends on C" only if it's focused (teaches few
+# concepts) and sure of both edges. Otherwise we need several talks to agree. Without this,
+# one broad talk ("teaches agents, MCP, orchestration; requires observability") made
+# "MCP depends on observability" and leaked into almost every path.
+MIN_SUPPORT = 2
+FOCUSED_MAX_TEACHES = 2
+FOCUSED_MIN_CONFIDENCE = 0.8
 
 
 def _now() -> str:
@@ -42,8 +49,12 @@ def load_concepts(g: Graph, concepts: list[dict]) -> int:
 
 
 def load_edges(g: Graph, edges: list[dict]) -> dict:
-    """Check each proposed edge word for word against its talk's abstract, then write the keepers."""
-    abstracts = dict(g.query("MATCH (t:Talk) RETURN t.code, t.abstract").result_set)
+    """Check each proposed edge word for word against its talk's title and abstract, then write the keepers."""
+    # The title is the speaker's own text too ("Advanced customization for…" is evidence of a prerequisite).
+    abstracts = {
+        code: f"{title}\n{abstract}"
+        for code, title, abstract in g.query("MATCH (t:Talk) RETURN t.code, t.title, t.abstract").result_set
+    }
     concept_ids = {row[0] for row in g.query("MATCH (c:Concept) RETURN c.id").result_set}
     kept, discarded = defaultdict(list), []
     for e in edges:
@@ -88,19 +99,23 @@ def derive_depends_on(g: Graph) -> int:
         """
         MATCH (t:Talk)-[tb:TEACHES]->(b:Concept), (t)-[rc:REQUIRES]->(c:Concept)
         WHERE b <> c
-        RETURN b.id, c.id, t.code, tb.evidence, rc.evidence
+        MATCH (t)-[all:TEACHES]->(:Concept)
+        RETURN b.id, c.id, t.code, tb.evidence, rc.evidence, tb.confidence, rc.confidence, count(all)
         """
     ).result_set
-    support = defaultdict(lambda: {"via": [], "evidence": []})
-    for b, c, code, teaches, requires in rows:
+    support = defaultdict(lambda: {"via": [], "evidence": [], "focused": False})
+    for b, c, code, teaches, requires, teach_conf, req_conf, n_teaches in rows:
         link = support[(b, c)]
         link["via"].append(code)
         link["evidence"].append(f'{code} teaches "{teaches}" and requires "{requires}"')
+        if n_teaches <= FOCUSED_MAX_TEACHES and min(teach_conf, req_conf) >= FOCUSED_MIN_CONFIDENCE:
+            link["focused"] = True
     # When talks disagree on direction, keep the direction more talks support (both on a tie).
     keep = [
-        {"from": b, "to": c, "support": len(link["via"]), **link}
+        {"from": b, "to": c, "support": len(link["via"]), "via": link["via"], "evidence": link["evidence"]}
         for (b, c), link in support.items()
-        if len(link["via"]) >= len(support.get((c, b), {"via": []})["via"])
+        if (len(link["via"]) >= MIN_SUPPORT or link["focused"])
+        and len(link["via"]) >= len(support.get((c, b), {"via": []})["via"])
     ]
     g.query("MATCH ()-[d:DEPENDS_ON]->() DELETE d")
     if keep:
@@ -115,3 +130,27 @@ def derive_depends_on(g: Graph) -> int:
             {"rows": keep, "checked_at": _now()},
         )
     return len(keep)
+
+
+def reload_all(g: Graph, concepts: list[dict], edges: list[dict]) -> dict:
+    """Replace every concept-related edge with a fresh, evidence-checked load."""
+    g.query("MATCH (:Talk)-[r:REQUIRES|TEACHES]->(:Concept) DELETE r")
+    load_concepts(g, concepts)
+    report = load_edges(g, edges)
+    report["depends_on"] = derive_depends_on(g)
+    return report
+
+
+if __name__ == "__main__":
+    import json
+
+    from .extract import CONCEPTS, EDGES
+    from .graph import backend, connect
+
+    concepts = json.loads(CONCEPTS.read_text())["concepts"]
+    edges = [json.loads(line) for line in EDGES.open() if line.strip()]
+    report = reload_all(connect(), concepts, edges)
+    print(f"{backend()}: {len(concepts)} concepts; edges proposed {report['proposed']}, "
+          f"kept {report['kept']}, discarded {report['discarded']} "
+          f"({report['discarded'] / max(report['proposed'], 1):.0%} failed the word-for-word check); "
+          f"DEPENDS_ON derived {report['depends_on']}")

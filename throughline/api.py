@@ -3,9 +3,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from falkordb import Graph
+from pydantic import BaseModel
 
+from . import planner
+from .agent import Tools, run_agent
 from .config import ROOT, settings
-from .graph import connect
+from .graph import backend, connect
 
 app = FastAPI(title="Throughline")
 
@@ -39,7 +42,7 @@ def health():
         talks = graph().query("MATCH (t:Talk) RETURN count(t)").result_set[0][0]
     except Exception as e:
         raise HTTPException(503, f"FalkorDB unavailable: {e}")
-    return {"ok": True, "graph": settings.graph_name, "talks": talks}
+    return {"ok": True, "graph": settings.graph_name, "backend": backend(), "talks": talks}
 
 
 @app.get("/api/clock")
@@ -63,6 +66,80 @@ def get_talk(code: str):
     if not result.result_set:
         raise HTTPException(404, f"No talk with code {code}")
     return _rows(result, DETAIL_FIELDS)[0]
+
+
+# --- attendee memory, path and plan (the buttons; also the model-free fallback) ---
+
+def _require_attendee(code: str) -> None:
+    if planner.attendee_clock(graph(), code) is None:
+        raise HTTPException(404, "Unknown attendee code")
+
+
+@app.post("/api/attendees")
+def create_attendee():
+    return {"code": planner.new_attendee(graph())}
+
+
+@app.get("/api/attendees/{code}")
+def get_attendee(code: str):
+    _require_attendee(code)
+    state, _ = Tools(graph(), code).get_attendee()
+    return state
+
+
+@app.delete("/api/attendees/{code}")
+def delete_attendee(code: str):
+    planner.forget_attendee(graph(), code)
+    return {"deleted": code}
+
+
+class TalkRef(BaseModel):
+    talk: str
+
+
+class ConceptRef(BaseModel):
+    concept: str
+
+
+@app.post("/api/attendees/{code}/attended")
+def attended(code: str, body: TalkRef):
+    _require_attendee(code)
+    learned = planner.mark_attended(graph(), code, body.talk)
+    return {"learned": learned, "clock": planner.format_minutes(planner.attendee_clock(graph(), code))}
+
+
+@app.post("/api/attendees/{code}/known")
+def known(code: str, body: ConceptRef):
+    _require_attendee(code)
+    planner.mark_known(graph(), code, body.concept)
+    return {"ok": True}
+
+
+@app.get("/api/path/{talk}")
+def path(talk: str, attendee: str | None = None):
+    return planner.learning_path(graph(), talk, attendee)
+
+
+@app.get("/api/plan/{talk}")
+def plan(talk: str, attendee: str | None = None):
+    try:
+        return planner.plan_day(graph(), talk, attendee)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+# --- the agent ---
+
+class AgentTurn(BaseModel):
+    attendee: str
+    message: str
+    history: list[dict] = []
+
+
+@app.post("/api/agent")
+def agent(body: AgentTurn):
+    _require_attendee(body.attendee)
+    return run_agent(graph(), body.attendee, body.message, body.history)
 
 
 app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")

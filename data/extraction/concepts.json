@@ -1,0 +1,767 @@
+{
+  "concepts": [
+    {
+      "id": "ai_coding_agents",
+      "name": "AI coding agents",
+      "aliases": [
+        "coding agents",
+        "Copilot agents",
+        "AI agents",
+        "autonomous coding agents"
+      ],
+      "definition": "AI coding agents are assistants that can plan, edit files, run tools, and produce pull requests or other software changes with varying levels of autonomy."
+    },
+    {
+      "id": "agentic_workflows",
+      "name": "Agentic workflows",
+      "aliases": [
+        "agent-powered workflows",
+        "agent-enabled delivery",
+        "AI-native software delivery",
+        "agentic engineering"
+      ],
+      "definition": "Agentic workflows use AI agents as active participants in software tasks such as triage, implementation, review, testing, deployment, and maintenance."
+    },
+    {
+      "id": "human_in_the_loop_oversight",
+      "name": "Human-in-the-loop oversight",
+      "aliases": [
+        "human oversight",
+        "human approval gates",
+        "people remain accountable",
+        "humans in control"
+      ],
+      "definition": "Human-in-the-loop oversight keeps people responsible for direction, approvals, exceptions, and final shipping decisions while agents do parts of the work."
+    },
+    {
+      "id": "agent_governance_permissions",
+      "name": "Agent governance and permissions",
+      "aliases": [
+        "workflow governance",
+        "scoped permissions",
+        "safe execution patterns",
+        "agent guardrails"
+      ],
+      "definition": "Agent governance and permissions define what agents are allowed to access, change, approve, or escalate so their work remains secure and auditable."
+    },
+    {
+      "id": "multi_agent_orchestration",
+      "name": "Multi-agent orchestration",
+      "aliases": [
+        "multi-agent SDLC",
+        "agents wired together",
+        "multi-session orchestration",
+        "agent handoff"
+      ],
+      "definition": "Multi-agent orchestration coordinates several specialized agents and handoff objects so complex work can move across roles, systems, or lifecycle stages."
+    },
+    {
+      "id": "proactive_agents",
+      "name": "Proactive agents",
+      "aliases": [
+        "agents that take initiative",
+        "anticipation",
+        "self-evolution",
+        "metacognition"
+      ],
+      "definition": "Proactive agents decide what to do next without a direct prompt by using goals, memory, feedback, and review of prior work."
+    },
+    {
+      "id": "model_context_protocol",
+      "name": "Model Context Protocol (MCP)",
+      "aliases": [
+        "MCP",
+        "MCP tools",
+        "MCP-compatible editor"
+      ],
+      "definition": "Model Context Protocol is a standard way for AI tools and agents to connect to external services, data, and actions through tool servers."
+    },
+    {
+      "id": "mcp_servers",
+      "name": "MCP servers",
+      "aliases": [
+        "hosted MCP servers",
+        "reference server",
+        "Arm MCP server",
+        "Sentry MCP server"
+      ],
+      "definition": "MCP servers expose tools, data, or documentation to AI agents through the Model Context Protocol."
+    },
+    {
+      "id": "mcp_security",
+      "name": "MCP security",
+      "aliases": [
+        "Securing MCP",
+        "MCP threats",
+        "MCP vulnerabilities",
+        "MCP mitigations"
+      ],
+      "definition": "MCP security covers the risks, exploit paths, hosting practices, and mitigations involved when agents can call external MCP tools."
+    },
+    {
+      "id": "mcp_authorization",
+      "name": "Fine-grained MCP authorization",
+      "aliases": [
+        "identity-aware proxy",
+        "per-identity authorization",
+        "scoped MCP tools",
+        "hosted MCP permissions"
+      ],
+      "definition": "Fine-grained MCP authorization limits which MCP tools and actions an agent may use for a particular user or context."
+    },
+    {
+      "id": "agent_skills",
+      "name": "Agent skills",
+      "aliases": [
+        "skills",
+        "Copilot CLI skills",
+        "reusable skill files",
+        "agent skill frontmatter"
+      ],
+      "definition": "Agent skills are reusable files that package instructions, workflows, and judgment so an agent can perform a recurring task consistently."
+    },
+    {
+      "id": "skill_discovery_management",
+      "name": "Skill discovery and management",
+      "aliases": [
+        "gh skill",
+        "skill catalog",
+        "installing skills",
+        "managing skills"
+      ],
+      "definition": "Skill discovery and management is the process of finding, evaluating, installing, updating, and distributing agent skills across developer environments."
+    },
+    {
+      "id": "copilot_customization",
+      "name": "Copilot customization layers",
+      "aliases": [
+        "Copilot configuration",
+        "Copilot CLI customization stack",
+        "custom instructions",
+        "instructions files"
+      ],
+      "definition": "Copilot customization layers are the configuration files, instructions, skills, agents, plugins, and connections that shape how Copilot behaves for a user, repo, team, or enterprise."
+    },
+    {
+      "id": "custom_agents_plugins",
+      "name": "Custom agents and plugins",
+      "aliases": [
+        "custom Copilot agent",
+        "Copilot SDK",
+        "agent plugin",
+        "focused sub-agents"
+      ],
+      "definition": "Custom agents and plugins extend an AI assistant with domain-specific behavior, tools, or review checks beyond its built-in capabilities."
+    },
+    {
+      "id": "copilot_cli_workflows",
+      "name": "Copilot CLI workflows",
+      "aliases": [
+        "GitHub Copilot CLI",
+        "terminal workflows",
+        "CLI agents",
+        "command-line agent workflows"
+      ],
+      "definition": "Copilot CLI workflows use agentic assistance from the terminal to automate coding, repository, review, documentation, or operational tasks."
+    },
+    {
+      "id": "agent_lifecycle_hooks",
+      "name": "Agent lifecycle hooks",
+      "aliases": [
+        "Copilot CLI hooks",
+        "native hooks system",
+        "system-level lifecycle events"
+      ],
+      "definition": "Agent lifecycle hooks let developers run custom actions when an agent starts working, becomes idle, errors, or reaches other lifecycle events."
+    },
+    {
+      "id": "prompt_assembly_context_window",
+      "name": "Prompt assembly and context windows",
+      "aliases": [
+        "context window",
+        "context mechanics",
+        "layered prompt",
+        "prioritization engine"
+      ],
+      "definition": "Prompt assembly and context windows describe how an AI tool selects files, conversation history, instructions, and other data to send to a model within its token limits."
+    },
+    {
+      "id": "token_usage_optimization",
+      "name": "Token usage optimization",
+      "aliases": [
+        "token costs",
+        "token waste",
+        "AI credits",
+        "token bloat"
+      ],
+      "definition": "Token usage optimization reduces unnecessary prompt and context size so AI tools cost less and return more focused answers."
+    },
+    {
+      "id": "developer_knowledge_bases",
+      "name": "Developer knowledge bases",
+      "aliases": [
+        "team knowledge base",
+        "Copilot knowledge base",
+        "issues PRs docs and discussions",
+        "grounded summaries"
+      ],
+      "definition": "Developer knowledge bases organize team artifacts such as issues, pull requests, docs, and discussions so agents can answer with project-specific context."
+    },
+    {
+      "id": "retrieval_grounding",
+      "name": "Retrieval grounding",
+      "aliases": [
+        "tune it for retrieval",
+        "grounding Copilot",
+        "retrieve source artifacts",
+        "link back to source"
+      ],
+      "definition": "Retrieval grounding connects model responses to retrieved source material so answers can cite evidence and reduce unsupported guesses."
+    },
+    {
+      "id": "ai_context_infrastructure",
+      "name": "AI context as infrastructure",
+      "aliases": [
+        "shared context infrastructure",
+        "single source of truth for AI tools",
+        "internal AI tool catalog",
+        "context tools"
+      ],
+      "definition": "AI context as infrastructure treats instructions, skills, MCP servers, documentation, and configuration as managed platform assets shared across teams."
+    },
+    {
+      "id": "coding_model_evaluations",
+      "name": "Coding model evaluations",
+      "aliases": [
+        "evals",
+        "benchmarks",
+        "SWE-bench",
+        "model quality measurement"
+      ],
+      "definition": "Coding model evaluations measure how well models perform real developer tasks, including task completion, correctness, regressions, speed, and user outcomes."
+    },
+    {
+      "id": "release_impact_measurement",
+      "name": "Release impact measurement",
+      "aliases": [
+        "guardrail metrics",
+        "product metrics",
+        "experiments",
+        "staged rollouts"
+      ],
+      "definition": "Release impact measurement uses metrics, feature gates, experiments, and regression checks to decide whether a shipped change actually helped users."
+    },
+    {
+      "id": "model_routing",
+      "name": "Model routing and auto selection",
+      "aliases": [
+        "auto mode",
+        "model router",
+        "auto model selection",
+        "intelligent orchestration"
+      ],
+      "definition": "Model routing chooses which AI model or compute environment should handle a task based on quality, latency, cost, context, and capability needs."
+    },
+    {
+      "id": "local_and_cloud_models",
+      "name": "Local and cloud models",
+      "aliases": [
+        "on-device inference",
+        "local models",
+        "cloud intelligence",
+        "right compute environment"
+      ],
+      "definition": "Local and cloud models combine on-device or self-hosted inference with hosted models so teams can balance privacy, cost, speed, and capability."
+    },
+    {
+      "id": "open_weight_coding_models",
+      "name": "Open-weight coding models",
+      "aliases": [
+        "open-weight coders",
+        "local model benchmarking",
+        "BYOK",
+        "bring your own key"
+      ],
+      "definition": "Open-weight coding models are downloadable or self-runnable code-focused models that teams can compare against hosted coding assistants for specific workloads."
+    },
+    {
+      "id": "cloud_agent_sandboxes",
+      "name": "Cloud agent sandboxes",
+      "aliases": [
+        "isolated sandboxes",
+        "safe place to run",
+        "cloud agents",
+        "delegation and review"
+      ],
+      "definition": "Cloud agent sandboxes provide isolated compute, repository access, identity, and permissions so agents can perform real work safely in the cloud."
+    },
+    {
+      "id": "agent_tracing",
+      "name": "Agent tracing and debugging",
+      "aliases": [
+        "production agent traces",
+        "tool-call tracing",
+        "debugging agents",
+        "agent observability"
+      ],
+      "definition": "Agent tracing records an agent's prompts, tool calls, errors, durations, and token use so teams can debug and improve its behavior."
+    },
+    {
+      "id": "ai_adoption_measurement",
+      "name": "AI adoption measurement",
+      "aliases": [
+        "Copilot adoption metrics",
+        "AI impact measurement",
+        "engineering metrics",
+        "behavioral data"
+      ],
+      "definition": "AI adoption measurement connects AI tool usage to engineering, cost, quality, throughput, and business outcomes rather than only counting seats or hours saved."
+    },
+    {
+      "id": "enterprise_copilot_administration",
+      "name": "Enterprise Copilot administration",
+      "aliases": [
+        "Copilot admin controls",
+        "usage management",
+        "utilization-based billing",
+        "Copilot rollout settings"
+      ],
+      "definition": "Enterprise Copilot administration covers the settings, access decisions, billing tools, policies, and reporting needed to operate Copilot across an organization."
+    },
+    {
+      "id": "ai_fluency_enablement",
+      "name": "AI fluency enablement",
+      "aliases": [
+        "building AI fluency",
+        "AI maturity framework",
+        "Copilot enablement",
+        "developer adoption community"
+      ],
+      "definition": "AI fluency enablement helps teams progress from trying AI tools to reliably using agents and assistants in real delivery work."
+    },
+    {
+      "id": "github_actions_workflows",
+      "name": "GitHub Actions workflows",
+      "aliases": [
+        "Actions workflows",
+        "workflow files",
+        "automated GitHub Actions",
+        "Actions pipeline"
+      ],
+      "definition": "GitHub Actions workflows are event-driven automation pipelines used to build, test, scan, deploy, or manage repository work."
+    },
+    {
+      "id": "cicd_modernization",
+      "name": "CI/CD modernization",
+      "aliases": [
+        "Jenkins to GitHub Actions migration",
+        "pipeline modernization",
+        "delivery pipeline migration"
+      ],
+      "definition": "CI/CD modernization updates legacy build and deployment pipelines to more maintainable, automated, governed, and agent-ready workflows."
+    },
+    {
+      "id": "actions_security_hardening",
+      "name": "GitHub Actions security hardening",
+      "aliases": [
+        "Actions security",
+        "workflow attack surface",
+        "security-by-default Actions",
+        "Actions footguns"
+      ],
+      "definition": "GitHub Actions security hardening reduces risk in workflows through safer defaults, least privilege, pinned dependencies, review controls, and runner protections."
+    },
+    {
+      "id": "runner_security",
+      "name": "Runner security",
+      "aliases": [
+        "runner infrastructure",
+        "self-hosted runners",
+        "build runner privileges",
+        "runner maintenance"
+      ],
+      "definition": "Runner security protects the machines that execute CI/CD jobs, including their credentials, network access, updates, and isolation."
+    },
+    {
+      "id": "dependency_screening",
+      "name": "Dependency screening",
+      "aliases": [
+        "package firewall",
+        "malicious package blocking",
+        "screening dependencies",
+        "upstream package registries"
+      ],
+      "definition": "Dependency screening checks packages before they enter a build so malicious or compromised dependencies cannot execute with pipeline privileges."
+    },
+    {
+      "id": "build_egress_control",
+      "name": "Build egress control",
+      "aliases": [
+        "GitHub Actions firewall",
+        "outbound request allowlists",
+        "CI internet access",
+        "workflow traffic audit trail"
+      ],
+      "definition": "Build egress control records and restricts the external network destinations a build or workflow can contact."
+    },
+    {
+      "id": "software_supply_chain_security",
+      "name": "Software supply chain security",
+      "aliases": [
+        "supply chain attacks",
+        "dependency tree risk",
+        "release security",
+        "agent supply chain controls"
+      ],
+      "definition": "Software supply chain security protects the packages, build systems, CI/CD pipelines, credentials, artifacts, and release processes that software depends on."
+    },
+    {
+      "id": "package_provenance_oidc",
+      "name": "Package provenance and OIDC",
+      "aliases": [
+        "provenance",
+        "OpenID Connect",
+        "verified package builds",
+        "trusted publishing"
+      ],
+      "definition": "Package provenance and OIDC let consumers verify where a package came from and whether it was built and published by the claimed workflow or identity."
+    },
+    {
+      "id": "deterministic_builds",
+      "name": "Deterministic builds and manifests",
+      "aliases": [
+        "deterministic package management",
+        "NixOS",
+        "nixpkgs",
+        "cryptographic manifest"
+      ],
+      "definition": "Deterministic builds and manifests make software contents reproducible and precisely knowable, enabling faster vulnerability detection and remediation."
+    },
+    {
+      "id": "vulnerability_reachability",
+      "name": "Vulnerability reachability",
+      "aliases": [
+        "function-level reachability",
+        "reachable vulnerable function",
+        "runtime context for prioritization"
+      ],
+      "definition": "Vulnerability reachability shows whether an application's code can actually call vulnerable code, helping teams prioritize fixes."
+    },
+    {
+      "id": "secret_scanning_push_protection",
+      "name": "Secret scanning and push protection",
+      "aliases": [
+        "AI-powered secret scanning",
+        "push-time secret detection",
+        "zero secrets policy",
+        "hardcoded secrets"
+      ],
+      "definition": "Secret scanning and push protection detect credentials in code and block or route them before they enter repositories."
+    },
+    {
+      "id": "security_alert_autofix",
+      "name": "Security alert autofix",
+      "aliases": [
+        "agentic autofix",
+        "mergeable security fixes",
+        "resolve security alerts",
+        "alert remediation PR"
+      ],
+      "definition": "Security alert autofix uses an agent to generate pull requests that remediate security findings, turning alert handling into reviewable code changes."
+    },
+    {
+      "id": "static_analysis_feedback",
+      "name": "Actionable static analysis feedback",
+      "aliases": [
+        "code quality findings",
+        "automated feedback",
+        "inline fixes",
+        "grouped findings"
+      ],
+      "definition": "Actionable static analysis feedback presents code quality or security findings in ways developers can trust, understand, and fix without excessive noise."
+    },
+    {
+      "id": "devsecops_pipeline",
+      "name": "DevSecOps pipelines",
+      "aliases": [
+        "auditable DevSecOps CI/CD",
+        "security checks in CI/CD",
+        "security feedback in GitHub"
+      ],
+      "definition": "DevSecOps pipelines embed security scanning, policy checks, remediation, and auditability directly into development and delivery workflows."
+    },
+    {
+      "id": "runtime_observability",
+      "name": "Runtime observability",
+      "aliases": [
+        "eBPF observability",
+        "process visibility",
+        "file access and network activity",
+        "code in production"
+      ],
+      "definition": "Runtime observability watches software as it executes so teams can see processes, file access, network calls, errors, latency, and other live behavior."
+    },
+    {
+      "id": "observability_for_agents",
+      "name": "Observability-driven agents",
+      "aliases": [
+        "OpenTelemetry data for agents",
+        "operational evidence",
+        "SLO checks",
+        "real traffic verification"
+      ],
+      "definition": "Observability-driven agents use logs, traces, metrics, and service-level signals to diagnose issues, propose fixes, and verify changes under real conditions."
+    },
+    {
+      "id": "incident_rca_agents",
+      "name": "Incident RCA agents",
+      "aliases": [
+        "root cause analysis agent",
+        "alert-to-RCA",
+        "Production Ops Agent",
+        "2am RCA Agent"
+      ],
+      "definition": "Incident RCA agents investigate alerts by gathering evidence, correlating signals, and producing structured root cause analyses for humans or downstream agents."
+    },
+    {
+      "id": "on_call_agent_autonomy",
+      "name": "On-call agent autonomy",
+      "aliases": [
+        "triaging alerts",
+        "investigating alerts",
+        "acting on production",
+        "promote and demote autonomy"
+      ],
+      "definition": "On-call agent autonomy defines which incident-response decisions an agent may handle independently and which require trust gates or human approval."
+    },
+    {
+      "id": "deployment_runbooks",
+      "name": "Deployment runbooks and recovery automation",
+      "aliases": [
+        "approved remediation",
+        "deployment controls",
+        "automated recovery",
+        "Day 2 recovery"
+      ],
+      "definition": "Deployment runbooks and recovery automation encode approved operational steps so deployments and remediations can be repeated safely with oversight."
+    },
+    {
+      "id": "self_validating_agentic_loops",
+      "name": "Self-validating agentic loops",
+      "aliases": [
+        "self-validating agentic loop",
+        "proof on the pull request",
+        "confidence becomes trust",
+        "verifiable outcomes"
+      ],
+      "definition": "Self-validating agentic loops make the workflow that creates a change also produce evidence, tests, or checks proving the change works."
+    },
+    {
+      "id": "automated_test_generation",
+      "name": "Automated test generation",
+      "aliases": [
+        "unit test generation",
+        "use cases become tests",
+        "tests authored by Copilot",
+        "scaled tests in GitHub Actions"
+      ],
+      "definition": "Automated test generation uses AI or automation to create, update, and run tests that validate new or changed behavior."
+    },
+    {
+      "id": "browser_agent_testing",
+      "name": "Browser-based agent testing",
+      "aliases": [
+        "agents explore an application",
+        "real browser testing",
+        "evidence-based verification",
+        "product bug versus broken test"
+      ],
+      "definition": "Browser-based agent testing lets agents interact with applications like users, gather evidence, reproduce failures, and distinguish product issues from test or infrastructure issues."
+    },
+    {
+      "id": "pull_request_review_workflows",
+      "name": "Pull request review workflows",
+      "aliases": [
+        "Copilot code review",
+        "custom review instructions",
+        "review rules",
+        "AI-assisted code review"
+      ],
+      "definition": "Pull request review workflows combine human and automated review to evaluate diffs, enforce conventions, find bugs, and improve code before merge."
+    },
+    {
+      "id": "stacked_pull_requests",
+      "name": "Stacked pull requests",
+      "aliases": [
+        "GitHub Stacked PRs",
+        "dependent pull requests",
+        "PR stack",
+        "small dependent diffs"
+      ],
+      "definition": "Stacked pull requests split a large change into ordered, dependent pull requests that can be reviewed and merged incrementally."
+    },
+    {
+      "id": "plan_first_review",
+      "name": "Plan-first review",
+      "aliases": [
+        "review the plan",
+        "move review upstream",
+        "review before the agent builds",
+        "auditing machines"
+      ],
+      "definition": "Plan-first review asks humans to evaluate the intended approach before an agent writes the diff, preserving collaboration and reducing late-stage review burden."
+    },
+    {
+      "id": "specifications_as_hypotheses",
+      "name": "Specifications as hypotheses",
+      "aliases": [
+        "specs as hypotheses",
+        "specs not contracts",
+        "over-trusting the spec",
+        "AI specifications"
+      ],
+      "definition": "Specifications as hypotheses treats prompts and specs as testable assumptions that may need validation because model outputs vary across runs and versions."
+    },
+    {
+      "id": "specification_driven_development",
+      "name": "Specification-driven development",
+      "aliases": [
+        "spec-based programming",
+        "specification-driven delivery",
+        "from specifications to verified software"
+      ],
+      "definition": "Specification-driven development starts with structured requirements or specs and uses agents, tests, and evidence to drive implementation toward verifiable outcomes."
+    },
+    {
+      "id": "requirements_from_feedback",
+      "name": "Requirements from user feedback",
+      "aliases": [
+        "turning user feedback into requirements",
+        "product signals",
+        "customer needs",
+        "feedback triage"
+      ],
+      "definition": "Requirements from user feedback uses AI to connect feedback channels, identify customer needs, and translate them into prioritized product requirements."
+    },
+    {
+      "id": "prioritization_as_code",
+      "name": "Prioritization as code",
+      "aliases": [
+        "assumptions by pull request",
+        "rubrics in Markdown",
+        "AI-scored initiatives",
+        "OKRs in GitHub"
+      ],
+      "definition": "Prioritization as code stores product assumptions, scoring rubrics, OKRs, and decisions in version-controlled files reviewed through pull requests."
+    },
+    {
+      "id": "open_roadmap_collaboration",
+      "name": "Open roadmap collaboration",
+      "aliases": [
+        "building in the open",
+        "Issues Projects and Discussions",
+        "living roadmap",
+        "community roadmap"
+      ],
+      "definition": "Open roadmap collaboration uses public issues, discussions, project boards, and comments to shape product direction before code is written."
+    },
+    {
+      "id": "github_configuration_as_code",
+      "name": "GitHub configuration as code",
+      "aliases": [
+        "org management with Terraform",
+        "repository configuration IaC",
+        "GitHub configs through PRs"
+      ],
+      "definition": "GitHub configuration as code manages organization, repository, access, and policy settings as reviewed, version-controlled infrastructure changes."
+    },
+    {
+      "id": "repository_rulesets",
+      "name": "Repository rulesets and branch protection",
+      "aliases": [
+        "rulesets",
+        "branch protection",
+        "merge requirements",
+        "GitHub policy"
+      ],
+      "definition": "Repository rulesets and branch protection enforce requirements such as reviews, checks, restrictions, and policies before changes can merge."
+    },
+    {
+      "id": "identity_based_agent_auth",
+      "name": "Identity-based agent authentication",
+      "aliases": [
+        "auth.md",
+        "scoped short-lived credentials",
+        "identity-based credential exchange",
+        "private identity-based access"
+      ],
+      "definition": "Identity-based agent authentication lets agents act on a user's behalf with scoped, short-lived credentials instead of copied long-lived secrets."
+    },
+    {
+      "id": "signed_evidence_audit_trails",
+      "name": "Signed evidence and audit trails",
+      "aliases": [
+        "signed evidence",
+        "audit a release",
+        "review trail",
+        "trace every step"
+      ],
+      "definition": "Signed evidence and audit trails record who or what performed actions, what was approved, and what evidence supports a release or compliance decision."
+    },
+    {
+      "id": "database_branching",
+      "name": "Database branching",
+      "aliases": [
+        "Postgres branching",
+        "isolated database branches",
+        "agent-ready database environments",
+        "preview databases"
+      ],
+      "definition": "Database branching creates isolated copies of schemas and data so agents and developers can test migrations or changes without risking production."
+    },
+    {
+      "id": "legacy_app_modernization",
+      "name": "Legacy application modernization",
+      "aliases": [
+        "app modernization",
+        "upgrade and migrate legacy applications",
+        ".NET and Java modernization",
+        "framework and dependency upgrades"
+      ],
+      "definition": "Legacy application modernization updates older applications through analysis, planning, refactoring, testing, dependency upgrades, vulnerability remediation, and migration."
+    },
+    {
+      "id": "reproducible_gitops_pipelines",
+      "name": "Reproducible GitOps pipelines",
+      "aliases": [
+        "GitOps",
+        "containerized operating system pipeline",
+        "reproducible software supply chain",
+        "reviewable traceable changes"
+      ],
+      "definition": "Reproducible GitOps pipelines use version-controlled desired state and automation to build, deploy, and audit systems in a repeatable way."
+    },
+    {
+      "id": "accessibility_automation",
+      "name": "Accessibility automation",
+      "aliases": [
+        "AI and automation for accessibility",
+        "automated accessibility tooling",
+        "accessibility validation",
+        "human judgment for accessibility"
+      ],
+      "definition": "Accessibility automation uses tools and AI to find, prevent, or fix accessibility issues while relying on humans for judgment and user impact."
+    },
+    {
+      "id": "open_source_security_governance",
+      "name": "Open source security governance",
+      "aliases": [
+        "maintainer security workflows",
+        "SECURITY.md",
+        "private vulnerability reporting",
+        "open source security at scale"
+      ],
+      "definition": "Open source security governance covers the policies, reporting paths, triage practices, and community processes that help maintainers handle security responsibly."
+    }
+  ]
+}
