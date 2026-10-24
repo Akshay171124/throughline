@@ -589,6 +589,20 @@ function renderTalks(talks) {
   box.scrollTop = scroll;
 }
 
+// Bring the open talk into view in the schedule and flash it once, so arriving from the
+// conference map (or a link) shows which talk you picked.
+function revealTalk(code) {
+  const row = document.querySelector(`#talks .talk[data-code="${CSS.escape(code)}"]`);
+  if (!row) return; // hidden by the search filter
+  const box = document.getElementById("talks");
+  const rowBox = row.getBoundingClientRect();
+  const listBox = box.getBoundingClientRect();
+  box.scrollTop += rowBox.top - listBox.top - box.clientHeight / 2 + rowBox.height / 2;
+  row.classList.remove("flash");
+  void row.offsetWidth; // restart the animation if it's already running
+  row.classList.add("flash");
+}
+
 function filterTalks(query) {
   const q = query.trim().toLowerCase();
   if (!q) return allTalks;
@@ -745,6 +759,7 @@ async function loadTalkView(code, { trace = false } = {}) {
     renderGraph(sameTalk);
     renderDayPlan();
     renderTalks(currentTalkList());
+    if (!sameTalk) revealTalk(code);
     renderMyTalks();
     if (trace) {
       renderTrace([{ tool: "plan_day (no AI)", args: { talk: code }, cypher: plan.queries || [], result: { steps: plan.plan.length, ready: plan.ready } }]);

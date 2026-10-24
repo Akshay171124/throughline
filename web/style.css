@@ -115,6 +115,12 @@ button:disabled { cursor: default; opacity: 0.6; }
 .talk { display: flex; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--line); cursor: pointer; border-left: 3px solid transparent; }
 .talk:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .talk.is-target { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.talk.flash { animation: talk-flash 1.6s ease-out; }
+@keyframes talk-flash {
+  0%, 30% { background: color-mix(in srgb, var(--accent) 28%, transparent); box-shadow: inset 4px 0 0 var(--accent); }
+  100% { background: color-mix(in srgb, var(--accent) 8%, transparent); box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) { .talk.flash { animation: none; } }
 .talk.in-plan { border-left-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 .talk.attended .title { color: var(--muted); }
 .when { flex: 0 0 64px; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; padding-top: 1px; }
