@@ -126,7 +126,20 @@ button { font: inherit; cursor: pointer; }
 /* trace */
 .trace-head { padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .trace-head h2 { margin: 0; font-size: 15px; }
-.trace-list { overflow-y: auto; padding: 8px; }
+.trace-body { flex: 1; min-height: 0; overflow-y: auto; }
+.trace-list { padding: 8px; }
+
+/* the path diagram */
+.path { padding: 4px 10px 0; }
+.path:empty { display: none; }
+.path h3 { margin: 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.node { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; background: var(--panel); }
+.node.target { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.node.ready { border-color: var(--l100); margin-top: 8px; }
+.node .why, .node .learn { margin-top: 4px; }
+.node q { color: var(--muted); font-style: italic; }
+.arrow { text-align: center; color: var(--muted); line-height: 1.4; }
+.unsure { font-size: 11px; color: var(--l200); border: 1px solid var(--l200); border-radius: 4px; padding: 0 4px; }
 .pad { padding: 8px; }
 .step { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; padding: 6px 10px; }
 .step summary { cursor: pointer; font-size: 13px; }

@@ -29,9 +29,10 @@ KNOWN = "MATCH (:Attendee {code: $attendee})-[k:KNOWS]->(c:Concept) RETURN c.id,
 TEACHERS = """
 MATCH (c:Concept {id: $concept})<-[e:TEACHES]-(t:Talk)
 WHERE t.start_min >= $after AND t.end_min <= $before AND t.code <> $target
-RETURN t.code, t.title, t.day, t.start, t.end, t.start_min, t.end_min, t.room, e.evidence
+RETURN t.code, t.title, t.day, t.start, t.end, t.start_min, t.end_min, t.room, e.evidence, t.level_num, t.sponsor
 ORDER BY t.start_min
 """
+TEACHER_KEYS = ["code", "title", "day", "start", "end", "start_min", "end_min", "room", "evidence", "level_num", "sponsor"]
 EXPLAINERS = """
 MATCH (r:Resource)-[e:EXPLAINS]->(:Concept {id: $concept})
 RETURN r.url, r.title, r.minutes, r.fetched_at, e.evidence
@@ -190,8 +191,10 @@ def choose_teaching_talk(candidates: list[dict], planned: list[dict]) -> tuple[d
     for c in candidates:  # one hour that covers two steps beats two hours
         if c["code"] in planned_codes:
             return c, f"Already in your plan: {c['title']} covers this too."
+    # For learning the basics: introductory talks first, then non-sponsored ones, then the earliest.
+    ranked = sorted(candidates, key=lambda c: (c.get("level_num") != 100, bool(c.get("sponsor")), c["start_min"]))
     skipped = None
-    for c in candidates:  # earliest talk that doesn't clash with the plan so far
+    for c in ranked:  # best talk that doesn't clash with the plan so far
         clash = next((p for p in planned if overlaps(c, p)), None)
         if clash is None:
             note = f"{skipped[0]['title']} clashes with {skipped[1]['title']}; using {c['title']} instead." if skipped else None
@@ -225,10 +228,7 @@ def plan_day(g: Graph, talk: str, attendee: str | None = None) -> dict:
         # A step can't start before the talks for the concepts it depends on have ended.
         after = max([clock] + [ready_at[d["concept"]] for d in step["depends_on"] if d["concept"] in ready_at])
         rows = g.query(TEACHERS, {"concept": step["concept"], "after": after, "before": deadline, "target": talk}).result_set
-        candidates = [
-            dict(zip(["code", "title", "day", "start", "end", "start_min", "end_min", "room", "evidence"], r))
-            for r in rows
-        ]
+        candidates = [dict(zip(TEACHER_KEYS, r)) for r in rows]
         chosen, note = choose_teaching_talk(candidates, planned)
         if chosen:
             if chosen not in planned:

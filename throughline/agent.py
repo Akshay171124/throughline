@@ -42,6 +42,7 @@ Rules:
 - Answer only from tool results. Never use your own knowledge about talks, speakers, times, rooms or concepts. If the tools don't give an answer, say you don't know.
 - Start by calling get_attendee to learn the current conference time and what this attendee already knows.
 - To find a talk the attendee names loosely ("the MCP security talk"), call search_talks.
+- To get someone ready for a talk or plan their way there, call plan_day: it returns the ordered steps and where to learn each one. Use get_learning_path only when they just ask what they need to know.
 - When they say they attended or just came out of a talk, call mark_attended. When they say they already know a concept, call mark_known.
 - An empty learning path means they're ready: say "You're ready" and why.
 - Mention talks by title, day and time, written like "Thursday 9:00 AM". Keep replies short: a few sentences or a short list.
@@ -99,6 +100,7 @@ class Tools:
     def __init__(self, g: Graph, attendee: str, public: Graph | None = None):
         # `public` is the attendee-free copy used by run_cypher (see graph.publish_public_view).
         self.g, self.attendee, self.public = g, attendee, public
+        self.last_view = None  # the latest full path or plan, for the page to draw
 
     def get_attendee(self):
         q = """
@@ -137,10 +139,12 @@ class Tools:
 
     def get_learning_path(self, talk: str):
         path = planner.learning_path(self.g, talk, self.attendee)
+        self.last_view = {"kind": "path", **path}
         return path, path["queries"]
 
     def plan_day(self, talk: str):
         plan = planner.plan_day(self.g, talk, self.attendee)
+        self.last_view = {"kind": "plan", **plan}
         return plan, plan["queries"]
 
     def find_where_to_learn(self, concept: str, before_talk: str = ""):
@@ -150,8 +154,7 @@ class Tools:
             rows = self.g.query("MATCH (t:Talk {code: $t}) RETURN t.start_min", {"t": before_talk}).result_set
             before = rows[0][0] if rows else before
         rows = self.g.query(planner.TEACHERS, {"concept": concept, "after": clock, "before": before, "target": before_talk}).result_set
-        keys = ["code", "title", "day", "start", "end", "start_min", "end_min", "room", "evidence"]
-        return [dict(zip(keys, r)) for r in rows], [planner.TEACHERS]
+        return [dict(zip(planner.TEACHER_KEYS, r)) for r in rows], [planner.TEACHERS]
 
     def explain_step(self, talk: str, concept: str):
         q = """
@@ -216,7 +219,7 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
         response = client.chat.completions.create(model=settings.agent_model, messages=messages, tools=TOOLS)
         reply = response.choices[0].message
         if not reply.tool_calls:
-            return {"reply": reply.content, "trace": trace}
+            return {"reply": reply.content, "trace": trace, "view": tools.last_view}
         messages.append(reply.model_dump(exclude_none=True))
         for call in reply.tool_calls:
             args = json.loads(call.function.arguments or "{}")
@@ -226,4 +229,5 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
                 result, cypher = {"error": f"{type(e).__name__}: {e}"}, []
             trace.append({"tool": call.function.name, "args": args, "cypher": [c.strip() for c in cypher], "result": _trim(result)})
             messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(_trim(result), default=str)})
-    return {"reply": "I couldn't finish that within my tool budget. Try asking more narrowly.", "trace": trace}
+    return {"reply": "I couldn't finish that within my tool budget. Try asking more narrowly.", "trace": trace,
+            "view": tools.last_view}

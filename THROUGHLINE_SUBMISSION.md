@@ -118,8 +118,10 @@ OpenAI is also used offline to build the concept list and to propose edges with 
 | 1:00–2:30 | Path, plan and mark-attended queries; plain button interface; "You're ready" screen; click-to-explain view |
 | 2:30–3:30 | Agent with graph tools and trace panel; attendee memory |
 | 3:30–4:15 | Live explainer fetch with fallback; organizer view |
-| 4:15–4:45 | Hand-check edges; compare with the baseline; fill in measured quality |
-| 4:45–5:30 | Freeze features; rehearse the demo twice, once with the network off |
+| 4:00–4:15 | Hand-check edges; compare with the baseline; fill in measured quality |
+| 4:15–4:30 | **Freeze features.** Rehearse the demo once |
+| 4:30–5:00 | **Record the demo video** (screen recording, following the demo plan); upload it and check the link opens without logging in |
+| 5:00–5:30 | Submit (repo link, video link, this document); rehearse the stage demo, once with the network off |
 
 **Rule:** the plain button interface must work by 2:30. The agent is built on top of it, never instead of it.
 
@@ -171,7 +173,9 @@ The chat stays in scope. The plain buttons come first (the 2:30 rule), so the ch
 **The submission itself** *(the event website doesn't say; ask the organizers)*
 
 - [ ] Where and how to submit, and the exact deadline (submission is during 2:00–5:30 PM)
-- [ ] Whether a demo video or a public repo is required, and how long each team's stage demo is
+- [x] A demo video is required on the submission page
+- [ ] Demo video is 3–5 minutes, on YouTube (unlisted) or Google Drive ("anyone with the link"), submitted by 5:30 PM
+- [ ] Whether a public repo is required, and how long each team's stage demo is
 
 **The document**
 

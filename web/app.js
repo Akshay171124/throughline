@@ -139,6 +139,55 @@ function renderTrace(trace) {
     </details>`).join("");
 }
 
+// Draw the path behind an answer: your talk -> what it assumes (with the abstract quote)
+// -> where to learn it (with that talk's quote). Prerequisites of prerequisites show which
+// talk the dependency came from.
+function talkLabel(code) {
+  const t = allTalks.find((x) => x.code === code);
+  return t ? `${t.day.slice(0, 3)} ${formatTime(t.start)} · ${t.title}` : code;
+}
+
+function renderPath(view) {
+  const box = document.getElementById("path");
+  if (!view) { box.innerHTML = ""; return; }
+  const steps = view.plan || view.steps || [];
+  const target = talkLabel(view.talk);
+  const known = (view.already_known || []).map((k) => k.concept);
+  if (view.ready || !steps.length) {
+    box.innerHTML = `<h3>The path</h3>
+      <div class="node target"><span class="label">Your talk</span>${escapeHtml(target)}</div>
+      <div class="node ready"><strong>You're ready.</strong> Nothing it assumes is missing${
+        known.length ? ` (you already know ${known.map(escapeHtml).join(", ")})` : ""}.</div>`;
+    return;
+  }
+  const neededFor = {};
+  for (const s of steps) for (const d of s.depends_on || []) (neededFor[d.concept] ||= []).push({ name: s.name, via: d.via || [] });
+  const cards = steps.map((s, i) => {
+    const why = [];
+    if (s.required_by_talk) {
+      why.push(`Your talk assumes it: <q>${escapeHtml(s.required_by_talk.evidence)}</q>${
+        s.required_by_talk.status === "unsure" ? ` <span class="unsure">unsure</span>` : ""}`);
+    }
+    for (const n of neededFor[s.concept] || []) {
+      why.push(`Needed for <strong>${escapeHtml(n.name)}</strong>, because ${n.via.map((c) => escapeHtml(talkLabel(c))).join("; ")} teaches that and assumes this`);
+    }
+    const at = s.learn_at;
+    let where = "";
+    if (at && at.kind === "talk") {
+      where = `<div class="learn">Learn it at <strong>${escapeHtml(at.day.slice(0, 3))} ${formatTime(at.start)}</strong> · ${escapeHtml(at.title)}<br><q>${escapeHtml(at.evidence)}</q></div>`;
+    } else if (at && at.kind === "explainer") {
+      where = `<div class="learn">Learn it from <a href="${safeUrl(at.url)}" target="_blank" rel="noopener">${escapeHtml(at.title)}</a> <span class="muted">(explainer, fetched ${escapeHtml(at.fetched_at || "")})</span></div>`;
+    } else if (at) {
+      where = `<div class="learn muted">No talk teaches this before your talk starts.</div>`;
+    }
+    return `<div class="node step"><span class="step-n">${i + 1}</span> <strong>${escapeHtml(s.name)}</strong>
+      ${why.map((w) => `<div class="why">${w}</div>`).join("")}${where}${s.note ? `<div class="note">${escapeHtml(s.note)}</div>` : ""}</div>`;
+  }).join(`<div class="arrow">↓</div>`);
+  box.innerHTML = `<h3>The path</h3>${cards}<div class="arrow">↓</div>
+    <div class="node target"><span class="label">Your talk</span>${escapeHtml(target)}</div>${
+    known.length ? `<p class="muted">Skipped because you know them: ${known.map(escapeHtml).join(", ")}</p>` : ""}`;
+}
+
 async function ask(message) {
   addMessage("user", `<p>${escapeHtml(message)}</p>`);
   const pending = addMessage("agent pending", `<p>Checking the graph…</p>`);
@@ -151,6 +200,7 @@ async function ask(message) {
     pending.innerHTML = `<p>${formatReply(turn.reply || "")}</p>`;
     history.push({ role: "user", content: message }, { role: "assistant", content: turn.reply || "" });
     renderTrace(turn.trace);
+    if (turn.view) renderPath(turn.view);
     await refreshAttendee();
   } catch (err) {
     pending.classList.remove("pending");
@@ -176,6 +226,7 @@ async function planWithoutAI(code) {
     addMessage("agent card", `<p>Your path to <strong>${escapeHtml(plan.talk_title)}</strong>:</p><ol>${steps}</ol><p class="muted">Model-free plan from the graph.</p>`);
   }
   renderTrace([{ tool: "plan_day (no AI)", args: { talk: code }, cypher: plan.queries, result: { steps: plan.plan.length, ready: plan.ready } }]);
+  renderPath({ kind: "plan", ...plan });
 }
 
 async function attendedTalk(code) {
