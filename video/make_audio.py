@@ -26,7 +26,7 @@ def main(force: bool) -> None:
         if force or not mp3.exists():
             res = client.audio.speech.create(
                 model="gpt-4o-mini-tts", voice="coral", input=b["voiceover"],
-                instructions="Clear, warm, confident product demo narrator; moderate pace.",
+                instructions=b.get("tts_instructions", "Clear, warm, confident product demo narrator; moderate pace."),
                 response_format="mp3")
             mp3.write_bytes(res.content)
         durs[b["id"]] = round(duration(mp3), 3)

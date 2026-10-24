@@ -1,38 +1,171 @@
 [
-  {"id": "01_problem", "caption": "Is this talk for me? What should I learn first?",
-   "voiceover": "A conference schedule tells you when and where. It doesn't tell you whether you're ready. Advanced talks assume things you might not know, and the session that teaches them might be earlier, at the same time, or nowhere. Throughline answers one question: what should I learn before this talk, and where?",
-   "actions": "Landing page, cursor rests near the city box."},
-  {"id": "02_find", "caption": "Find your conference: a Bright Data web search, cached for 48 hours",
-   "voiceover": "Start by finding your conference. Nearby conferences come from a Bright Data web search, cached for two days, so this one is instant. OpenAI picks out real conferences, only from links the search returned, and the dates are checked in code. Conferences we haven't loaded say so honestly. GitHub Universe, next week, is ready now.",
-   "actions": "Type 'San Francisco, CA', click Search, show Near results and Ready now."},
-  {"id": "03_map", "caption": "The whole conference as a graph: arrows mean 'prepares you for'",
-   "voiceover": "This is the whole conference as a graph. Talks run left to right in time. An arrow means this talk prepares you for that one: it teaches something the later talk assumes, and it ends before the later one starts. Hover a talk, and its chain lights up.",
-   "actions": "Open the map for GitHub Universe, hover a talk with a long chain."},
-  {"id": "04_ask", "caption": "Tell it your goal, in your own words",
-   "voiceover": "Now, tell it your goal in your own words: I'm new to MCP, and I want to build my first server. The agent maps that goal onto the graph's concepts, finds the talks that teach them, and plans the main pick.",
-   "actions": "Type the goal into Ask the graph, Send, live agent call (wait shortened in the edit)."},
-  {"id": "05_answer", "caption": "Picks light up on the map. 'Why this answer?' shows every step",
-   "voiceover": "The picks light up on the map, with cards that say why each one fits. And the agent can only answer through graph tools. 'Why this answer?' lists every step it took, and the graph queries are one click away.",
-   "actions": "Show highlighted talks and cards, open Why this answer? and See the graph queries."},
-  {"id": "06_talk", "caption": "One talk: \"Own your Copilot\", an advanced Thursday workshop",
-   "voiceover": "Now, a single talk: Own your Copilot, an advanced workshop on Thursday. 'About this talk' is an AI summary of the abstract, the concepts it assumes and teaches, and a few outside readings that Bright Data found and OpenAI vetted.",
-   "actions": "Open the talk page for BLD1428W, open About this talk."},
-  {"id": "07_path", "caption": "Newcomer: 4 steps, one multi-hop DEPENDS_ON query",
-   "voiceover": "For a newcomer, the graph unfolds four steps. The talk assumes you know how to use GitHub Copilot, and Copilot customization in turn depends on Copilot basics, Git, and the command line. That's one multi-hop query over the graph's depends-on links. The day plan says where to learn each step: a Wednesday talk, or a short explainer.",
-   "actions": "Show the path graph and the day plan."},
-  {"id": "08_profile", "caption": "Profile: \"Some experience\" skips the basics",
-   "voiceover": "Tell it about yourself. With some experience, the basics are skipped. Same talk, and now just one step.",
-   "actions": "Set up profile, choose Some experience, Save, re-plan."},
-  {"id": "09_evidence", "caption": "Click any step: the exact quote behind each link",
-   "voiceover": "Click any step to see the evidence. Every link carries the exact words from a talk's title or abstract, checked word for word, or it's thrown out. Here, a Wednesday workshop teaches Copilot customization.",
-   "actions": "Click the remaining concept node, show its quote and where to learn it."},
-  {"id": "10_attend", "caption": "\"I attended this\": the clock moves, the plan re-runs",
-   "voiceover": "It's Wednesday afternoon, and I went to that workshop. Everything it teaches now counts as learned, the clock moves to the end of the talk, and the plan runs again. You're ready. That memory lives in the graph, and 'Forget me' deletes it.",
-   "actions": "Open the teaching talk from the day plan, click I attended this, show You're ready."},
-  {"id": "11_built", "caption": "FalkorDB at the core · Bright Data for hard-to-reach data · OpenAI agent",
-   "voiceover": "How it's built. FalkorDB is the core: multi-hop prerequisite paths, the prepares-you-for flow, and each attendee's memory, all in the graph. The agent can write its own read-only Cypher, but only against a copy of the graph with no attendee data. Bright Data brings in the hard-to-reach data: the JavaScript-rendered catalog, nearby conferences, explainers and readings. OpenAI extracted the concepts with word-for-word evidence, and runs the agent.",
-   "actions": "Back to the conference map; gentle hovers."},
-  {"id": "12_close", "caption": "400 of 401 links passed the word-for-word check",
-   "voiceover": "Honestly measured: 400 of 401 proposed links passed the word-for-word check, and an AI review of 20 random links found 15 correct, 5 partly right, and none wrong. Throughline: find your conference, tell it your goal, and walk in ready.",
-   "actions": "Map stays on screen."}
+  {
+    "id": "S1_title",
+    "type": "slide",
+    "slide": "01_title",
+    "voiceover": "Hi, we're Team Git Lost, and this is Throughline: know what to learn before each talk."
+  },
+  {
+    "id": "S1_problem",
+    "type": "footage",
+    "kicker": "The problem",
+    "caption": "A flat schedule: when and where, but not what each talk assumes",
+    "voiceover": "GitHub Universe has a hundred and twenty-five talks, in a flat schedule like this. It tells you when and where. It doesn't tell you what a talk assumes you already know, or where to learn that first. So you walk into an advanced workshop, and get lost in the first ten minutes."
+  },
+  {
+    "id": "S2_card",
+    "type": "slide",
+    "slide": "02_section_solution",
+    "voiceover": "Our solution."
+  },
+  {
+    "id": "S2_solution",
+    "type": "slide",
+    "slide": "02_solution",
+    "voiceover": "Throughline. Find your conference, say your goal in your own words, and get your path: what to learn first, in what order, and where to learn it before the talk starts. It remembers what you know, and every answer is explained. It's powered by a FalkorDB knowledge graph, and live web data from Bright Data."
+  },
+  {
+    "id": "S3_card",
+    "type": "slide",
+    "slide": "03_section_demo",
+    "voiceover": "Here it is, live."
+  },
+  {
+    "id": "D_find",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "Bright Data · web search",
+    "badge_kind": "bd",
+    "caption": "Conferences near you",
+    "voiceover": "Type a city. These nearby conferences come from a Bright Data web search. GitHub Universe is loaded, so open its map."
+  },
+  {
+    "id": "D_flow",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "FalkorDB · prepares-you-for links",
+    "badge_kind": "fd",
+    "caption": "Each arrow: this talk prepares you for that one",
+    "voiceover": "Each arrow is a path in the FalkorDB graph: this talk teaches what a later one assumes. Hover a talk to trace its chain."
+  },
+  {
+    "id": "D_ask",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "FalkorDB · goal → concepts → talks",
+    "badge_kind": "fd",
+    "caption": "Ask the graph, in your own words",
+    "voiceover": "Now say a goal in your own words: I'm new to MCP, and I want to build my first server. The agent answers by querying the FalkorDB graph."
+  },
+  {
+    "id": "D_answer",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "FalkorDB · goal → concepts → talks",
+    "badge_kind": "fd",
+    "caption": "Picks light up; \"Why this answer?\" shows every step",
+    "voiceover": "It maps the goal onto concepts in the graph, MCP first, and finds the talks that teach them. They light up on the map. 'Why this answer?' lists every step it took, and each step is a real Cypher query on FalkorDB, one click away."
+  },
+  {
+    "id": "D_talk",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "Bright Data · readings",
+    "badge_kind": "bd",
+    "caption": "About this talk: outside readings",
+    "voiceover": "Open Own your Copilot, an advanced workshop. 'About this talk' adds outside readings, found with Bright Data."
+  },
+  {
+    "id": "D_path",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "FalkorDB · multi-hop path",
+    "badge_kind": "fd",
+    "caption": "Newcomer: 4 steps, and where to learn each",
+    "voiceover": "One multi-hop FalkorDB query finds four steps for a newcomer, and 'Your day' says where to learn each one before Thursday."
+  },
+  {
+    "id": "D_profile",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "FalkorDB · memory",
+    "badge_kind": "fd",
+    "caption": "Some experience: the basics drop off",
+    "voiceover": "Tell it you have some experience. That's saved in the graph as what you know, so the basics drop off, and one step is left."
+  },
+  {
+    "id": "D_attend",
+    "type": "footage",
+    "kicker": "Live demo",
+    "badge": "FalkorDB · memory",
+    "badge_kind": "fd",
+    "caption": "\"I attended this\": the clock moves, you're ready",
+    "voiceover": "I went to the Wednesday workshop that teaches it. Mark it attended: the graph records it, the clock moves, and you're ready."
+  },
+  {
+    "id": "S4_card",
+    "type": "slide",
+    "slide": "04_section_falkordb",
+    "voiceover": "What we achieved with FalkorDB."
+  },
+  {
+    "id": "S4_why",
+    "type": "slide",
+    "slide": "04_falkordb_why",
+    "voiceover": "Why a graph? Our data is connections: talks require and teach concepts, concepts depend on concepts, and attendees know concepts. And our questions are paths, with time rules: what do I need before this talk, and what do those need? In tables, that's recursive joins. In FalkorDB, it's one traversal."
+  },
+  {
+    "id": "S4_how",
+    "type": "slide",
+    "slide": "04_falkordb_how",
+    "voiceover": "The schema. Depends-on links are derived from talks that teach one concept and require another. 'Prepares you for' is a traversal: a talk, what it teaches, and the later talks that require it. The agent answers only through thirteen graph tools, and its own Cypher is read-only, on a copy with no attendee data."
+  },
+  {
+    "id": "S4_cypher",
+    "type": "clip",
+    "marks": [
+      "cypher_start",
+      "cypher_end"
+    ],
+    "kicker": "FalkorDB · explainable",
+    "caption": "The real Cypher behind an answer, from the demo",
+    "voiceover": "And every answer shows the real Cypher it ran."
+  },
+  {
+    "id": "S4_results",
+    "type": "slide",
+    "slide": "04_falkordb_results",
+    "voiceover": "The results: 125 talks, 55 concepts, 491 relationships, and 227 prepares-you-for links. The multi-hop prerequisite query takes 66 milliseconds on the hosted lab; a full day plan, about 1.6 seconds. Memory makes it personal: four steps for a newcomer, one with experience. And 400 of 401 extracted links passed the word-for-word check."
+  },
+  {
+    "id": "S5_card",
+    "type": "slide",
+    "slide": "05_section_brightdata",
+    "voiceover": "How we used Bright Data."
+  },
+  {
+    "id": "S5_why",
+    "type": "slide",
+    "slide": "05_brightdata_why",
+    "voiceover": "Why Bright Data? The data we need is live, and hard to reach. The schedule page renders with JavaScript, so a plain fetch gets no sessions. And conferences near you, and good readings, need live Google results that a basic script can't reliably get."
+  },
+  {
+    "id": "S5_how",
+    "type": "slide",
+    "slide": "05_brightdata_how",
+    "voiceover": "The pipeline. The Browser API loads the schedule and records its data feed, and OpenAI extracts concepts, with word-for-word evidence, into FalkorDB. The SERP API runs three searches for your city; we keep only conferences from returned links, check dates in code, and merge and cache the results. Search results also become vetted readings and explainers, stored in the graph."
+  },
+  {
+    "id": "S5_results",
+    "type": "slide",
+    "slide": "05_brightdata_results",
+    "voiceover": "The results. Freshness: a live re-scrape on the hackathon morning found two dropped talks, two new ones and a corrected abstract, and the graph was updated. Scale: all 125 talks, with 434 vetted readings. Quality: only returned URLs, dates checked in code, and the last good snapshot kept if a scrape looks broken."
+  },
+  {
+    "id": "S6_close",
+    "type": "slide",
+    "slide": "06_end",
+    "min_seconds": 7.5,
+    "voiceover": "Throughline: find your conference, say your goal, and walk in ready. Try it live at the link on screen. Thanks for watching."
+  }
 ]
