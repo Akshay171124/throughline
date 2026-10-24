@@ -1,4 +1,5 @@
-// Throughline landing page: the talk flow graph, "Don't miss", the calendar and a small profile dialog.
+// Throughline landing page. Step 1 picks a conference (loaded ones, plus a live search near you);
+// step 2 is that conference's map: the talk flow graph, "Don't miss", the calendar and a small profile dialog.
 // All feed data and model text is untrusted: everything going into innerHTML goes through escapeHtml.
 
 const CODE_KEY = "throughline.attendee"; // shared with the attendee page (talk.html)
@@ -23,6 +24,7 @@ let clockConference = ""; // the conference name /api/clock reports, used until 
 let conferences = null;   // GET /api/conferences
 let activeHighlight = null; // talk codes the chat picked, lit up on the flow graph
 const PLACE_KEY = "throughline.place";
+const CONF_KEY = "throughline.conference"; // the conference this visitor picked
 
 // ---- helpers (copied from app.js) ---------------------------------------------
 
@@ -230,8 +232,10 @@ async function saveProfile() {
     const result = await api(`/api/attendees/${encodeURIComponent(attendee)}/profile`, { method: "PUT", body: JSON.stringify(body) });
     me.profile = (result && result.profile) || { ...body, updated_at: "now" };
     renderProfileButton();
-    status.textContent = "Saved ✓ Updating the flow…";
-    await Promise.allSettled([loadFlow(), loadFeatured()]);
+    if (mapStarted) {
+      status.textContent = "Saved ✓ Updating the flow…";
+      await Promise.allSettled([loadFlow(), loadFeatured()]);
+    }
     status.textContent = "Saved ✓";
   } catch (err) {
     status.textContent = `Couldn't save: ${err.message}`;
@@ -607,7 +611,7 @@ function wireFlow() {
   let t = null;
   window.addEventListener("resize", () => {
     clearTimeout(t);
-    t = setTimeout(() => { if (cy && flowData) drawFlow(flowData); }, 200);
+    t = setTimeout(() => { if (cy && flowData && view === "map") drawFlow(flowData); }, 200);
   });
   try {
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (cy) cy.style(flowStyle()); });
@@ -804,7 +808,7 @@ function wireCalendar() {
   });
   dlg.addEventListener("close", onCalendarClosed);
   window.addEventListener("hashchange", () => {
-    if (location.hash === "#calendar") openCalendar();
+    if (location.hash === "#calendar") { if (view === "map") openCalendar(); }
     else if (dlg.open) closeDialog(dlg);
   });
 }
@@ -980,7 +984,11 @@ async function loadChat() {
   }
   // Talk-page turns are about one talk; only a landing-page answer lights up the map.
   const last = [...msgs].reverse().find((m) => m.role === "assistant" && m.page === "landing");
-  if (last && cleanCodes(last.highlight).length) applyHighlight(last.highlight);
+  const restored = last ? cleanCodes(last.highlight) : [];
+  if (!restored.length) return;
+  applyHighlight(restored);
+  // The map was fetched before the chat was known: fetch it again with include= so the picks are drawn.
+  if (cy && restored.some((c) => cy.getElementById(c).empty())) await loadFlow();
 }
 
 async function sendGoal(raw) {
@@ -1075,26 +1083,18 @@ function wireChat() {
   }, true);
 }
 
-// ---- conferences ----------------------------------------------------------------------
+// ---- conferences: step 1 (the picker), step 2 (the map or a detail card) ------------------
 
 function confLine(c) {
   return [c && c.name, c && c.dates, c && c.location].filter(Boolean).join(" · ");
 }
 
-function renderConfLabel() {
-  const label = document.getElementById("conf-label");
-  const btn = document.getElementById("conf-picker");
-  const cur = conferences && conferences.current;
-  if (cur && cur.name) {
-    label.textContent = confLine(cur);
-    btn.disabled = false;
-    btn.title = "Conferences in Throughline, and conferences near you";
-    document.title = `Throughline · ${cur.name}`;
-  } else {
-    label.textContent = clockConference || " ";
-    btn.disabled = true;
-    btn.title = "";
-  }
+function loadedList() {
+  return conferences && Array.isArray(conferences.loaded) ? conferences.loaded.filter((c) => c && c.id) : [];
+}
+
+function findLoaded(id) {
+  return id ? loadedList().find((c) => c.id === id) || null : null;
 }
 
 let confRetry = null;
@@ -1103,47 +1103,7 @@ async function loadConferences() {
     conferences = await api("/api/conferences");
   } catch (err) {
     conferences = null;
-    if (err.status === 404 && !confRetry) confRetry = setTimeout(() => { confRetry = null; loadConferences(); }, 20000);
-  }
-  renderConfLabel();
-}
-
-function openDialog(dlg) {
-  if (dlg.open) return;
-  if (typeof dlg.showModal === "function") dlg.showModal();
-  else dlg.setAttribute("open", "");
-}
-
-function renderLoadedConferences() {
-  const box = document.getElementById("cf-loaded");
-  const cur = conferences && conferences.current;
-  if (!cur) {
-    box.innerHTML = `<p class="muted">The conference list isn't available yet.</p>`;
-    return;
-  }
-  const loaded = Array.isArray(conferences.loaded) && conferences.loaded.length ? conferences.loaded : [cur];
-  box.innerHTML = `<h3>In Throughline now</h3>
-    <div class="cf-results">${loaded.filter(Boolean).map((c) => {
-      const isCur = c.id === cur.id;
-      const facts = [c.dates, c.location, Number(c.talks) > 0 ? plural(Number(c.talks), "talk", "talks") : ""].filter(Boolean).join(" · ");
-      return `<div class="cf-item${isCur ? " current" : ""}">
-        <span class="cf-name">${escapeHtml(c.name || c.id || "Conference")}</span>
-        <button type="button" class="pill ok cf-badge" data-to-map>${isCur ? "You're here · " : ""}Readiness map ready</button>
-        <span class="cf-facts">${escapeHtml(facts)}</span>
-      </div>`;
-    }).join("")}</div>`;
-}
-
-function openConferences(focusNear = false) {
-  const dlg = document.getElementById("conferences");
-  clearHighlight();
-  renderLoadedConferences();
-  const input = document.getElementById("cf-place");
-  if (!input.value) input.value = storageGet(PLACE_KEY) || "";
-  openDialog(dlg);
-  if (focusNear) {
-    document.getElementById("cf-near").scrollIntoView({ block: "nearest" });
-    input.focus();
+    if (!confRetry) confRetry = setTimeout(() => { confRetry = null; loadConferences().then(() => { if (view === "picker") renderReady(); }); }, 20000);
   }
 }
 
@@ -1153,35 +1113,75 @@ function formatSearchedAt(value) {
   return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 
+// One card. Loaded conferences open the map; the others open a plain detail card.
+function confCard(c, action) {
+  const ready = action.kind === "open";
+  const href = safeUrl(c.url);
+  const facts = [c.dates, c.location].filter(Boolean).join(" · ");
+  const attr = ready ? `data-open="${escapeHtml(action.id)}"` : `data-detail="${escapeHtml(String(action.index))}"`;
+  return `<article class="pk-card${ready ? " ready" : ""}" ${attr}>
+    <div class="pk-card-top">${ready ? `<span class="pill ok">✓ Map ready</span>` : `<span class="pill plain">Schedule not loaded</span>`}</div>
+    <h3>${escapeHtml(c.name || c.id || "Conference")}</h3>
+    ${facts ? `<p class="pk-facts">${escapeHtml(facts)}</p>` : ""}
+    ${c.snippet ? `<p class="pk-snippet">${escapeHtml(c.snippet)}</p>` : ""}
+    <div class="pk-card-foot">
+      <button type="button" class="${ready ? "primary" : "lp-btn ghost pk-more"}">${ready ? "Open the map →" : "Details"}</button>
+      ${href !== "#" ? `<a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Website ↗</a>` : ""}
+    </div>
+  </article>`;
+}
+
+function renderReady() {
+  const box = document.getElementById("pk-ready");
+  const list = loadedList();
+  if (!conferences) {
+    box.innerHTML = `<div class="pk-state error">The conference list isn't available right now. Retrying shortly…</div>`;
+    return;
+  }
+  if (!list.length) {
+    box.innerHTML = `<div class="pk-state">No conference schedules are loaded yet.</div>`;
+    return;
+  }
+  box.innerHTML = list.map((c) => confCard({
+    ...c, snippet: Number(c.talks) > 0 ? `${plural(Number(c.talks), "talk", "talks")} mapped` : "",
+  }, { kind: "open", id: c.id })).join("");
+}
+
 let nearbyBusy = false;
+let nearbyList = []; // the last search's conferences, for the detail card
 function setNearbyBusy(busy) {
   nearbyBusy = busy;
-  document.getElementById("cf-locate").disabled = busy;
-  document.querySelector("#cf-form button").disabled = busy;
+  document.getElementById("pk-locate").disabled = busy;
+  document.querySelector("#pk-form button").disabled = busy;
 }
 
 function nearbyState(html, isError = false) {
-  document.getElementById("cf-results").innerHTML = `<div class="cf-state${isError ? " error" : ""}">${html}</div>`;
+  document.getElementById("pk-near").hidden = false;
+  document.getElementById("pk-meta").textContent = "";
+  document.getElementById("pk-results").innerHTML = `<div class="pk-state${isError ? " error" : ""}">${html}</div>`;
 }
 
 async function searchNearby(query, label) {
   if (nearbyBusy) return;
   setNearbyBusy(true);
+  document.getElementById("pk-near-title").textContent = label === "you" ? "Near you" : `Near ${label}`;
   const started = Date.now();
-  nearbyState(`<span class="spinner"></span><span>Searching the live web for conferences near ${escapeHtml(label)}… <b class="cf-elapsed">0 s</b><br><span class="muted">This usually takes 10–40 seconds.</span></span>`);
+  nearbyState(`<span class="spinner"></span><span>Searching the live web for conferences near ${escapeHtml(label)}… <b class="pk-elapsed">0 s</b><br>
+    <span class="muted">A new place usually takes 15–40 seconds; places searched before come back instantly.</span>
+    <span class="pk-bar" aria-hidden="true"><i></i></span></span>`);
   const tick = setInterval(() => {
-    const el = document.querySelector("#cf-results .cf-elapsed");
+    const el = document.querySelector("#pk-results .pk-elapsed");
     if (el) el.textContent = `${Math.round((Date.now() - started) / 1000)} s`;
   }, 1000);
   const ctrl = typeof AbortController === "function" ? new AbortController() : null;
   const timeout = ctrl ? setTimeout(() => ctrl.abort(), 90000) : null;
   try {
     const data = await api(`/api/conferences/nearby?${query}`, ctrl ? { signal: ctrl.signal } : {});
-    renderNearby(data || {});
+    renderNearby(data || {}, label !== "you");
   } catch (err) {
-    if (err.name === "AbortError") nearbyState("The search took too long. Try again, or try a bigger city nearby.", true);
+    if (err.name === "AbortError") nearbyState("The search took too long. Try again, or try a bigger city nearby. The conferences above are ready either way.", true);
     else if (err.status === 404) nearbyState("Conference search isn't available yet. Try again in a few minutes.", true);
-    else nearbyState(`Couldn't search: ${escapeHtml(err.message)}`, true);
+    else nearbyState(`Couldn't search: ${escapeHtml(err.message)}. The conferences above are ready either way.`, true);
   } finally {
     clearInterval(tick);
     if (timeout) clearTimeout(timeout);
@@ -1189,39 +1189,33 @@ async function searchNearby(query, label) {
   }
 }
 
-function renderNearby(data) {
-  const list = (Array.isArray(data.conferences) ? data.conferences : []).filter((c) => c && c.name);
+function renderNearby(data, typed) {
+  const raw = (Array.isArray(data.conferences) ? data.conferences : []).filter((c) => c && c.name).slice(0, 20);
+  // Conferences with a map come first; otherwise keep the search's order.
+  nearbyList = raw.map((c, i) => ({ c, i, ready: Boolean(c.loaded && findLoaded(c.id)) }))
+    .sort((a, b) => (b.ready - a.ready) || (a.i - b.i));
   const place = data.place ? String(data.place) : "";
-  if (place) storageSet(PLACE_KEY, place.slice(0, 80));
-  const meta = [
-    `${plural(list.length, "conference", "conferences")}${place ? ` near <strong>${escapeHtml(place)}</strong>` : ""}`,
+  // Only a typed city is remembered; a place worked out from your location is not.
+  if (typed && place) storageSet(PLACE_KEY, place.slice(0, 80));
+  if (place) document.getElementById("pk-near-title").textContent = typed ? `Near ${place}` : "Near you";
+  document.getElementById("pk-near").hidden = false;
+  document.getElementById("pk-meta").textContent = [
+    plural(nearbyList.length, "conference", "conferences"),
     "found via live web search",
-    data.searched_at ? `searched ${escapeHtml(formatSearchedAt(data.searched_at))}` : "",
+    data.searched_at ? `searched ${formatSearchedAt(data.searched_at)}` : "",
   ].filter(Boolean).join(" · ");
-  const parts = [`<div class="cf-meta">${meta}</div>`];
-  if (data.error) parts.push(`<div class="cf-state error">${escapeHtml(data.error)}</div>`);
-  if (!list.length) {
-    parts.push(`<div class="cf-state">No upcoming conferences turned up${place ? ` near ${escapeHtml(place)}` : ""}. Try a bigger city nearby.</div>`);
+  const parts = [];
+  if (data.error) parts.push(`<div class="pk-state error">${escapeHtml(data.error)}. The conferences above are ready either way.</div>`);
+  if (!nearbyList.length && !data.error) {
+    parts.push(`<div class="pk-state">No upcoming conferences turned up${place ? ` near ${escapeHtml(place)}` : ""}. Try a bigger city nearby.</div>`);
   }
-  for (const c of list.slice(0, 20)) {
-    const badge = c.loaded
-      ? `<button type="button" class="pill ok cf-badge" data-to-map>Readiness map ready</button>`
-      : `<span class="pill plain cf-badge">Map not loaded yet</span>`;
-    const href = safeUrl(c.url);
-    parts.push(`<div class="cf-item">
-      <span class="cf-name">${escapeHtml(c.name)}</span>
-      ${badge}
-      <span class="cf-facts">${escapeHtml([c.dates, c.location].filter(Boolean).join(" · "))}
-        ${href !== "#" ? ` · <a class="cf-link" href="${href}" target="_blank" rel="noopener noreferrer">Website ↗</a>` : ""}</span>
-      ${c.snippet ? `<span class="cf-snippet">${escapeHtml(c.snippet)}</span>` : ""}
-    </div>`);
-  }
-  document.getElementById("cf-results").innerHTML = parts.join("");
+  nearbyList.forEach((x, idx) => parts.push(confCard(x.c, x.ready ? { kind: "open", id: x.c.id } : { kind: "detail", index: idx })));
+  document.getElementById("pk-results").innerHTML = parts.join("");
 }
 
 function locateMe() {
   if (nearbyBusy) return;
-  const input = document.getElementById("cf-place");
+  const input = document.getElementById("pk-place");
   if (!navigator.geolocation) {
     nearbyState("Your browser can't share a location here. Type a city instead.");
     input.focus();
@@ -1234,32 +1228,163 @@ function locateMe() {
     const lon = pos.coords.longitude.toFixed(2);
     searchNearby(`lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`, "you");
   }, (err) => {
-    nearbyState(`${err && err.code === 1 ? "Location access was turned down." : "Couldn't get your location."} Type a city instead.`);
+    nearbyState(`${err && err.code === 1 ? "Location access was turned down." : "Couldn't get your location."} Type a city instead; the conferences above are ready either way.`);
     input.focus();
   }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
 }
 
+function searchTyped() {
+  const input = document.getElementById("pk-place");
+  const place = input.value.trim().slice(0, 80);
+  if (!place) { input.focus(); return; }
+  searchNearby(`place=${encodeURIComponent(place)}`, place);
+}
+
+// ---- views ------------------------------------------------------------------------------
+
+let view = null;          // "picker" | "detail" | "map"
+let pickerStarted = false;
+let mapStarted = null;    // promise: flow, featured and chat loaded once
+
+function setView(next) {
+  view = next;
+  const isMap = next === "map";
+  document.getElementById("pickview").hidden = isMap;
+  document.getElementById("picker").hidden = next !== "picker";
+  document.getElementById("detail").hidden = next !== "detail";
+  document.getElementById("mapview").hidden = !isMap;
+  document.getElementById("tagline").hidden = isMap;
+  document.getElementById("status").hidden = !isMap; // talk count and graph: about the loaded conference
+  document.getElementById("conf-picker").hidden = !isMap;
+  for (const id of ["change-conf", "plan-link", "open-calendar"]) document.getElementById(id).hidden = !isMap;
+  if (!isMap) {
+    clearHighlight();
+    const cal = document.getElementById("calendar");
+    if (cal.open) closeDialog(cal);
+    document.title = "Throughline · Find your conference";
+  }
+  window.scrollTo(0, 0);
+}
+
+function showPicker() {
+  setView("picker");
+  if (pickerStarted) return;
+  pickerStarted = true;
+  renderReady();
+  const place = storageGet(PLACE_KEY);
+  if (place) {
+    document.getElementById("pk-place").value = place.slice(0, 80);
+    searchTyped(); // the server caches places, so a returning visitor gets results at once
+  }
+}
+
+function showDetail(c) {
+  setView("detail");
+  const href = safeUrl(c && c.url);
+  const facts = [c && c.dates, c && c.location].filter(Boolean).map(escapeHtml);
+  document.getElementById("dt-body").innerHTML = `
+    <span class="label">Conference</span>
+    <h1 id="dt-title">${escapeHtml((c && c.name) || "Conference")}</h1>
+    ${facts.length ? `<p class="pk-facts">${facts.join(" · ")}</p>` : ""}
+    ${c && c.snippet ? `<p class="pk-snippet">${escapeHtml(c.snippet)}</p>` : ""}
+    ${href !== "#" ? `<p><a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Conference website ↗</a></p>` : ""}
+    <div class="pk-note">Throughline hasn't loaded this conference's schedule yet, so there's no readiness map for it.</div>`;
+  document.title = `Throughline · ${(c && c.name) || "Conference"}`;
+}
+
+function showMap(conf) {
+  setView("map");
+  document.getElementById("conf-label").textContent = confLine(conf);
+  document.title = `Throughline · ${conf.name || conf.id}`;
+  if (!mapStarted) {
+    mapStarted = (async () => {
+      if (!talksReady) talksReady = api("/api/talks").then((t) => { allTalks = t; }).catch(() => {});
+      await sessionReady;
+      await Promise.allSettled([loadFlow(), loadFeatured(), talksReady, clockReady]);
+      await loadChat();
+    })();
+  } else if (flowData) {
+    // The canvas was hidden: redraw it at its real size.
+    requestAnimationFrame(() => drawFlow(flowData));
+  }
+  return mapStarted;
+}
+
+function chooseConference(id) {
+  const conf = findLoaded(id);
+  if (!conf) return;
+  storageSet(CONF_KEY, conf.id);
+  history.pushState({ conference: conf.id }, "", `/?conference=${encodeURIComponent(conf.id)}`);
+  showMap(conf);
+}
+
+function changeConference() {
+  storageSet(CONF_KEY, null);
+  history.pushState(null, "", "/");
+  showPicker();
+}
+
+// Decide what to show from the URL (and, on first load, the remembered choice).
+function route(firstLoad = false) {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("conference");
+  if (id) {
+    const conf = findLoaded(id);
+    if (conf) {
+      storageSet(CONF_KEY, conf.id);
+      return showMap(conf);
+    }
+    if (storageGet(CONF_KEY) === id) storageSet(CONF_KEY, null);
+    history.replaceState(null, "", "/");
+    return showPicker();
+  }
+  const st = history.state;
+  if (st && st.detail) return showDetail(st.detail);
+  if (firstLoad) {
+    const saved = findLoaded(storageGet(CONF_KEY));
+    if (saved) {
+      history.replaceState({ conference: saved.id }, "", `/?conference=${encodeURIComponent(saved.id)}${location.hash}`);
+      return showMap(saved);
+    }
+  }
+  return showPicker();
+}
+
 function wireConferences() {
-  const dlg = document.getElementById("conferences");
-  document.getElementById("conf-picker").addEventListener("click", () => openConferences(false));
-  document.getElementById("open-nearby").addEventListener("click", () => openConferences(true));
-  document.getElementById("cf-locate").addEventListener("click", locateMe);
-  document.getElementById("cf-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const place = document.getElementById("cf-place").value.trim().slice(0, 80);
-    if (!place) { document.getElementById("cf-place").focus(); return; }
-    searchNearby(`place=${encodeURIComponent(place)}`, place);
-  });
-  dlg.addEventListener("click", (e) => {
-    if (e.target === dlg || e.target.closest("[data-close]")) return closeDialog(dlg);
-    if (e.target.closest("[data-to-map]")) {
-      closeDialog(dlg);
-      document.getElementById("flow-wrap").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  document.getElementById("pk-locate").addEventListener("click", locateMe);
+  document.getElementById("pk-form").addEventListener("submit", (e) => { e.preventDefault(); searchTyped(); });
+  document.getElementById("picker").addEventListener("click", (e) => {
+    if (e.target.closest("a")) return; // the website link opens in a new tab
+    const open = e.target.closest("[data-open]");
+    if (open) return chooseConference(open.dataset.open);
+    const det = e.target.closest("[data-detail]");
+    if (det) {
+      const x = nearbyList[Number(det.dataset.detail)];
+      if (!x) return;
+      const c = x.c;
+      const detail = {
+        name: String(c.name || "").slice(0, 200), dates: String(c.dates || "").slice(0, 100),
+        location: String(c.location || "").slice(0, 120), url: String(c.url || "").slice(0, 2000),
+        snippet: String(c.snippet || "").slice(0, 400),
+      };
+      history.pushState({ detail }, "", "/");
+      showDetail(detail);
     }
   });
+  document.getElementById("dt-back").addEventListener("click", () => {
+    if (history.state && history.state.detail) history.back();
+    else { history.replaceState(null, "", "/"); showPicker(); }
+  });
+  document.getElementById("change-conf").addEventListener("click", changeConference);
+  document.getElementById("conf-picker").addEventListener("click", changeConference);
+  window.addEventListener("popstate", () => route(false));
 }
 
 // ---- start --------------------------------------------------------------------------
+
+let sessionReady = null;
+let talksReady = null;
+let clockReady = null;
 
 async function init() {
   wireProfile();
@@ -1267,27 +1392,22 @@ async function init() {
   wireCalendar();
   wireChat();
   wireConferences();
-  const clock = api("/api/clock").then((c) => {
+  clockReady = api("/api/clock").then((c) => {
     clockNow = c && c.now;
     clockConference = (c && c.conference) || "";
-    if (!conferences) renderConfLabel();
   }).catch(() => {});
-  loadConferences();
   api("/api/health").then((h) => {
     document.getElementById("status").textContent =
       `${h.talks} talks · knowledge graph “${h.graph}” on ${h.backend}`;
   }).catch(() => {});
-  const talks = api("/api/talks").then((t) => { allTalks = t; }).catch(() => {});
-  try {
-    await startAttendee();
-  } catch (err) {
+  sessionReady = startAttendee().catch((err) => {
     attendee = null;
     document.getElementById("profile-label").textContent = "Profile unavailable";
     document.getElementById("status").textContent = `Couldn't start your session: ${err.message}`;
-  }
-  await Promise.allSettled([loadFlow(), loadFeatured(), talks, clock]);
-  await loadChat();
-  if (location.hash === "#calendar") openCalendar();
+  });
+  await loadConferences();
+  await route(true);
+  if (view === "map" && location.hash === "#calendar") openCalendar();
 }
 
 init();

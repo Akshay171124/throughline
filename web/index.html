@@ -21,19 +21,20 @@
       </a>
       <span class="lp-brand-text">
         <a class="lp-wordmark" href="/">Throughline</a>
-        <button class="lp-conf" id="conf-picker" type="button" aria-haspopup="dialog" title="Conferences">
+        <span class="lp-sub" id="tagline">Know what to learn before each talk</span>
+        <button class="lp-conf" id="conf-picker" type="button" title="Change conference" hidden>
           <span id="conf-label" class="lp-sub">&nbsp;</span>
           <svg class="lp-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>
         </button>
       </span>
     </div>
     <nav class="lp-actions">
-      <button class="lp-btn ghost" id="open-nearby" type="button" aria-haspopup="dialog">
+      <button class="lp-btn ghost" id="change-conf" type="button" hidden>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s-5.5-5.2-5.5-9.5a5.5 5.5 0 0 1 11 0C15.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>
-        Conferences near you
+        Change conference
       </button>
-      <a class="lp-btn ghost" href="/talk.html">Plan a talk</a>
-      <button class="lp-btn ghost" id="open-calendar" type="button" aria-haspopup="dialog">
+      <a class="lp-btn ghost" href="/talk.html" id="plan-link" hidden>Plan a talk</a>
+      <button class="lp-btn ghost" id="open-calendar" type="button" aria-haspopup="dialog" hidden>
         <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="13.5" rx="2.5"/><path d="M2.5 8.5h15M6.5 2v4M13.5 2v4"/></svg>
         Calendar
       </button>
@@ -44,7 +45,49 @@
     </nav>
   </header>
 
-  <main class="lp-main">
+  <main class="pk-main" id="pickview">
+    <section class="pk" id="picker">
+      <div class="pk-hero">
+        <h1 id="pk-title">Find the conference you're going to</h1>
+        <p class="pk-lede">Throughline maps which talks prepare you for which, so you know what to learn first. Start by finding your conference.</p>
+        <div class="pk-ask">
+          <button class="lp-btn primary pk-locate" type="button" id="pk-locate">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s-5.5-5.2-5.5-9.5a5.5 5.5 0 0 1 11 0C15.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>
+            Use my location
+          </button>
+          <span class="muted">or</span>
+          <form id="pk-form" class="pk-form">
+            <input id="pk-place" maxlength="80" placeholder="Type a city, e.g. Boston" aria-label="City" autocomplete="address-level2">
+            <button class="lp-btn ghost" type="submit">Search</button>
+          </form>
+        </div>
+        <p class="muted small pk-privacy">Your location is used only for this one search and is never stored. A city you type is remembered on this device so you don't have to type it again.</p>
+      </div>
+
+      <section class="pk-section" aria-labelledby="pk-ready-title">
+        <div class="pk-section-head">
+          <h2 id="pk-ready-title">Ready now</h2>
+          <span class="muted">Conferences whose schedule is already in Throughline</span>
+        </div>
+        <div class="pk-grid" id="pk-ready"><div class="pk-state"><span class="spinner"></span> Loading conferences…</div></div>
+      </section>
+
+      <section class="pk-section" id="pk-near" aria-labelledby="pk-near-title" hidden>
+        <div class="pk-section-head">
+          <h2 id="pk-near-title">Near you</h2>
+          <span class="muted" id="pk-meta"></span>
+        </div>
+        <div class="pk-grid" id="pk-results" role="status"></div>
+      </section>
+    </section>
+
+    <section class="pk-detail" id="detail" aria-labelledby="dt-title" hidden>
+      <button class="lp-btn ghost" type="button" id="dt-back">← All conferences</button>
+      <div class="pk-detail-card" id="dt-body"></div>
+    </section>
+  </main>
+
+  <main class="lp-main" id="mapview" hidden>
     <section class="lp-flow" aria-labelledby="flow-title">
       <div class="lp-flow-head">
         <p class="lp-explain"><span class="lp-h2" id="flow-title">Talk flow</span>
@@ -131,29 +174,6 @@
   <dialog id="profile" class="lp-dialog" aria-labelledby="pf-title">
     <button class="cal-close" type="button" data-close aria-label="Close">×</button>
     <div id="profile-body"></div>
-  </dialog>
-
-  <dialog id="conferences" class="lp-dialog lp-conf-dialog" aria-labelledby="cf-title">
-    <button class="cal-close" type="button" data-close aria-label="Close">×</button>
-    <span class="label">Conferences</span>
-    <h2 id="cf-title">Conferences</h2>
-    <div id="cf-loaded" class="cf-section"></div>
-    <div class="cf-section" id="cf-near">
-      <h3>Conferences near you</h3>
-      <p class="muted">Throughline can look for conferences happening near you. Your location is only used for this one search and isn't stored.</p>
-      <div class="cf-ask">
-        <button class="lp-btn ghost" type="button" id="cf-locate">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s-5.5-5.2-5.5-9.5a5.5 5.5 0 0 1 11 0C15.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>
-          Use my location
-        </button>
-        <span class="muted">or</span>
-        <form id="cf-form" class="cf-form">
-          <input id="cf-place" maxlength="80" placeholder="Type a city, e.g. Boston" aria-label="City">
-          <button class="primary" type="submit">Search</button>
-        </form>
-      </div>
-      <div id="cf-results" class="cf-results" role="status"></div>
-    </div>
   </dialog>
 
   <datalist id="role-options">
