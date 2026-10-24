@@ -9,6 +9,7 @@ from . import planner
 from .agent import Tools, run_agent
 from .config import ROOT, settings
 from .graph import backend, connect, public_name
+from .graphview import graph_for_talk
 
 app = FastAPI(title="Throughline")
 
@@ -135,6 +136,15 @@ def plan(talk: str, attendee: str | None = None):
         return planner.plan_day(graph(), talk, attendee)
     except ValueError as e:
         raise HTTPException(404, str(e))
+
+
+@app.get("/api/graph/{talk}")
+def talk_graph(talk: str, attendee: str | None = None):
+    """The plan's path as nodes and edges for the page to draw."""
+    try:
+        return graph_for_talk(graph(), talk, attendee)
+    except (ValueError, IndexError):
+        raise HTTPException(404, f"No talk with code {talk}")
 
 
 # --- the agent ---
