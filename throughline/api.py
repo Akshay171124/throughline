@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from falkordb import Graph
 from pydantic import BaseModel
 
-from . import flow, nearby, planner
+from . import briefing, flow, nearby, planner
 from .agent import Tools, run_agent
 from .config import ROOT, settings
 from .graph import backend, conferences, connect, public_name
@@ -66,6 +66,15 @@ def list_talks():
         f"MATCH (t:Talk) RETURN {_returning(TALK_FIELDS)} ORDER BY t.start_min, t.code"
     )
     return _rows(result, TALK_FIELDS)
+
+
+@app.get("/api/talks/{code}/briefing")
+def talk_briefing(code: str):
+    """'About this talk': AI summary of the abstract, its concepts, and outside links to read first."""
+    try:
+        return briefing.briefing(graph(), code)
+    except ValueError:
+        raise HTTPException(404, f"No talk with code {code}")
 
 
 @app.get("/api/talks/{code}")
