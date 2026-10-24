@@ -1,0 +1,259 @@
+{
+  "graph": "FalkorDB lab",
+  "talks": 125,
+  "concepts": 70,
+  "edges": {
+    "REQUIRES": 83,
+    "TEACHES": 277,
+    "DEPENDS_ON": 46,
+    "EXPLAINS": 13,
+    "total": 419
+  },
+  "coverage": {
+    "required_concepts": 15,
+    "covered": 15,
+    "covered_pct": 100.0,
+    "by_teaching_talk": 14,
+    "by_explainer_only": 1,
+    "uncovered": []
+  },
+  "orphan_concepts": {
+    "count": 1,
+    "concepts": [
+      {
+        "id": "browser_agent_testing",
+        "name": "Browser-based agent testing",
+        "assumed_by": 1,
+        "has_explainer": true
+      }
+    ]
+  },
+  "evidence_check": {
+    "proposed": 360,
+    "kept": 360,
+    "discarded": 0,
+    "discard_rate_pct": 0.0,
+    "discard_reasons": {}
+  },
+  "unsure_edges": {
+    "count": 10,
+    "edges": [
+      {
+        "type": "TEACHES",
+        "talk": "LDR1161H",
+        "concept": "repository_rulesets",
+        "evidence": "logic embedded in pull requests, CI/CD pipelines, and automated checks",
+        "confidence": 0.46
+      },
+      {
+        "type": "REQUIRES",
+        "talk": "TRU1815D",
+        "concept": "github_actions_workflows",
+        "evidence": "It's your Issues, Actions, Projects, and Wikis",
+        "confidence": 0.55
+      },
+      {
+        "type": "TEACHES",
+        "talk": "LDR1358D",
+        "concept": "ai_fluency_enablement",
+        "evidence": "practical AI agent adoption",
+        "confidence": 0.55
+      },
+      {
+        "type": "TEACHES",
+        "talk": "BLD1354B",
+        "concept": "multi_agent_orchestration",
+        "evidence": "multi-session orchestration",
+        "confidence": 0.55
+      },
+      {
+        "type": "REQUIRES",
+        "talk": "LDR1107B",
+        "concept": "ai_coding_agents",
+        "evidence": "78% agent-written code",
+        "confidence": 0.55
+      },
+      {
+        "type": "REQUIRES",
+        "talk": "BLD1312D",
+        "concept": "ai_coding_agents",
+        "evidence": "GitHub Copilot builds context from your open files",
+        "confidence": 0.57
+      },
+      {
+        "type": "TEACHES",
+        "talk": "TRU2230D",
+        "concept": "devsecops_pipeline",
+        "evidence": "fix issues before a pull request exists",
+        "confidence": 0.58
+      },
+      {
+        "type": "REQUIRES",
+        "talk": "LDR1161H",
+        "concept": "github_actions_workflows",
+        "evidence": "CI/CD pipelines, and automated checks",
+        "confidence": 0.58
+      },
+      {
+        "type": "REQUIRES",
+        "talk": "LDR1725D",
+        "concept": "github_actions_workflows",
+        "evidence": "GitHub Copilot app modernization, GitHub Actions",
+        "confidence": 0.58
+      },
+      {
+        "type": "TEACHES",
+        "talk": "BLD1784D",
+        "concept": "coding_model_evaluations",
+        "evidence": "task success, task time, and cost per successful task",
+        "confidence": 0.58
+      }
+    ]
+  },
+  "baseline": {
+    "summary": {
+      "talks_with_expected_teachers": 12,
+      "found_at_least_one_expected_teacher": 6,
+      "expected_teachers_matched": 10,
+      "expected_teachers_total": 23,
+      "none_needed_correctly_ready": 1,
+      "none_needed_total": 1
+    },
+    "new_teachers": {
+      "BLD1428W": [
+        "BLD1636S",
+        "BLD1978M",
+        "BLD2008D",
+        "BLD2452D",
+        "LDR1032H",
+        "LDR1594H",
+        "LDR1662D",
+        "LDR1774D"
+      ],
+      "BLD1657H": [
+        "BLD1978M",
+        "TRU1324H"
+      ],
+      "LDR1516M": [
+        "2153B",
+        "BLD1072S",
+        "BLD1354B",
+        "BLD1402H",
+        "BLD1463B",
+        "BLD1644H",
+        "BLD1784D",
+        "BLD1788B",
+        "BLD1795D",
+        "BLD1819H",
+        "BLD1825D",
+        "BLD1908M",
+        "BLD1919M",
+        "BLD1978M",
+        "BLD2151D",
+        "BLD2452D",
+        "LDR1032H",
+        "LDR1358D",
+        "LDR1387H",
+        "LDR1456B",
+        "LDR1594H",
+        "LDR1725D",
+        "LDR1765B",
+        "LDR1774D",
+        "LDR1781S",
+        "LDR1786M",
+        "LDR1789B",
+        "LDR1869H",
+        "LDR1872D",
+        "TRU1378S",
+        "TRU1397B"
+      ],
+      "LDR1161H": [
+        "2153B",
+        "BLD1072S",
+        "BLD1312D",
+        "BLD1454D",
+        "BLD1463B",
+        "BLD1644H",
+        "BLD1784D",
+        "BLD1788B",
+        "BLD1795D",
+        "BLD1799D",
+        "BLD1819H",
+        "BLD1825D",
+        "BLD1908M",
+        "BLD1919M",
+        "BLD1978M",
+        "BLD2151D",
+        "BLD2452D",
+        "LDR1032H",
+        "LDR1281D",
+        "LDR1358D",
+        "LDR1387H",
+        "LDR1456B",
+        "LDR1594H",
+        "LDR1662D",
+        "LDR1725D",
+        "LDR1774D",
+        "LDR1781S",
+        "LDR1786M",
+        "LDR1789B",
+        "LDR1869H",
+        "LDR1872D",
+        "TRU1378S",
+        "TRU1397B"
+      ],
+      "LDR1281D": [
+        "BLD1353D",
+        "BLD1825D",
+        "BLD1978M",
+        "LDR1716W"
+      ],
+      "BLD1372B": [
+        "2153B",
+        "BLD1825D"
+      ],
+      "LDR1684B": [
+        "BLD1072S",
+        "BLD1825D",
+        "BLD1978M",
+        "LDR1594H",
+        "LDR1765B",
+        "LDR1774D"
+      ],
+      "TRU1821B": [
+        "BLD1978M",
+        "LDR1774D"
+      ],
+      "TRU1798D": [
+        "2153B",
+        "BLD1312D",
+        "BLD1788B",
+        "BLD1825D",
+        "BLD1978M",
+        "BLD2452D",
+        "LDR1032H",
+        "LDR1387H",
+        "LDR1662D",
+        "LDR1774D",
+        "LDR1786M",
+        "TRU1378S"
+      ],
+      "BLD1402H": [
+        "BLD1978M",
+        "LDR1774D"
+      ]
+    },
+    "new_teachers_total": 102,
+    "new_teachers_distinct": 41
+  },
+  "hand_check": {
+    "checked": 20,
+    "verdicts": {
+      "correct": 15,
+      "partly": 4,
+      "wrong": 1
+    },
+    "reviewer": "AI reviewer (Claude), not a person; a person should spot-check these verdicts",
+    "seed": 2026
+  }
+}

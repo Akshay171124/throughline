@@ -69,7 +69,7 @@ OpenAI is also used offline to build the concept list and to propose edges with 
 
 ### How we keep answers honest
 
-- **Evidence is checked, not trusted.** Every evidence phrase must appear word for word in its source, after cleaning up the text (tags stripped, HTML entities decoded, quotes straightened, whitespace collapsed). The source is the talk abstract for `REQUIRES`, `TEACHES` and `DEPENDS_ON`, and the explainer page for `EXPLAINS`. If the phrase isn't there, the edge is discarded.
+- **Evidence is checked, not trusted.** Every evidence phrase must appear word for word in its source, after cleaning up the text (tags stripped, HTML entities decoded, quotes straightened, whitespace collapsed). The source is the talk's title and abstract for `REQUIRES`, `TEACHES` and `DEPENDS_ON`. If the phrase isn't there, the edge is discarded. For `EXPLAINS`, the evidence is the explainer's search-result snippet from Bright Data; we don't fetch the page itself, so explainers are vetted by the model and labeled as outside sources.
 - **Unsure is a real answer.** Edges below our confidence threshold are shown as "unsure." `REQUIRES` is always our inference, since abstracts rarely state their prerequisites, and it's labeled "assumed."
 - **The agent only speaks from tool results,** and every tool result is a graph path you can open.
 - **Fetched pages are data, never instructions.** Text on explainer pages is never followed as a command.
@@ -77,14 +77,17 @@ OpenAI is also used offline to build the concept list and to propose edges with 
 
 ## Measured quality
 
-*Filled in with numbers we measure on the day, not estimates.*
+*Numbers we measured on the day from the live graph, not estimates.*
 
-- Talks: [N] · Concepts: [N] · Edges: [N]
-- Coverage: [X]% of required concepts have a teaching talk or an outside explainer
-- Accuracy: we hand-checked [N] randomly chosen edges; [X] were correct
-- Baseline: on the 15 talks we hand-checked the evening before ([checks/prerequisite-baseline.json](checks/prerequisite-baseline.json)), the graph's path matched [X], missed [X], and found [X] new teaching talks, which we then checked by hand
-- Evidence check: [X]% of model-proposed edges were discarded for failing the word-for-word check
-- Orphan concepts (assumed by talks, taught by none): [N]
+- Talks: 125 · Concepts: 70 · Edges: 419 (83 `REQUIRES`, 277 `TEACHES`, 46 `DEPENDS_ON`, 13 `EXPLAINS`)
+- Coverage: 100% of required concepts have a teaching talk or an outside explainer. Talks assume 15 distinct concepts; 14 are taught by at least one talk, and the last one is covered by an outside explainer only.
+- Accuracy: 20 randomly chosen `REQUIRES`/`TEACHES` edges (fixed seed) were checked against each talk's abstract; 15 were correct, 4 were only partly right (the phrase is real but the concept is a side mention, not what the talk teaches or assumes), and 1 was wrong (a migration story marked as teaching GitHub Actions workflows). This check was done by an AI reviewer, not a person, and should be spot-checked by one. Verdicts and reasons: [data/quality_handcheck.json](data/quality_handcheck.json).
+- Baseline: on the 15 talks we hand-checked the evening before ([checks/prerequisite-baseline.json](checks/prerequisite-baseline.json)), the graph found at least one expected teaching talk for 6 of the 12 talks that have one; it matched 10 of the 23 expected teaching talks and missed 13. It also found 102 other earlier teaching talks the hand check didn't list (41 distinct talks); we have not checked those by hand yet, so we don't count them as right or wrong. The one talk that needs nothing first correctly says "You're ready."
+- Evidence check: 0% of model-proposed edges were discarded for failing the word-for-word check (0 of 360). The model was asked to copy phrases exactly, and every phrase it gave was found in the talk's title or abstract.
+- Edges marked "unsure" (confidence below 0.6): 10
+- Orphan concepts (assumed by talks, taught by none): 1, "Browser-based agent testing" (it has an outside explainer)
+
+To recompute every number here: `uv run python -m throughline.quality` (prints the report and writes `data/quality.json`).
 
 ## Demo plan (3 minutes)
 

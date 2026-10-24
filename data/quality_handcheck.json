@@ -1,0 +1,167 @@
+{
+  "reviewer": "AI reviewer (Claude), not a person; a person should spot-check these verdicts",
+  "method": "20 random REQUIRES/TEACHES edges from the graph (throughline.quality.sample_edges, seed 2026). Each judged against the talk's title and abstract: is the concept really required (or taught) as claimed? 'partly' counts as not correct.",
+  "seed": 2026,
+  "edges": [
+    {
+      "code": "BLD1487S",
+      "type": "TEACHES",
+      "concept": "agent_skills",
+      "evidence": "building a skill from scratch",
+      "verdict": "correct",
+      "reason": "Hands-on sandbox that builds a Copilot CLI skill from scratch."
+    },
+    {
+      "code": "LDR1032H",
+      "type": "TEACHES",
+      "concept": "agentic_workflows",
+      "evidence": "use AI not just as a coding assistant",
+      "verdict": "partly",
+      "reason": "Talk combines Actions with Copilot prompts to automate work; the quoted phrase is generic and agentic workflows are only implied."
+    },
+    {
+      "code": "LDR1789B",
+      "type": "TEACHES",
+      "concept": "agentic_workflows",
+      "evidence": "once agents were doing the writing",
+      "verdict": "correct",
+      "reason": "Case study of the agent-driven delivery pipeline itti built, including where humans stay in the loop."
+    },
+    {
+      "code": "LDR1797D",
+      "type": "TEACHES",
+      "concept": "ai_adoption_measurement",
+      "evidence": "connect Copilot activity to metrics your business cares about",
+      "verdict": "correct",
+      "reason": "Says you'll leave knowing how to connect Copilot activity to business metrics."
+    },
+    {
+      "code": "TRU1792D",
+      "type": "REQUIRES",
+      "concept": "runtime_observability",
+      "evidence": "shift left observability means",
+      "verdict": "partly",
+      "reason": "Observability is the talk's subject rather than a stated prerequisite; assuming basic observability is plausible but not shown."
+    },
+    {
+      "code": "BLD1460H",
+      "type": "TEACHES",
+      "concept": "ai_context_infrastructure",
+      "evidence": "shows how a personal productivity hack became org-wide infrastructure",
+      "verdict": "correct",
+      "reason": "Shows how a shared AI config became an org-wide catalog of MCP servers, skills and agents."
+    },
+    {
+      "code": "BLD1799D",
+      "type": "TEACHES",
+      "concept": "pull_request_review_workflows",
+      "evidence": "review of agent contributions",
+      "verdict": "partly",
+      "reason": "Review of agent contributions is one guardrail in a list; the talk does not teach PR review workflows as such."
+    },
+    {
+      "code": "TRU1405H",
+      "type": "TEACHES",
+      "concept": "devsecops_pipeline",
+      "evidence": "auditable DevSecOps CI/CD pipeline",
+      "verdict": "correct",
+      "reason": "Shows how GitHub features enable an auditable DevSecOps CI/CD pipeline."
+    },
+    {
+      "code": "TRU1488D",
+      "type": "TEACHES",
+      "concept": "software_supply_chain_security",
+      "evidence": "malicious package in your build can steal the credentials",
+      "verdict": "correct",
+      "reason": "About stopping malicious packages from stealing CI/CD credentials: core supply chain security."
+    },
+    {
+      "code": "TRU1148D",
+      "type": "REQUIRES",
+      "concept": "pull_request_review_workflows",
+      "evidence": "remediation becomes a pull request review instead",
+      "verdict": "correct",
+      "reason": "Autofix turns remediation into a PR review, so the talk reasonably assumes you know PR review."
+    },
+    {
+      "code": "LDR1634P",
+      "type": "TEACHES",
+      "concept": "accessibility_automation",
+      "evidence": "use AI and automation to accelerate accessibility",
+      "verdict": "correct",
+      "reason": "Panel on using AI and automation to accelerate accessibility work."
+    },
+    {
+      "code": "TRU1324H",
+      "type": "REQUIRES",
+      "concept": "ai_coding_agents",
+      "evidence": "coding agents can now write, commit, and deploy code autonomously",
+      "verdict": "correct",
+      "reason": "Opens by assuming coding agents that write, commit and deploy code; reasonable prerequisite."
+    },
+    {
+      "code": "LDR1905B",
+      "type": "TEACHES",
+      "concept": "github_actions_workflows",
+      "evidence": "pipelines in GitHub Actions",
+      "verdict": "wrong",
+      "reason": "A migration story that mentions how the team approached Actions pipelines; it would not teach a newcomer Actions workflows."
+    },
+    {
+      "code": "LDR1786M",
+      "type": "REQUIRES",
+      "concept": "ai_coding_agents",
+      "evidence": "agents as the crew",
+      "verdict": "correct",
+      "reason": "Agent factory talk assumes you know what coding agents are."
+    },
+    {
+      "code": "TRU1378S",
+      "type": "REQUIRES",
+      "concept": "ai_coding_agents",
+      "evidence": "Three squads of AI agents compete on the same codebase",
+      "verdict": "correct",
+      "reason": "Live match between squads of AI agents; knowing what coding agents are is a fair assumption."
+    },
+    {
+      "code": "LDR1716W",
+      "type": "TEACHES",
+      "concept": "copilot_cli_workflows",
+      "evidence": "use the GitHub Copilot CLI to query your knowledge base",
+      "verdict": "correct",
+      "reason": "Workshop uses the Copilot CLI to query a knowledge base inside real workflows."
+    },
+    {
+      "code": "BLD1824W",
+      "type": "TEACHES",
+      "concept": "enterprise_copilot_administration",
+      "evidence": "policies and access decisions that shape Copilot management",
+      "verdict": "correct",
+      "reason": "Workshop on Copilot admin settings, policies, access decisions and reporting."
+    },
+    {
+      "code": "2153B",
+      "type": "TEACHES",
+      "concept": "agentic_workflows",
+      "evidence": "Agentic Workflows: Automation at scale",
+      "verdict": "correct",
+      "reason": "Intro talk titled Agentic Workflows that teaches how to start automating."
+    },
+    {
+      "code": "TRU1476B",
+      "type": "TEACHES",
+      "concept": "dependency_screening",
+      "evidence": "concrete checks to run before you trust the next package",
+      "verdict": "correct",
+      "reason": "Ends with concrete checks to run before trusting a package, i.e. dependency screening."
+    },
+    {
+      "code": "BLD1402H",
+      "type": "TEACHES",
+      "concept": "human_in_the_loop_oversight",
+      "evidence": "delegation and review",
+      "verdict": "partly",
+      "reason": "Mentions delegation and review in passing; the talk is about cloud agent infrastructure, not human oversight."
+    }
+  ]
+}
