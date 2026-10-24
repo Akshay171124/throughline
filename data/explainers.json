@@ -1,0 +1,461 @@
+{
+  "generated_at": "2026-10-24T18:53:14+00:00",
+  "model": "gpt-5.5",
+  "concepts": {
+    "agent_skills": {
+      "name": "Agent skills",
+      "explainer": {
+        "url": "https://learn.microsoft.com/en-us/agent-framework/agents/skills",
+        "title": "Agent Skills",
+        "snippet": "Agent Skills are portable packages of instructions, scripts, and resources that give agents specialized capabilities and domain expertise.Read more",
+        "minutes": 6,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "Microsoft docs directly define Agent Skills as portable packages of instructions, scripts, and resources.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Agent Skills Explained: Why This Changes Everything for AI ...",
+          "url": "https://www.youtube.com/watch?v=Ihoxov5x66k",
+          "snippet": "In this video, I evaluate Anthropic's new \"Agent Skills,\" a launch I believe will be just as important, if not more so, than MCPs."
+        },
+        {
+          "title": "Agent Skills",
+          "url": "https://learn.microsoft.com/en-us/agent-framework/agents/skills",
+          "snippet": "Agent Skills are portable packages of instructions, scripts, and resources that give agents specialized capabilities and domain expertise.Read more"
+        },
+        {
+          "title": "Use Agent Skills in VS Code",
+          "url": "https://code.visualstudio.com/docs/agent-customization/agent-skills",
+          "snippet": "Agent Skills are folders of instructions, scripts, and resources that AI agents can load when relevant to perform specialized tasks."
+        }
+      ],
+      "reason": "Microsoft docs directly define Agent Skills as portable packages of instructions, scripts, and resources."
+    },
+    "agentic_workflows": {
+      "name": "Agentic workflows",
+      "explainer": null,
+      "candidates": [
+        {
+          "title": "Workflows | Google Cloud",
+          "url": "https://cloud.google.com/workflows",
+          "snippet": "Combine Google Cloud services and APIs to build reliable applications, process automation, and data and machine learning pipelines.Read more"
+        },
+        {
+          "title": "Workflow",
+          "url": "https://en.wikipedia.org/wiki/Workflow",
+          "snippet": "Workflow is a generic term for orchestrated and repeatable patterns of activity, enabled by the systematic organization of resources into processes. Automated ..."
+        },
+        {
+          "title": "NEW Microsoft Workflows Will Automate Your Work",
+          "url": "https://www.youtube.com/watch?v=CzzF74wP-3g",
+          "snippet": "In this AI Automation Masterclass, Shervin Shaffie, Copilot Principal Engineer at Microsoft will walk you through how to automate your email ..."
+        }
+      ],
+      "reason": "rejected all candidates: Results are generic workflows, Wikipedia, or broad automation video, not agentic software workflows."
+    },
+    "ai_coding_agents": {
+      "name": "AI coding agents",
+      "explainer": {
+        "url": "https://code.visualstudio.com/docs/agents/overview",
+        "title": "Build with AI in VS Code",
+        "snippet": "an agent can find relevant code, make changes, and run checks. An agent uses a language model to reason about your request and tools to act on your development ...",
+        "minutes": 6,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "VS Code docs explain coding agents that reason, edit code, and run checks.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "What are AI agents? Definition, examples, and types",
+          "url": "https://cloud.google.com/discover/what-are-ai-agents",
+          "snippet": "AI agents are software systems that use AI to pursue goals and complete tasks on behalf of users. They show reasoning, planning, and memory and ...Read more"
+        },
+        {
+          "title": "Build with AI in VS Code",
+          "url": "https://code.visualstudio.com/docs/agents/overview",
+          "snippet": "an agent can find relevant code, make changes, and run checks. An agent uses a language model to reason about your request and tools to act on your development ..."
+        },
+        {
+          "title": "Understand AI agents",
+          "url": "https://code.visualstudio.com/docs/agents/concepts/agents",
+          "snippet": "An agent is an AI system that uses a language model and tools to complete a goal on your behalf. A language model generates responses based on the information ..."
+        }
+      ],
+      "reason": "VS Code docs explain coding agents that reason, edit code, and run checks."
+    },
+    "browser_agent_testing": {
+      "name": "Browser-based agent testing",
+      "explainer": {
+        "url": "https://code.visualstudio.com/docs/agents/guides/browser-agent-testing-guide",
+        "title": "Build and validate a web app with browser tools",
+        "snippet": "The agent can create an app, open it in the integrated browser, interact with it against acceptance criteria, identify issues, fix them, and repeat the checks.",
+        "minutes": 8,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "VS Code guide directly covers agents using a browser to validate apps and fix issues.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Your AI Coding Workflow NEEDS This New Agent Browser CLI",
+          "url": "https://www.youtube.com/watch?v=7aEQnTsI6zs",
+          "snippet": "Browser automation is critical for making your coding agents reliable. If your agent can't test the frontend after writing code, ..."
+        },
+        {
+          "title": "Build and validate a web app with browser tools",
+          "url": "https://code.visualstudio.com/docs/agents/guides/browser-agent-testing-guide",
+          "snippet": "The agent can create an app, open it in the integrated browser, interact with it against acceptance criteria, identify issues, fix them, and repeat the checks."
+        },
+        {
+          "title": "Automate browser tasks with Foundry agents",
+          "url": "https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/browser-automation",
+          "snippet": "When a user gives the agent a browser-based task, the agent determines which browser operations are needed to make progress toward the requested ...Read more"
+        }
+      ],
+      "reason": "VS Code guide directly covers agents using a browser to validate apps and fix issues."
+    },
+    "copilot_cli_workflows": {
+      "name": "Copilot CLI workflows",
+      "explainer": {
+        "url": "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions",
+        "title": "Automating tasks with Copilot CLI and GitHub Actions",
+        "snippet": "You can run GitHub Copilot CLI in a GitHub Actions workflow to automate AI-powered tasks as part of your CI/CD process. For example, you can summarize recent ...",
+        "minutes": 7,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "GitHub docs explain automating AI-powered tasks with Copilot CLI in workflows.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Automating tasks with Copilot CLI and GitHub Actions",
+          "url": "https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions",
+          "snippet": "You can run GitHub Copilot CLI in a GitHub Actions workflow to automate AI-powered tasks as part of your CI/CD process. For example, you can summarize recent ..."
+        },
+        {
+          "title": "Dynamic workflows in Copilot CLI and the Copilot app",
+          "url": "https://github.blog/changelog/2026-10-01-dynamic-workflows-in-copilot-cli-and-the-copilot-app/",
+          "snippet": "A dynamic workflow is a program that defines how a task is carried out. It combines automated steps with the work of one or more agents,"
+        },
+        {
+          "title": "Multi-model AI workflows in GitHub Copilot CLI",
+          "url": "https://www.youtube.com/watch?v=rJSsbHwkYAY",
+          "snippet": "In this video, I show you how to compose multi-model workflows in the GitHub Copilot CLI so you get the best of every model working together on ..."
+        }
+      ],
+      "reason": "GitHub docs explain automating AI-powered tasks with Copilot CLI in workflows."
+    },
+    "copilot_customization": {
+      "name": "Copilot customization layers",
+      "explainer": {
+        "url": "https://docs.github.com/en/copilot/concepts/customizations/comparing-customizations",
+        "title": "Comparing Copilot customization features",
+        "snippet": "Introduction. You can customize Copilot to follow your conventions, carry out repeatable workflows, or connect to systems beyond your codebase.",
+        "minutes": 7,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "GitHub docs compare customization features for conventions, workflows, and external systems.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Copilot customization cheat sheet",
+          "url": "https://docs.github.com/en/copilot/reference/customization-cheat-sheet",
+          "snippet": "GitHub Copilot offers several customization features that let you tailor its behavior to your workflow, your team's standards, and your project's needs."
+        },
+        {
+          "title": "Comparing Copilot customization features",
+          "url": "https://docs.github.com/en/copilot/concepts/customizations/comparing-customizations",
+          "snippet": "Introduction. You can customize Copilot to follow your conventions, carry out repeatable workflows, or connect to systems beyond your codebase."
+        },
+        {
+          "title": "Custom instructions for GitHub Copilot",
+          "url": "https://docs.github.com/copilot/customizing-copilot/about-customizing-github-copilot-chat-responses",
+          "snippet": "Customize GitHub Copilot responses to your preferences, project conventions, and organization requirements."
+        }
+      ],
+      "reason": "GitHub docs compare customization features for conventions, workflows, and external systems."
+    },
+    "github_actions_workflows": {
+      "name": "GitHub Actions workflows",
+      "explainer": {
+        "url": "https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows",
+        "title": "Workflows",
+        "snippet": "A workflow is a configurable automated process that will run one or more jobs. Workflows are defined by a YAML file checked in to your repository and will run ...Read more",
+        "minutes": 5,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "GitHub docs directly define workflows as YAML-based automated processes with jobs.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Workflows",
+          "url": "https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows",
+          "snippet": "A workflow is a configurable automated process that will run one or more jobs. Workflows are defined by a YAML file checked in to your repository and will run ...Read more"
+        },
+        {
+          "title": "Writing workflows - GitHub Docs",
+          "url": "https://docs.github.com/actions/writing-workflows",
+          "snippet": "Workflows automate tasks in your software development lifecycle. Many tasks that you manually complete can be converted to a GitHub Actions workflow.Read more"
+        },
+        {
+          "title": "Understanding GitHub Actions",
+          "url": "https://docs.github.com/articles/getting-started-with-github-actions",
+          "snippet": "A workflow is a configurable automated process that will run one or more jobs. Workflows are defined by a YAML file checked in to your repository and will run ...Read more"
+        }
+      ],
+      "reason": "GitHub docs directly define workflows as YAML-based automated processes with jobs."
+    },
+    "incident_rca_agents": {
+      "name": "Incident RCA agents",
+      "explainer": {
+        "url": "https://learn.microsoft.com/en-us/azure/sre-agent/overview",
+        "title": "Overview of Azure SRE Agent",
+        "snippet": "Azure SRE Agent helps your team investigate incidents and respond faster. It gathers context, identifies probable causes, and suggests or, when ...",
+        "minutes": 6,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "Azure SRE Agent overview explains incident investigation, context gathering, and probable cause identification.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Overview of Azure SRE Agent",
+          "url": "https://learn.microsoft.com/en-us/azure/sre-agent/overview",
+          "snippet": "Azure SRE Agent helps your team investigate incidents and respond faster. It gathers context, identifies probable causes, and suggests or, when ..."
+        },
+        {
+          "title": "Azure Support case 2610010050004147 — no RCA or ...",
+          "url": "https://learn.microsoft.com/en-us/answers/questions/6025732/azure-support-case-2610010050004147-no-rca-or-subs",
+          "snippet": "My question is: What is the proper escalation path for an Azure subscription incident when the assigned support engineer confirms that an ...Read more"
+        },
+        {
+          "title": "How to write a great agents.md: Lessons from over 2500 ...",
+          "url": "https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/",
+          "snippet": "Learn how to write effective agents.md files for GitHub Copilot with practical tips, real examples, and templates from analyzing 2500+ ..."
+        }
+      ],
+      "reason": "Azure SRE Agent overview explains incident investigation, context gathering, and probable cause identification."
+    },
+    "mcp_servers": {
+      "name": "MCP servers",
+      "explainer": {
+        "url": "https://cloud.google.com/discover/what-is-model-context-protocol",
+        "title": "What is Model Context Protocol (MCP)? A guide",
+        "snippet": "The MCP server is the external service that provides context, data, or capabilities to the LLM. It helps LLMs by connecting to external systems like databases",
+        "minutes": 6,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "Google guide explicitly explains MCP servers as services providing context, data, or capabilities.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "What is the Model Context Protocol (MCP)?",
+          "url": "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro",
+          "snippet": "MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems. MCP like a USB-C port for AI applications. MCP is ..."
+        },
+        {
+          "title": "What is Model Context Protocol (MCP)? A guide",
+          "url": "https://cloud.google.com/discover/what-is-model-context-protocol",
+          "snippet": "The MCP server is the external service that provides context, data, or capabilities to the LLM. It helps LLMs by connecting to external systems like databases"
+        }
+      ],
+      "reason": "Google guide explicitly explains MCP servers as services providing context, data, or capabilities."
+    },
+    "model_context_protocol": {
+      "name": "Model Context Protocol (MCP)",
+      "explainer": {
+        "url": "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro",
+        "title": "What is the Model Context Protocol (MCP)?",
+        "snippet": "MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems. Using MCP, AI applications like Claude or ChatGPT . ...",
+        "minutes": 7,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "Official MCP docs define the protocol for connecting AI applications to external systems.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "What is the Model Context Protocol (MCP)?",
+          "url": "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro",
+          "snippet": "MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems. Using MCP, AI applications like Claude or ChatGPT . ..."
+        },
+        {
+          "title": "Model Context Protocol",
+          "url": "https://en.wikipedia.org/wiki/Model_Context_Protocol",
+          "snippet": "MCP defines a standardized framework for integrating AI systems with external data sources and tools. Applications include querying structured databases in ...Read more"
+        },
+        {
+          "title": "What is Model Context Protocol (MCP)? A guide",
+          "url": "https://cloud.google.com/discover/what-is-model-context-protocol",
+          "snippet": "Model Context Protocol (MCP) standard allows LLMs to safely access external data and use tools, making AI more powerful and reliable. provides a secure and ..."
+        }
+      ],
+      "reason": "Official MCP docs define the protocol for connecting AI applications to external systems."
+    },
+    "multi_agent_orchestration": {
+      "name": "Multi-agent orchestration",
+      "explainer": {
+        "url": "https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/",
+        "title": "Multi-agent workflows often fail. Here's how to engineer ...",
+        "snippet": "Most multi-agent workflow failures come down to missing structure. Learn the three engineering patterns that make agent systems reliable.",
+        "minutes": 8,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "GitHub educational article explains engineering reliable multi-agent workflows and structure.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Multi-agent workflows often fail. Here's how to engineer ...",
+          "url": "https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/",
+          "snippet": "Most multi-agent workflow failures come down to missing structure. Learn the three engineering patterns that make agent systems reliable."
+        },
+        {
+          "title": "Implement Advanced Multi-Agent Orchestration Patterns in ...",
+          "url": "https://learn.microsoft.com/en-us/training/modules/aaai-implement-multi-agent-orchestration-azure-ai-foundry/",
+          "snippet": "Implement advanced multi-agent orchestration patterns in Microsoft Foundry. Design hub-and-spoke architectures, implement parallel agent spawning with ...Read more"
+        },
+        {
+          "title": "Orchestrate agent behavior with generative AI",
+          "url": "https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions",
+          "snippet": "When you configure an agent to use generative orchestration, it can select one or more tools, topics, other agents, or knowledge sources to ...Read more"
+        }
+      ],
+      "reason": "GitHub educational article explains engineering reliable multi-agent workflows and structure."
+    },
+    "pull_request_review_workflows": {
+      "name": "Pull request review workflows",
+      "explainer": {
+        "url": "https://docs.github.com/articles/using-pull-requests",
+        "title": "Pull requests",
+        "snippet": "A pull request is GitHub's key collaboration feature, letting you discuss and review changes before merging them. This helps teams work together, catch issues ...Read more",
+        "minutes": 5,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "GitHub docs explain pull requests for reviewing and discussing changes before merging.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Pull requests",
+          "url": "https://docs.github.com/articles/using-pull-requests",
+          "snippet": "A pull request is GitHub's key collaboration feature, letting you discuss and review changes before merging them. This helps teams work together, catch issues ...Read more"
+        },
+        {
+          "title": "Pull Requests, Code Reviews & Team Collaboration",
+          "url": "https://www.youtube.com/watch?v=oxEbx6Xcb5s",
+          "snippet": "In this video, I explain how teams use GitHub pull requests to review code, share knowledge, and safely merge changes into the main branch."
+        },
+        {
+          "title": "GitHub Pull Requests EXPLAINED! (Master Code Review & ...",
+          "url": "https://www.youtube.com/watch?v=kS5dtdZReXs",
+          "snippet": "How do teams seamlessly review, discuss, and integrate new features? The answer lies in Pull Requests (PRs) – the absolute heart of GitHub"
+        }
+      ],
+      "reason": "GitHub docs explain pull requests for reviewing and discussing changes before merging."
+    },
+    "runtime_observability": {
+      "name": "Runtime observability",
+      "explainer": {
+        "url": "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/observability-with-otel",
+        "title": ".NET Observability with OpenTelemetry",
+        "snippet": "What is observability? Observability in the context of a distributed system is the ability to monitor and analyze telemetry about the state of each component, ...Read more",
+        "minutes": 8,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "Microsoft docs explain observability as telemetry-based monitoring and analysis of running systems.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": ".NET Observability with OpenTelemetry",
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/observability-with-otel",
+          "snippet": "What is observability? Observability in the context of a distributed system is the ability to monitor and analyze telemetry about the state of each component, ...Read more"
+        },
+        {
+          "title": "Architecture Strategies for Designing a Monitoring System",
+          "url": "https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/observability",
+          "snippet": "Observability, or monitoring, is a key operational practice that gives the workload team the ability to understand the internal state of a ...Read more"
+        },
+        {
+          "title": "Observability",
+          "url": "https://learn.microsoft.com/en-us/azure/security/container-secure-supply-chain/articles/container-secure-supply-chain-implementation/observability-overview",
+          "snippet": "Observability plays a role throughout the supply chain for containers by providing visibility, monitoring, and control over the various ...Read more"
+        }
+      ],
+      "reason": "Microsoft docs explain observability as telemetry-based monitoring and analysis of running systems."
+    },
+    "self_validating_agentic_loops": {
+      "name": "Self-validating agentic loops",
+      "explainer": null,
+      "candidates": [
+        {
+          "title": "Confidence - Correctness: The Agentic Validation Loop",
+          "url": "https://www.youtube.com/watch?v=wu-s4ip_KFo",
+          "snippet": "... Agentic Validation Loop, a closed-loop architecture where validation sits in a layer the generating agent does not control, covering all ..."
+        },
+        {
+          "title": "Agentic Application Patterns - Azure",
+          "url": "https://learn.microsoft.com/en-us/azure/durable-task/sdks/durable-agents-patterns",
+          "snippet": "There are two general approaches to building agentic applications with AI: Deterministic workflows — Your code defines the control flow.Read more"
+        },
+        {
+          "title": "Microsoft Agent Framework Workflows - Human-in-the-loop ...",
+          "url": "https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop",
+          "snippet": "This page provides an overview of Human-in-the-loop (HITL) interactions in the Microsoft Agent Framework Workflow system.Read more"
+        }
+      ],
+      "reason": "rejected all candidates: Only matching result is an unspecified YouTube video; docs results cover different agent patterns."
+    },
+    "software_supply_chain_security": {
+      "name": "Software supply chain security",
+      "explainer": {
+        "url": "https://docs.cloud.google.com/software-supply-chain-security/docs/overview",
+        "title": "Google Cloud Software supply chain security",
+        "snippet": "A software supply chain consists of all the code, people, systems, and processes that contribute to development and delivery of your software,",
+        "minutes": 6,
+        "source": "brightdata-serp",
+        "fetched_at": "2026-10-24T18:52:52+00:00",
+        "checked_at": "2026-10-24T18:52:52+00:00",
+        "vetted_reason": "Google docs overview defines the software supply chain across code, people, systems, and processes.",
+        "vetted_by": "gpt-5.5"
+      },
+      "candidates": [
+        {
+          "title": "Software Supply Chain Security",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html",
+          "snippet": "The general security best practices of strong access control and logging and monitoring are two methods to help secure VCS. Security features specific to the ...Read more"
+        },
+        {
+          "title": "Software supply chain security",
+          "url": "https://cloud.google.com/security/solutions/software-supply-chain-security",
+          "snippet": "Enhances software supply chain security across the entire software development life cycle from development, supply, and CI/CD to runtimes."
+        },
+        {
+          "title": "Google Cloud Software supply chain security",
+          "url": "https://docs.cloud.google.com/software-supply-chain-security/docs/overview",
+          "snippet": "A software supply chain consists of all the code, people, systems, and processes that contribute to development and delivery of your software,"
+        }
+      ],
+      "reason": "Google docs overview defines the software supply chain across code, people, systems, and processes."
+    }
+  }
+}
