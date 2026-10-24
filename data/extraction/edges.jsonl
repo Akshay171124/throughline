@@ -1,4 +1,3 @@
-{"type": "TEACHES", "talk": "2415B", "concept": "ai_fluency_enablement", "evidence": "how to make the most of the Agentic AI era", "confidence": 0.62}
 {"type": "TEACHES", "talk": "2153B", "concept": "agentic_workflows", "evidence": "Agentic Workflows: Automation at scale", "confidence": 0.88}
 {"type": "TEACHES", "talk": "2153B", "concept": "agent_governance_permissions", "evidence": "setup your software factory with governance, monitoring, and security", "confidence": 0.69}
 {"type": "REQUIRES", "talk": "BLD1132S", "concept": "ai_coding_agents", "evidence": "AI coding tools are nearly solved", "confidence": 0.68}
@@ -140,11 +139,6 @@
 {"type": "TEACHES", "talk": "BLD1799D", "concept": "agent_governance_permissions", "evidence": "including scoped permissions, workflow governance, safe execution patterns", "confidence": 0.95}
 {"type": "TEACHES", "talk": "BLD1799D", "concept": "human_in_the_loop_oversight", "evidence": "keeping permissions, security, and review under human control", "confidence": 0.9}
 {"type": "TEACHES", "talk": "BLD1799D", "concept": "pull_request_review_workflows", "evidence": "review of agent contributions", "confidence": 0.64}
-{"type": "REQUIRES", "talk": "TRU2230D", "concept": "ai_coding_agents", "evidence": "brief a coding agent", "confidence": 0.82}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "observability_for_agents", "evidence": "use OpenTelemetry data to brief a coding agent", "confidence": 0.92}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "incident_rca_agents", "evidence": "evidence-backed diagnosis and proposed fix", "confidence": 0.78}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "self_validating_agentic_loops", "evidence": "practical model for verifying agent-written changes", "confidence": 0.9}
-{"type": "TEACHES", "talk": "TRU2230D", "concept": "human_in_the_loop_oversight", "evidence": "where human review, escalation, and a kill switch belong", "confidence": 0.91}
 {"type": "TEACHES", "talk": "BLD1491D", "concept": "copilot_cli_workflows", "evidence": "real workflows using GitHub CLI, Git, Gum, and GitHub Copilot CLI", "confidence": 0.77}
 {"type": "TEACHES", "talk": "BLD1919M", "concept": "proactive_agents", "evidence": "acting on needs without a prompt", "confidence": 0.96}
 {"type": "TEACHES", "talk": "BLD1919M", "concept": "human_in_the_loop_oversight", "evidence": "which decisions still need a human", "confidence": 0.86}
@@ -358,3 +352,9 @@
 {"type": "REQUIRES", "talk": "LDR1341H", "concept": "github_actions_workflows", "evidence": "a GitHub Action automatically re-scores every dependent initiative", "confidence": 0.66}
 {"type": "TEACHES", "talk": "LDR1341H", "concept": "prioritization_as_code", "evidence": "Rubrics, assumptions, OKRs, and every scored initiative live in Markdown", "confidence": 0.97}
 {"type": "TEACHES", "talk": "LDR1341H", "concept": "human_in_the_loop_oversight", "evidence": "An AI agent drafts the scores, but humans own the judgment", "confidence": 0.82}
+{"type": "TEACHES", "talk": "BLD2450D", "concept": "local_and_cloud_models", "evidence": "greater control over where inference runs", "confidence": 0.93}
+{"type": "TEACHES", "talk": "BLD2450D", "concept": "open_weight_coding_models", "evidence": "launch a local model with llama.cpp", "confidence": 0.62}
+{"type": "REQUIRES", "talk": "TRU2230D", "concept": "ai_coding_agents", "evidence": "developers building with agents", "confidence": 0.72}
+{"type": "TEACHES", "talk": "TRU2230D", "concept": "static_analysis_feedback", "evidence": "Copilot can explain them, turn a long list into a clear fix-first plan", "confidence": 0.87}
+{"type": "TEACHES", "talk": "TRU2230D", "concept": "security_alert_autofix", "evidence": "help you fix them as you build", "confidence": 0.68}
+{"type": "TEACHES", "talk": "TRU2230D", "concept": "devsecops_pipeline", "evidence": "fix issues before a pull request exists", "confidence": 0.58}

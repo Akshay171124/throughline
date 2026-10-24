@@ -23,7 +23,7 @@ from .catalog import extract_items, normalize_items, write_snapshot
 from .config import ROOT, settings
 
 CATALOG_URL = "https://reg.githubuniverse.com/flow/github/universe26/attendee-portal/page/sessioncatalog"
-FEED_MARKER = "/api/search"
+FEED_MARKER = "/api/sessions"
 REQUEST_API = "https://api.brightdata.com/request"
 
 # Documentation and established educational sources only (the explainer filter).
@@ -48,7 +48,7 @@ def _env(name: str) -> str:
 
 # --- schedule ---------------------------------------------------------------
 
-async def _record_feed(max_scrolls: int = 12) -> list[dict]:
+async def _record_feed(max_pages: int = 12) -> list[dict]:
     from playwright.async_api import async_playwright
 
     payloads: list[dict] = []
@@ -66,11 +66,17 @@ async def _record_feed(max_scrolls: int = 12) -> list[dict]:
 
             page.on("response", on_response)
             await page.goto(CATALOG_URL, wait_until="networkidle", timeout=120_000)
-            for _ in range(max_scrolls):  # the catalog loads 50 sessions at a time as you scroll
+            for _ in range(max_pages):  # the catalog loads 50 sessions at a time behind "Show more"
                 before = len(payloads)
-                await page.mouse.wheel(0, 20_000)
-                await page.wait_for_timeout(2_500)
-                if len(payloads) == before:
+                more = page.get_by_text("Show more", exact=True)
+                if not await more.count():
+                    break
+                await more.last.click()
+                for _ in range(60):  # each batch takes 6-11 s through the proxy; give up after 30 s
+                    await page.wait_for_timeout(500)
+                    if len(payloads) > before:
+                        break
+                else:
                     break
         finally:
             await browser.close()
@@ -109,6 +115,8 @@ def serp_search(query: str, num: int = 10) -> list[dict]:
         timeout=60,
     )
     response.raise_for_status()
+    if error := response.headers.get("x-brd-error"):  # some failures arrive as 200 + a plain-text message
+        raise RuntimeError(f"Bright Data SERP: {error}")
     data = response.json() if response.headers.get("content-type", "").startswith("application/json") else json.loads(response.text)
     return [
         {"title": r.get("title", ""), "url": r.get("link") or r.get("url", ""), "snippet": r.get("description") or r.get("snippet", "")}
