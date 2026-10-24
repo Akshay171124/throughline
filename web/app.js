@@ -628,24 +628,173 @@ function addMessage(role, html) {
   return div;
 }
 
+// ---- "Why this answer?": the trace as plain steps (same code in app.js and landing.js) ----
+
+// A concept id like "mcp-server" read as words, when no name is at hand.
+function humanizeId(id) {
+  return String(id ?? "").replace(/^concept:/, "").replace(/[-_]+/g, " ").trim();
+}
+
+function listWords(items, max = 4) {
+  const list = [...new Set((items || []).map((x) => String(x ?? "").trim()).filter(Boolean))];
+  if (list.length <= max) return list.join(", ");
+  return `${list.slice(0, max).join(", ")} and ${list.length - max} more`;
+}
+
+// One plain sentence (or two) per tool call. `look` gives talk titles and concept names
+// for codes and ids: { talk(code) -> title|null, concept(id) -> name|null }. Never raw JSON.
+function whyLines(step, look) {
+  const tool = String(step.tool || "").replace(/\s*\(no AI\)\s*$/, "");
+  const noAI = /\(no AI\)\s*$/.test(String(step.tool || ""));
+  const args = step.args && typeof step.args === "object" ? step.args : {};
+  const r = step.result;
+  const obj = r && typeof r === "object" && !Array.isArray(r) ? r : {};
+  const failed = Boolean(obj.error);
+  const talkName = (code, fallback) => (fallback || (code && look.talk(code)) || (code ? "that talk" : "the talk"));
+  const conceptOf = (id) => (id && look.concept(id)) || humanizeId(id) || "that idea";
+  switch (tool) {
+    case "get_attendee": {
+      if (failed) return ["Checked what you already know (nothing saved yet)"];
+      const p = obj.profile || {};
+      const bits = [];
+      const who = [p.role, EXPERIENCE[p.experience]].filter(Boolean).join(" · ");
+      if (who) bits.push(`your profile: ${who}`);
+      const known = Array.isArray(obj.known) ? obj.known.length : 0;
+      if (known) bits.push(`including ${plural(known, "concept", "concepts")} you know`);
+      const went = Array.isArray(obj.attended_talks) ? obj.attended_talks.length : 0;
+      if (went) bits.push(`${plural(went, "talk", "talks")} you attended`);
+      return [`Checked what you already know${bits.length ? ` — ${bits.join(", ")}` : " (nothing saved yet)"}`];
+    }
+    case "update_profile": {
+      const s = obj.saved && typeof obj.saved === "object" ? obj.saved : args;
+      const parts = [s.role || args.role, EXPERIENCE[s.experience || args.experience]].filter(Boolean);
+      const interests = Array.isArray(args.interests) && args.interests.length ? args.interests : s.interests;
+      if (Array.isArray(interests) && interests.length) parts.push(`interested in ${listWords(interests)}`);
+      return [`Saved what you told me${parts.length ? `: ${parts.join(", ")}` : ""}`];
+    }
+    case "list_concepts": {
+      const n = Array.isArray(r) ? r.length : 0;
+      // The trace keeps at most 25 rows, so a full list means "at least that many".
+      return [n && n < 25 ? `Looked through the conference's ${n} topics` : "Looked through the conference's list of topics"];
+    }
+    case "talks_for_concepts": {
+      if (failed) return ["Tried to match your goal to the conference's topics, but none fit"];
+      const talks = Array.isArray(obj.talks) ? obj.talks : [];
+      let names = talks.flatMap((t) => (Array.isArray(t.teaches) ? t.teaches : []));
+      if (!names.length) names = (obj.concepts_used || args.concepts || []).map(conceptOf);
+      return [
+        `Matched your goal to: ${listWords(names, 5) || "the closest topics"}`,
+        talks.length ? `Found ${plural(talks.length, "talk", "talks")} that teach ${names.length === 1 ? "it" : "them"}` : "Found no talks that teach them",
+      ];
+    }
+    case "search_talks": {
+      const hits = Array.isArray(r) ? r : [];
+      if (!hits.length) return [`Searched the schedule for “${String(args.query || "").slice(0, 60)}” but found no match`];
+      return [`Found the talk you meant: ${hits[0].title || talkName(hits[0].code)}`];
+    }
+    case "plan_day":
+    case "get_learning_path": {
+      if (failed) return ["Tried to follow the prerequisites in the graph, but couldn't find that talk"];
+      const title = talkName(obj.talk || args.talk, obj.talk_title);
+      const tail = noAI ? "; no AI involved" : "";
+      if (obj.ready === true) return [`Followed the prerequisites in the graph for ${title}: nothing missing — you're ready${tail}`];
+      const plan = Array.isArray(obj.plan) ? obj.plan : null;
+      const n = plan ? plan.length : Array.isArray(obj.steps) ? obj.steps.length : Number(obj.steps) || 0;
+      let detail = "";
+      if (plan) {
+        const atTalks = plan.filter((s) => s && s.learn_at && s.learn_at.kind === "talk").length;
+        detail = ` (${atTalks} at earlier talks, ${plural(n - atTalks, "outside explainer", "outside explainers")})`;
+      } else if (Number.isFinite(obj.at_talks)) {
+        detail = ` (${obj.at_talks} at earlier talks, ${plural(n - obj.at_talks, "outside explainer", "outside explainers")})`;
+      }
+      const what = tool === "get_learning_path" ? plural(n, "thing", "things") + " to learn first" : plural(n, "step", "steps");
+      return [`Followed the prerequisites in the graph for ${title}: ${what}${detail}${tail}`];
+    }
+    case "find_where_to_learn": {
+      const hits = Array.isArray(r) ? r.length : 0;
+      const before = args.before_talk ? `before ${talkName(args.before_talk)}` : "at the conference";
+      return [`Looked for talks that teach ${conceptOf(args.concept)} ${before}: ${hits ? `found ${hits}` : "none fit"}`];
+    }
+    case "explain_step":
+      if (failed) return [`Looked for the evidence for ${conceptOf(args.concept)}, but couldn't find that talk`];
+      return [`Pulled the evidence for ${conceptOf(args.concept)}${obj.talk ? ` in ${obj.talk}` : ""}`];
+    case "mark_attended": {
+      const learned = (Array.isArray(obj.learned) ? obj.learned : []).map(conceptOf);
+      return [`Marked ${talkName(args.talk)} as attended; you learned ${listWords(learned) || "nothing new"}${obj.clock ? `; the clock moved to ${obj.clock}` : ""}`];
+    }
+    case "mark_known":
+      return [`Noted that you know ${conceptOf(args.concept || obj.known)}`];
+    case "save_talk":
+      return [`Saved ${talkName(args.talk || obj.saved)} to My talks`];
+    case "run_cypher":
+      return [failed ? "Tried to ask the graph a direct question, but it couldn't answer that" : "Asked the graph a direct question (read-only)"];
+    default:
+      return [failed ? "Looked something up in the graph, but it had no answer" : "Looked something up in the graph"];
+  }
+}
+
+function whySteps(trace, look) {
+  const lines = [];
+  for (const step of trace) {
+    for (const line of whyLines(step, look)) if (line !== lines[lines.length - 1]) lines.push(line);
+  }
+  return lines;
+}
+
+function whyStepsHtml(lines) {
+  return `<ol class="why-steps">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ol>
+    <p class="why-note">Every step above is a query on the FalkorDB knowledge graph.</p>`;
+}
+
+function techStepsHtml(trace) {
+  const queries = trace.reduce((n, s) => n + (Array.isArray(s.cypher) ? s.cypher.length : 0), 0);
+  const label = queries ? `See the graph queries (${queries})` : `See the tool calls (${trace.length})`;
+  return `<details class="why-tech">
+    <summary>${escapeHtml(label)}</summary>
+    ${trace.map((step, i) => `
+      <details class="step">
+        <summary><span class="step-n">${i + 1}</span> <code>${escapeHtml(step.tool)}</code>
+          <span class="muted">${escapeHtml(JSON.stringify(step.args ?? {}))}</span></summary>
+        ${(Array.isArray(step.cypher) ? step.cypher : []).map((c) => `<pre class="cypher">${escapeHtml(c)}</pre>`).join("")}
+        ${step.result !== undefined ? `<pre class="result">${escapeHtml((JSON.stringify(step.result, null, 2) || "").slice(0, 4000))}</pre>` : ""}
+      </details>`).join("")}
+  </details>`;
+}
+
+// Concept names for the plain steps, fetched once (the same list the profile uses).
+let conceptsLoading = null;
+function loadConceptNames() {
+  if (me.concepts) return Promise.resolve();
+  conceptsLoading = conceptsLoading || api("/api/concepts").then((list) => {
+    if (!me.concepts && Array.isArray(list)) me.concepts = [...list].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  }).catch(() => {}).finally(() => { conceptsLoading = null; });
+  return conceptsLoading;
+}
+
+let traceShown = null;
 function renderTrace(trace) {
+  traceShown = trace;
+  if (!me.concepts) loadConceptNames().then(() => { if (me.concepts && traceShown === trace) renderTrace(trace); });
   const list = document.getElementById("trace");
   const count = document.getElementById("how-count");
-  if (!trace.length) {
-    list.innerHTML = `<p class="muted pad">No tools were called for this answer.</p>`;
+  const steps = (Array.isArray(trace) ? trace : []).filter((s) => s && s.tool);
+  if (!steps.length) {
+    list.innerHTML = `<p class="muted pad">I answered from the conversation; no graph lookups were needed.</p>`;
     count.textContent = "";
     return;
   }
-  const queries = trace.reduce((n, s) => n + (s.cypher || []).length, 0);
+  const lines = whySteps(steps, {
+    talk: (code) => { const t = findTalk(code); return t && t.title ? t.title : null; },
+    concept: (id) => {
+      const n = conceptName(id);
+      if (n && n !== id) return n;
+      const c = Array.isArray(me.concepts) ? me.concepts.find((x) => x && x.id === id) : null;
+      return c && c.name ? c.name : null;
+    },
+  });
   openHow();
-  count.textContent = `${plural(trace.length, "tool call", "tool calls")} · ${plural(queries, "Cypher query", "Cypher queries")}`;
-  list.innerHTML = trace.map((step, i) => `
-    <details class="step" ${i === trace.length - 1 ? "open" : ""}>
-      <summary><span class="step-n">${i + 1}</span> <code>${escapeHtml(step.tool)}</code>
-        <span class="muted">${escapeHtml(JSON.stringify(step.args))}</span></summary>
-      ${(step.cypher || []).map((c) => `<pre class="cypher">${escapeHtml(c)}</pre>`).join("")}
-      <pre class="result">${escapeHtml((JSON.stringify(step.result ?? null, null, 2) || "").slice(0, 4000))}</pre>
-    </details>`).join("");
+  count.textContent = `· ${plural(lines.length, "step", "steps")}`;
+  list.innerHTML = whyStepsHtml(lines) + techStepsHtml(steps);
 }
 
 function setBusy(busy) {
@@ -782,7 +931,9 @@ async function loadTalkView(code, { trace = false } = {}) {
     if (!sameTalk) revealTalk(code);
     renderMyTalks();
     if (trace) {
-      renderTrace([{ tool: "plan_day (no AI)", args: { talk: code }, cypher: plan.queries || [], result: { steps: plan.plan.length, ready: plan.ready } }]);
+      const atTalks = plan.plan.filter((s) => s.learn_at && s.learn_at.kind === "talk").length;
+      renderTrace([{ tool: "plan_day (no AI)", args: { talk: code }, cypher: plan.queries || [],
+        result: { talk_title: plan.talk_title, steps: plan.plan.length, at_talks: atTalks, ready: plan.ready } }]);
     }
     view.wasReady = plan.ready;
     return plan;
