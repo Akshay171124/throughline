@@ -150,10 +150,9 @@ All of it between 10:00 AM and 2:00 PM, in about 30 commits:
 
 ## Team
 
-We're two.
+**git lost**: Vasudha Jain and Akshay Prajapati.
 
-- [Name]: data, concept extraction and evidence checks (Bright Data, OpenAI)
-- [Name]: graph model, queries, memory, agent, interface and demo (FalkorDB, OpenAI)
+Together we built the data pipeline and evidence checks (Bright Data, OpenAI), the graph model, queries and attendee memory (FalkorDB), the agent, and the interface.
 
 ## Our principles
 
@@ -175,7 +174,7 @@ We're two.
 **The document**
 
 - [x] Every number in "Measured quality" is one we actually measured (`throughline.quality`, re-run at 2:05 PM)
-- [ ] The team section has real names, and the roles match our team size
+- [x] The team section has real names, and the roles match our team size
 - [x] Anything we didn't build is removed from "What Throughline does" and the demo plan (no organizer view)
 - [x] The data section is honest about the Browser API: the catalog page needs JavaScript, and the feed behind it also answers a plain request
 - [ ] The repo is public, and the repo link and the demo video link open without logging in
