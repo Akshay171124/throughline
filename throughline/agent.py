@@ -99,8 +99,10 @@ TOOLS = [
     _fn("mark_known", "Record that the attendee already knows a concept.", {"concept": {"type": "string", "description": "Concept id"}}, ["concept"]),
     _fn("save_talk", "Save a talk to the attendee's list of talks they're aiming for.", TALK, ["talk"]),
     _fn("list_concepts", "Every concept in the graph (id, name, short definition), to map a goal onto.", {}, []),
-    _fn("talks_for_concepts", "Talks that teach the given concepts, ranked by how many they cover, with readiness for this attendee.",
-        {"concepts": {"type": "array", "items": {"type": "string"}, "description": "Concept ids from list_concepts"}}, ["concepts"]),
+    _fn("talks_for_concepts", "Talks that teach the given concepts, ranked with the first concept counting most, with readiness for this attendee.",
+        {"concepts": {"type": "array", "items": {"type": "string"},
+                      "description": "Concept ids from list_concepts, MOST IMPORTANT FIRST (the goal's main topic first)"}},
+        ["concepts"]),
     _fn("update_profile", "Save the attendee's role, experience and interests, only from what they actually said.",
         {"role": {"type": "string", "description": "Their job, 1-4 words (e.g. 'Developer', 'Platform team lead', 'Student'); empty if they didn't say"},
          "experience": {"type": "string", "enum": ["", "new", "some", "experienced"], "description": "Empty if they didn't say"},
@@ -254,7 +256,7 @@ class Tools:
         MATCH (t:Talk)-[e:TEACHES]->(c:Concept)
         WHERE c.id IN $ids
         RETURN t.code, t.title, t.day, t.start, t.end, t.room, t.level_num, t.start_min, t.sponsor,
-               collect(c.name), collect(e.evidence)
+               collect(c.name), collect(e.evidence), collect(c.id)
         """
         ids, unknown = self._resolve_concepts(concepts[:6])
         if not ids:
@@ -264,11 +266,17 @@ class Tools:
         ready = flow.ready_map(self.g, self.attendee) or {}
         talks = [
             {"code": r[0], "title": r[1], "day": r[2], "start": r[3], "end": r[4], "room": r[5], "level_num": r[6],
-             "start_min": r[7], "sponsor": r[8], "teaches": r[9], "evidence": r[10][:2], "ready": ready.get(r[0])}
+             "start_min": r[7], "sponsor": r[8], "teaches": r[9], "evidence": r[10][:2], "ready": ready.get(r[0]),
+             "_ids": r[11]}
             for r in rows
         ]
-        # Most concepts covered first, then non-sponsored, then by time.
-        talks.sort(key=lambda t: (-len(t["teaches"]), bool(t["sponsor"]), t["start_min"]))
+        # The model lists concepts most important first. Weight them 8, 4, 2, 1 … so a talk that teaches the
+        # main concept outranks one that only covers several side concepts (an MCP goal used to surface a
+        # governance talk because it covered two minor concepts). Then non-sponsored, then by time.
+        weight = {cid: 2 ** (len(ids) - 1 - i) for i, cid in enumerate(ids)}
+        for t in talks:
+            t["score"] = sum(weight.get(cid, 0) for cid in t.pop("_ids"))
+        talks.sort(key=lambda t: (-t["score"], bool(t["sponsor"]), t["start_min"]))
         # The top 4 by rank, shown in time order. The model sees exactly these, so its picks
         # always match the cards and the map highlight.
         best = sorted(talks[:4], key=lambda t: t["start_min"])
