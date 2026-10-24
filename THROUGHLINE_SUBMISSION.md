@@ -168,6 +168,11 @@ The chat stays in scope. The plain buttons come first (the 2:30 rule), so the ch
 
 ## Before submitting (delete this section from the final version)
 
+**The submission itself** *(the event website doesn't say; ask the organizers)*
+
+- [ ] Where and how to submit, and the exact deadline (submission is during 2:00–5:30 PM)
+- [ ] Whether a demo video or a public repo is required, and how long each team's stage demo is
+
 **The document**
 
 - [ ] Every [N] and [X] in "Measured quality" is a number we actually measured

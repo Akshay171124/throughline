@@ -10,7 +10,7 @@ from throughline.graph import connect, ensure_schema, load_talks
 @pytest.fixture(scope="module")
 def graph():
     try:
-        g = connect("throughline_test")
+        g = connect("throughline_test", local=True)
         g.query("RETURN 1")
     except Exception as e:  # FalkorDB isn't running
         pytest.skip(f"FalkorDB not reachable: {e}")

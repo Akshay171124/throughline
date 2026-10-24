@@ -19,8 +19,20 @@ INDEXES = [
 ]
 
 
-def connect(graph_name: str | None = None) -> Graph:
-    db = FalkorDB(host=settings.falkordb_host, port=settings.falkordb_port)
+def backend() -> str:
+    """Which FalkorDB we're talking to, without revealing the password."""
+    if settings.falkordb_url:
+        host = settings.falkordb_url.rsplit("@", 1)[-1]
+        return f"FalkorDB lab ({host})"
+    return f"local FalkorDB ({settings.falkordb_host}:{settings.falkordb_port})"
+
+
+def connect(graph_name: str | None = None, local: bool = False) -> Graph:
+    """Connect to the lab if FALKORDB_URL is set, else to the local instance (or force local)."""
+    if settings.falkordb_url and not local:
+        db = FalkorDB.from_url(settings.falkordb_url)
+    else:
+        db = FalkorDB(host=settings.falkordb_host, port=settings.falkordb_port)
     return db.select_graph(graph_name or settings.graph_name)
 
 
