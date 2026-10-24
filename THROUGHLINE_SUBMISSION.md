@@ -177,7 +177,8 @@ Together we built the data pipeline and evidence checks (Bright Data, OpenAI), t
 - [x] The team section has real names, and the roles match our team size
 - [x] Anything we didn't build is removed from "What Throughline does" and the demo plan (no organizer view)
 - [x] The data section is honest about the Browser API: the catalog page needs JavaScript, and the feed behind it also answers a plain request
-- [ ] The repo is public, and the repo link and the demo video link open without logging in
+- [x] The repo is public: https://github.com/Akshay171124/throughline (opens without logging in)
+- [ ] The demo video link opens without logging in
 - [x] The track is stated as FalkorDB
 
 **The data**
