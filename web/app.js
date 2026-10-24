@@ -360,6 +360,7 @@ function resetTalkView() {
   rememberTalk(null);
   syncUrl(null);
   renderHead(false);
+  hideAbout();
 }
 
 // ---- the profile dialog --------------------------------------------------------
@@ -740,7 +741,7 @@ async function loadTalkView(code, { trace = false } = {}) {
   const version = ++view.version;
   const sameTalk = view.talk === code;
   const wrap = document.getElementById("graph-wrap");
-  if (!sameTalk) wrap.classList.add("loading");
+  if (!sameTalk) { wrap.classList.add("loading"); loadAbout(code).catch(() => {}); }
   try {
     const q = `?attendee=${encodeURIComponent(attendee)}`;
     const [plan, graph] = await Promise.all([
@@ -749,6 +750,7 @@ async function loadTalkView(code, { trace = false } = {}) {
     ]);
     if (version !== view.version) return null; // a newer request won
     if (!sameTalk) { view.showAlts = null; view.wasReady = null; }
+    if (sameTalk) loadAbout(code).catch(() => {}); // retries only if it wasn't ready yet
     view.talk = code;
     view.plan = plan;
     view.graph = graph;
@@ -756,6 +758,7 @@ async function loadTalkView(code, { trace = false } = {}) {
     syncUrl(code);
     if (isSaved(code)) me.readiness.set(code, plan);
     renderHead(sameTalk);
+    if (about.code === code && about.state === "ready") renderAbout(); // refresh "known" ticks
     renderGraph(sameTalk);
     renderDayPlan();
     renderTalks(currentTalkList());
@@ -1261,6 +1264,202 @@ function renderDayPlan() {
   box.innerHTML = `<h3>Your day</h3><ol class="timeline">${rows.join("")}</ol>`;
 }
 
+// ---- "About this talk": summary, key concepts, what to read first ------------------
+
+const ABOUT_KEY = "throughline.about-collapsed";
+const READING_KINDS = ["docs", "video", "article", "repo", "paper"];
+// code: the talk shown; data: briefing; abstract: from /api/talks; state: loading|ready|hidden
+// state: loading | ready | pending (server still building it; retried quietly) | hidden
+const about = { code: null, data: null, abstract: "", state: "hidden", turn: 0, openConcept: null, retries: 0, timer: 0 };
+
+function aboutCollapsed() {
+  return storageGet(ABOUT_KEY) === "1";
+}
+
+// "2026-10-24T13:40:12Z" -> "Oct 24"; anything unparseable is shown as-is (escaped by the caller).
+function formatFetched(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+  if (!m) return String(iso || "");
+  const mo = Number(m[2]);
+  return mo >= 1 && mo <= 12 ? `${MONTHS[mo - 1]} ${Number(m[3])}, ${m[1]}` : String(iso);
+}
+
+function hideAbout() {
+  about.turn++;
+  clearTimeout(about.timer);
+  about.code = null; about.data = null; about.abstract = ""; about.state = "hidden"; about.openConcept = null;
+  document.getElementById("about").hidden = true;
+}
+
+// Called with every talk load. A new talk shows a skeleton; the same talk only retries if
+// the briefing wasn't there yet (the endpoint may come online after the page loaded).
+async function loadAbout(code) {
+  if (about.code === code && about.state === "ready") return;
+  const turn = ++about.turn;
+  const fresh = about.code !== code;
+  clearTimeout(about.timer);
+  if (fresh) {
+    about.code = code; about.data = null; about.abstract = ""; about.openConcept = null; about.retries = 0;
+    about.state = "loading";
+    renderAbout();
+  }
+  const [briefing, talk] = await Promise.all([
+    api(`/api/talks/${encodeURIComponent(code)}/briefing`).catch(() => null),
+    api(`/api/talks/${encodeURIComponent(code)}`).catch(() => null),
+  ]);
+  if (turn !== about.turn || about.code !== code) return; // the user moved on
+  const ok = briefing && briefing.status === "ready"
+    && (briefing.summary || (briefing.concepts || []).length || (briefing.readings || []).length);
+  about.data = ok ? briefing : null;
+  about.abstract = (talk && talk.abstract) || "";
+  about.state = ok ? "ready" : briefing && briefing.status === "missing" ? "pending" : "hidden";
+  renderAbout();
+  // Still being built on the server: look again in a minute, a few times, then stay quiet.
+  if (about.state === "pending" && about.retries < 6) {
+    about.retries++;
+    about.timer = setTimeout(() => { if (about.code === code && about.state === "pending") loadAbout(code).catch(() => {}); }, 60000);
+  }
+}
+
+// The server may send a code ("ai", "abstract") or a ready-made phrase.
+function summarySourceLabel(src) {
+  const s = String(src || "").trim();
+  if (!s || /^(ai|llm|model|claude|generated|summary)$/i.test(s)) return "AI summary of the abstract";
+  if (/^(abstract|original|catalog|feed)$/i.test(s)) return "From the talk abstract";
+  return s.slice(0, 80);
+}
+
+function aboutSkeleton() {
+  return `<div class="about-skel" aria-hidden="true">
+      <span class="sk sk-line"></span><span class="sk sk-line short"></span>
+      <span class="sk sk-chips"><i></i><i></i><i></i></span>
+      <span class="sk sk-line"></span><span class="sk sk-line"></span>
+    </div><span class="visually-hidden">Loading the talk briefing…</span>`;
+}
+
+function aboutChip(c, knownIds) {
+  const known = knownIds.has(c.id);
+  const cls = ["cchip", c.basic ? "basic" : "", known ? "known" : "", about.openConcept === c.id ? "open" : ""].filter(Boolean).join(" ");
+  const tip = [c.basic ? "Basic" : "", known ? "You know this" : "", c.definition || ""].filter(Boolean).join(" · ");
+  return `<button type="button" class="${cls}" data-concept="${escapeHtml(c.id)}" title="${escapeHtml(tip)}"
+      aria-expanded="${about.openConcept === c.id ? "true" : "false"}">${known ? `<span class="tick-mark" aria-hidden="true">✓</span>` : ""}${escapeHtml(c.name || c.id)}${
+      c.basic ? `<span class="basic-tag">basic</span>` : ""}</button>`;
+}
+
+function aboutConceptGroup(label, hint, list, knownIds) {
+  if (!list.length) return "";
+  const open = list.find((c) => c.id === about.openConcept);
+  return `<div class="about-group">
+      <span class="about-sub" title="${escapeHtml(hint)}">${escapeHtml(label)}</span>
+      <div class="cchips">${list.map((c) => aboutChip(c, knownIds)).join("")}</div>
+      ${open ? `<div class="concept-pop" role="note"><strong>${escapeHtml(open.name || open.id)}</strong>${
+        open.basic ? ` <span class="basic-tag">basic</span>` : ""}<p>${escapeHtml(open.definition || "No definition on file.")}</p></div>` : ""}
+    </div>`;
+}
+
+function aboutReading(r) {
+  const kind = READING_KINDS.includes(String(r.kind || "").toLowerCase()) ? String(r.kind).toLowerCase() : "link";
+  const minutes = Number.isFinite(r.minutes) && r.minutes > 0 ? `<span class="read-min">~${Math.round(r.minutes)} min</span>` : "";
+  const href = safeUrl(r.url);
+  const title = escapeHtml(r.title || r.domain || r.url || "Untitled");
+  return `<li class="reading">
+      <div class="read-top">
+        ${href === "#" ? `<span class="read-title">${title}</span>` : `<a class="read-title" href="${href}" target="_blank" rel="noopener noreferrer">${title}<span class="ext" aria-hidden="true"> ↗</span></a>`}
+      </div>
+      <div class="read-meta"><span class="kind kind-${kind}">${escapeHtml(kind)}</span>${
+        r.domain ? `<span class="read-domain">${escapeHtml(r.domain)}</span>` : ""}${minutes}</div>
+      ${r.why ? `<p class="read-why">${escapeHtml(r.why)}</p>` : ""}
+    </li>`;
+}
+
+function renderAbout() {
+  const box = document.getElementById("about");
+  const body = document.getElementById("about-body");
+  const toggle = document.getElementById("about-toggle");
+  const peek = document.getElementById("about-peek");
+  if (about.state === "hidden" || !about.code) { box.hidden = true; return; }
+  const collapsed = aboutCollapsed();
+  box.hidden = false;
+  box.classList.toggle("collapsed", collapsed);
+  toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  body.hidden = collapsed;
+  if (about.state === "loading" || about.state === "pending") {
+    peek.textContent = about.state === "pending" ? "Preparing…" : "";
+    body.innerHTML = about.state === "pending"
+      ? `<p class="about-pending muted"><span class="spinner" aria-hidden="true"></span> Preparing the summary and reading list for this talk…</p>`
+      : aboutSkeleton();
+    return;
+  }
+  const b = about.data;
+  const concepts = b.concepts || [];
+  const readings = (b.readings || []).slice(0, 5);
+  const knownIds = new Set([
+    ...((view.plan && view.plan.already_known) || []).map((k) => k.concept),
+    ...(view.known || []).map((k) => k.concept),
+  ]);
+  peek.textContent = collapsed
+    ? [concepts.length ? plural(concepts.length, "concept", "concepts") : "", readings.length ? plural(readings.length, "reading", "readings") : ""].filter(Boolean).join(" · ")
+    : "";
+  const requires = concepts.filter((c) => c.role === "requires");
+  const teaches = concepts.filter((c) => c.role === "teaches");
+  const summary = b.summary ? `
+      <p class="about-summary">${escapeHtml(b.summary)}</p>
+      <div class="about-src">
+        <span class="muted">${escapeHtml(summarySourceLabel(b.summary_source))}</span>
+        ${about.abstract ? `<button type="button" class="link" data-abstract aria-expanded="false" aria-controls="about-abstract">Read the full abstract</button>` : ""}
+      </div>
+      ${about.abstract ? `<p class="about-abstract" id="about-abstract" hidden>${escapeHtml(about.abstract)}</p>` : ""}` : "";
+  const conceptBlock = requires.length || teaches.length ? `
+      <div class="about-concepts">
+        <h4>Key concepts</h4>
+        ${aboutConceptGroup("Assumes", "What the talk expects you to know already", requires, knownIds)}
+        ${aboutConceptGroup("Teaches", "What you should walk out knowing", teaches, knownIds)}
+      </div>` : "";
+  const readBlock = readings.length ? `
+      <div class="about-reads">
+        <h4>Read before this talk</h4>
+        <ul class="readings">${readings.map(aboutReading).join("")}</ul>
+        <p class="about-foot muted">Found with live web search${b.fetched_at ? ` · checked ${escapeHtml(formatFetched(b.fetched_at))}` : ""}</p>
+      </div>` : `<p class="about-pending muted">Preparing the reading list…</p>`;
+  // Keep the abstract open across re-renders (chip clicks re-render the card).
+  const abstractOpen = !!body.querySelector("#about-abstract:not([hidden])");
+  body.innerHTML = summary + conceptBlock + readBlock;
+  if (abstractOpen) setAbstractOpen(body, true);
+}
+
+function setAbstractOpen(body, open) {
+  const text = body.querySelector("#about-abstract");
+  const btn = body.querySelector("[data-abstract]");
+  if (!text || !btn) return;
+  text.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  btn.textContent = open ? "Hide the abstract" : "Read the full abstract";
+}
+
+function wireAbout() {
+  document.getElementById("about-toggle").addEventListener("click", () => {
+    storageSet(ABOUT_KEY, aboutCollapsed() ? null : "1");
+    renderAbout();
+  });
+  document.getElementById("about-body").addEventListener("click", (e) => {
+    const body = e.currentTarget;
+    if (e.target.closest("[data-abstract]")) {
+      setAbstractOpen(body, body.querySelector("#about-abstract").hidden);
+      return;
+    }
+    const chip = e.target.closest("button[data-concept]");
+    if (!chip || !about.data) return;
+    const id = chip.dataset.concept;
+    // On the graph already: open the full evidence dialog. Otherwise show its definition inline.
+    const node = view.plan && graphNode(`concept:${id}`);
+    if (node && node.type === "concept") { about.openConcept = null; renderAbout(); openConcept(node); return; }
+    about.openConcept = about.openConcept === id ? null : id;
+    renderAbout();
+    const again = body.querySelector(`button[data-concept="${CSS.escape(id)}"]`);
+    if (again) again.focus();
+  });
+}
+
 // ---- details dialog ----------------------------------------------------------
 
 function openDialog(html, ctx) {
@@ -1435,6 +1634,7 @@ async function init() {
   renderTalks(allTalks);
   renderHead(false);
   wireProfile();
+  wireAbout();
   await startAttendee();
   renderTalks(allTalks);
   const lastChatTalk = await loadChat();

@@ -64,6 +64,14 @@
     <section class="panel readiness">
       <div id="ready-head" class="ready-head"></div>
       <div class="ready-body">
+        <section id="about" class="about" aria-labelledby="about-toggle" hidden>
+          <button class="about-toggle" id="about-toggle" type="button" aria-expanded="true" aria-controls="about-body">
+            <span class="about-caret" aria-hidden="true"></span>
+            <span class="about-heading">About this talk</span>
+            <span class="about-peek muted" id="about-peek"></span>
+          </button>
+          <div class="about-body" id="about-body"></div>
+        </section>
         <div id="graph-wrap" class="graph-wrap">
           <div class="graph-bar">
             <h3>The path, from the graph</h3>
