@@ -1,0 +1,20 @@
+{
+  "description": "Hand-checked prerequisite baseline for GitHub Universe 2026 (Friday, Oct 23). Codes match the 'code' field in universe_talks.jsonl. Ratings: strong | usable | partial | later_only | outside_explainer | none_needed. 'expected_teachers' are earlier talks that teach what the talk assumes; 'later_alternatives' cover the same ground afterwards. Compare pipeline output as matched / missed / new (check 'new' by hand before counting it wrong).",
+  "talks": [
+    {"code": "BLD1428W", "title": "Own your Copilot: Advanced customization for developers and platform teams", "rating": "strong", "expected_teachers": ["BLD1072S", "BLD1487S"], "later_alternatives": [], "notes": "Prerequisite stated outright: 'No beginner basics'. Same morning, no clash."},
+    {"code": "BLD1657H", "title": "The 2am RCA Agent", "rating": "strong", "expected_teachers": ["LDR1801D", "LDR1774D", "BLD2452D"], "later_alternatives": [], "notes": "Wednesday teachers for a Thursday talk."},
+    {"code": "LDR1516M", "title": "17 agents, one SDLC: How Levi Strauss reimagined development on GitHub", "rating": "strong", "expected_teachers": ["BLD1454D", "LDR1716W"], "later_alternatives": ["BLD1236S"], "notes": ""},
+    {"code": "LDR1161H", "title": "We shipped governance", "rating": "strong", "expected_teachers": ["BLD1810D", "BLD1824W"], "later_alternatives": [], "notes": "The two teachers overlap in time; the planner must pick one."},
+    {"code": "LDR1281D", "title": "Automating PR quality with Copilot CLI and GitHub Actions", "rating": "strong", "expected_teachers": ["BLD1491D", "BLD1489H"], "later_alternatives": [], "notes": ""},
+    {"code": "BLD1372B", "title": "How GitHub taught Copilot to remember and when to forget", "rating": "strong", "expected_teachers": ["BLD1312D"], "later_alternatives": ["BLD1787B", "BLD1640W"], "notes": "Corrected on Friday: first pass missed BLD1312D (concept named 'context mechanics', not 'memory')."},
+    {"code": "BLD1640W", "title": "What happens between pressing Enter and getting a response from GitHub Copilot", "rating": "strong", "expected_teachers": ["BLD1312D", "LDR1384S"], "later_alternatives": [], "notes": ""},
+    {"code": "LDR1684B", "title": "The night shift: Copilot agents that maintain their own self-hosted runners", "rating": "strong", "expected_teachers": ["LDR1387H", "LDR1801D", "BLD1810D"], "later_alternatives": [], "notes": "Chain crosses topic tags."},
+    {"code": "TRU1821B", "title": "Beyond pass or fail: How agents verify AI-generated code", "rating": "usable", "expected_teachers": ["TRU1798D", "BLD1908M"], "later_alternatives": [], "notes": "3-step chain: BLD1908M -> TRU1798D -> TRU1821B."},
+    {"code": "TRU1798D", "title": "Build a self-validating agentic loop with GitHub Copilot", "rating": "usable", "expected_teachers": ["BLD1908M"], "later_alternatives": [], "notes": "Real but general link."},
+    {"code": "BLD1402H", "title": "Building Copilot in the cloud", "rating": "usable", "expected_teachers": ["LDR1387H"], "later_alternatives": [], "notes": ""},
+    {"code": "TRU1422H", "title": "The O(1) patch: Securing the supply chain against AI-discovered zero-days", "rating": "partial", "expected_teachers": ["TRU1488D", "BLD2191D"], "later_alternatives": ["BLD1819H"], "notes": "Supply chain covered earlier; reproducible builds only later."},
+    {"code": "LDR1801D", "title": "Four primitives to evaluate and improve your on-call agent's autonomy", "rating": "later_only", "expected_teachers": [], "later_alternatives": ["LDR1774D", "BLD2452D"], "notes": ""},
+    {"code": "LDR1785D", "title": "Auth for agents: How auth.md lets agents skip the sign-up form", "rating": "outside_explainer", "expected_teachers": [], "later_alternatives": ["BLD1402H", "BLD2008D"], "notes": "Assumes API keys / OAuth / short-lived credentials; no Universe talk teaches them."},
+    {"code": "BLD1134M", "title": "The view from the labs: What's next for AI-assisted development", "rating": "none_needed", "expected_teachers": [], "later_alternatives": [], "notes": "Pipeline should return nothing; inventing prerequisites is an error."}
+  ]
+}

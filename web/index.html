@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Throughline</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Throughline</h1>
+      <p class="sub" id="conference">Loading…</p>
+    </div>
+    <div class="clock" title="The on-screen conference clock">
+      <span class="clock-label">Conference time</span>
+      <span id="clock">--</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="schedule">
+      <input id="search" type="search" placeholder="Search talks, speakers, topics…" autocomplete="off">
+      <div id="talks" class="talks"></div>
+    </section>
+
+    <section class="detail" id="detail">
+      <p class="empty">Pick a talk you care about.</p>
+    </section>
+  </main>
+
+  <footer class="status" id="status"></footer>
+  <script src="app.js"></script>
+</body>
+</html>
