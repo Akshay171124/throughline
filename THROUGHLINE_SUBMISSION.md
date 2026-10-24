@@ -3,7 +3,7 @@
 **Patch the Conference Hackathon · Saturday, October 24, 2026 · San Francisco**
 **Track: FalkorDB** · Also uses Bright Data and OpenAI
 
-> Throughline is a readiness agent for conferences. Tell it the talk you care about, and it builds your path there: what to learn first, in what order, and where to learn it before the talk starts. It remembers what you've learned as you move through the event, and every answer is traced through the graph to its source.
+> Find the conference you're going to, tell Throughline what you want out of it, and it gives you a path through the conference's knowledge graph: which talks to see, what to learn before each one, where to learn it before the talk starts, and the evidence behind every step.
 
 ---
 
@@ -13,127 +13,140 @@ A conference schedule is a long list of talks with times and rooms. It doesn't t
 
 Advanced talks assume you already know things, and those things often depend on other things. The session that teaches them might be earlier that day, the day before, at the same time as something else you want to see, or not at the conference at all. Nobody tells you, so you walk in, get lost in the first ten minutes, and the hour is gone. And because nothing keeps track of what you've already learned, every talk feels like starting over.
 
-Organizers have the mirror-image problem: they can't easily see which concepts many talks assume but no talk teaches.
+We demonstrate on GitHub Universe 2026 (October 28–29, San Francisco), whose full schedule of 125 sessions is already published.
 
-We demonstrate on GitHub Universe 2026 (October 28–29), whose full schedule of 100+ sessions is already published.
+## How Throughline meets the FalkorDB criteria
+
+| Criterion | What in Throughline meets it |
+|---|---|
+| **Graph at the core** | Prerequisite paths are one multi-hop query (`DEPENDS_ON*1..3`). The landing page's talk flow is a graph result: an arrow A → B means A teaches something B requires and A ends before B starts. Attendee memory lives in the graph (`KNOWS`, `ATTENDED`, `TARGETS`, plus profile and chat on the attendee node) and is shared by both chat surfaces: the goal chat on the conference map and the chat on the talk page. The agent's own read-only Cypher runs on `throughline_public`, a copy of the graph with no attendee data. |
+| **Explainable answers** | Every plan is drawn as a graph path. Each link carries the exact quote that justifies it, and the Cypher behind each answer is one click away under "Why this answer?", which lists each step the agent took in plain words. |
+| **Real conference problem** | Find your conference, then know what to learn before each talk, and where, before it starts. |
+| **Working demo** | Runs live on the shared FalkorDB lab graph. If the AI is slow or fails, the page points you to "Plan without AI", which runs the same graph queries with no model. A local copy of the graph (`throughline.offline`) keeps it working without the venue Wi-Fi. |
 
 ## What Throughline does
 
-1. **Pick a talk you care about.** Throughline unfolds everything it assumes, in order: to follow this talk you need B, and to understand B you need C. If the talk assumes nothing you're missing, it says so: **"You're ready."**
-2. **Tell it what you already know.** It asks only about the handful of concepts on that talk's path. Your path skips what you know.
-3. **Get your day plan.** For each step, the best place to learn it given the clock: an earlier talk you can attend, today or tomorrow morning before a day-2 talk, or a short explainer to watch in a gap. Clashes are flagged with a substitute.
-4. **Talk to it as the day goes on.** "I just came out of the MCP security talk." "I'm free at 2. What should I do before the 3:30 agents talk?" Throughline updates what you know, moves the clock to the end of that talk, and re-plans.
-5. **It remembers you.** Come back on day 2 with your code and your progress is still there.
-6. **Click any answer to see why:** the agent's tool calls, the path through the graph, the exact phrase that justifies each link, the source, and when it was checked.
-
-**For organizers:** a view of the concepts that many talks assume and no talk teaches.
+1. **Find your conference.** Use your location or type a city. "Ready now" lists the conferences whose schedule is already in the graph. "Near you" is a live web search for upcoming conferences nearby. Conferences we haven't loaded get an honest card: what we found and a link, no fake schedule.
+2. **See the conference as a flow.** Talks are laid out left to right by time. An arrow means "this talk prepares you for that one": it teaches something the later talk assumes, and ends before it starts. Each talk keeps its 2 strongest arrows so the picture stays readable; hovering a talk lights up its chain. "Don't miss" lists the keynotes and the talks that prepare you for the most others. A calendar shows both days, with your saved talks and the talks that prepare you for them highlighted.
+3. **Tell it your goal.** "I'm new to MCP and want to build my first server." The "Ask the graph" chat maps your goal onto the graph's concepts, finds the talks that teach them, lights them up on the map, and plans the main pick. Suggestion cards show each pick and why it fits.
+4. **Open a talk.** The talk page has three panels you can resize: the schedule, the chat, and your readiness. "About this talk" (collapsed until you open it) gives an AI summary of the abstract, the key concepts the talk assumes and teaches, and up to 3 outside readings. Below it: the path through the graph, your day plan, and how far you are from "You're ready."
+5. **Tell it about yourself.** A short profile: role, experience (new, some, experienced), interests, and concepts you already know. Someone with some experience skips the 9 basic concepts. For the advanced workshop "Own your Copilot" (BLD1428W), a newcomer's path has 4 steps; with "some experience" it has 1.
+6. **Talk to it as the day goes on.** "I just came out of the knowledge base workshop." Throughline marks the talk attended, counts what it teaches as learned, moves the clock to the end of that talk, and re-plans.
+7. **It remembers you.** Your code (12 characters, no account) keeps your profile, saved talks, progress and the last 50 chat messages. "Forget me" deletes all of it.
+8. **Click anything to see why:** the quote behind each link, the talk it came from, and the tool calls and Cypher behind each answer.
 
 ## How it works
 
 ### The graph (FalkorDB)
 
-- `(Talk)-[:REQUIRES]->(Concept)`, `(Talk)-[:TEACHES]->(Concept)`, `(Concept)-[:DEPENDS_ON]->(Concept)`, `(Resource)-[:EXPLAINS]->(Concept)`, `(Talk)-[:IN_SLOT]->(TimeSlot)`
-- **Attendee memory:** `(Attendee)-[:KNOWS {how: "said" | "attended"}]->(Concept)`, `(Attendee)-[:ATTENDED]->(Talk)`, `(Attendee)-[:TARGETS]->(Talk)`
-- Every knowledge edge stores its evidence phrase, source link, confidence and when it was checked.
+- **Conference knowledge:** `(Talk)-[:REQUIRES]->(Concept)`, `(Talk)-[:TEACHES]->(Concept)`, `(Concept)-[:DEPENDS_ON]->(Concept)`, `(Resource)-[:EXPLAINS]->(Concept)` (outside explainers), `(Resource)-[:READ_BEFORE]->(Talk)` (the readings in "About this talk"), `(Talk)-[:IN_SLOT]->(TimeSlot)`, `(Talk)-[:PART_OF]->(Conference)`
+- **Attendee memory:** `(Attendee)-[:KNOWS {how: "said" | "attended"}]->(Concept)`, `(Attendee)-[:ATTENDED]->(Talk)`, `(Attendee)-[:TARGETS]->(Talk)` (saved talks). The attendee node also holds the profile (role, experience, interests), the clock, and the chat (last 50 messages). The agent reads the conversation from the graph, not from the browser.
+- **Public view:** `throughline_public` is a copy of the graph without any attendee nodes or edges, refreshed whenever the graph is reloaded. The agent's free-form Cypher only runs there.
+- Every knowledge edge stores its evidence phrase, confidence, status and when it was checked.
 
-**Where `DEPENDS_ON` comes from.** If a talk `TEACHES` concept B and its abstract `REQUIRES` concept C, that talk is evidence that B depends on C. The edge stores which talk it came from and both abstract phrases, so it's checked word for word like every other edge. When several talks agree, confidence goes up. If two talks point in opposite directions, we keep the direction with more support. Paths stop at 3 steps, which also prevents loops.
+**Where `DEPENDS_ON` comes from.** If a talk `TEACHES` concept B and `REQUIRES` concept C, that talk is evidence that B depends on C. The edge stores which talks it came from and how many agree. If two talks point in opposite directions, we keep the direction with more support. Paths stop at 3 steps, which also prevents loops.
+
+**The concept list.** OpenAI drafted the list from all the abstracts, with aliases, so "RAG" and "retrieval-augmented generation" are one node. A review cut it from 70 to 55 concepts, 9 of them marked as basics (for example "Git and pull request basics" and "How LLMs work").
 
 Core queries:
 
-- **Learning path:** variable-length traversal over `DEPENDS_ON` (up to 3 steps) from the target talk's required concepts, minus everything the attendee `KNOWS`, in dependency order. An empty path is a real answer: "You're ready."
-- **Mark attended:** one multi-hop update. Attending a talk adds `KNOWS {how: "attended"}` for every concept that talk `TEACHES`, and moves the clock to the end of that talk, so the next path and plan update automatically.
-- **Day plan:** walk the path in order. For each concept, pick the earliest teaching talk that starts after the clock, ends before the next step and the target talk, and doesn't clash with steps already planned; otherwise use an outside explainer. A simple greedy plan, chosen on purpose so it's fast and easy to explain.
-- **Organizer view:** concepts with many `REQUIRES` edges and no `TEACHES` edge.
+- **Learning path:** variable-length traversal over `DEPENDS_ON` (up to 3 steps) from the talk's required concepts, minus everything the attendee `KNOWS` (and minus the basics if their profile says some experience or experienced), in dependency order. An empty path is a real answer: "You're ready."
+- **Mark attended:** attending a talk adds `KNOWS {how: "attended"}` for every concept that talk `TEACHES` and moves the clock to the end of that talk, so the next path and plan update automatically.
+- **Day plan:** walk the path in order. For each concept, pick a teaching talk that starts after the clock, ends before the target talk and doesn't clash with steps already planned; otherwise use an outside explainer. A simple greedy plan, chosen on purpose so it's fast and easy to explain.
+- **Talk flow:** A → B when A teaches a concept B requires and A ends before B starts; each talk keeps its 2 strongest incoming arrows (most shared concepts, then closest in time).
 
 ### The agent (OpenAI)
 
-An OpenAI model is the conversational layer. It can only answer by calling graph tools:
+An OpenAI model is the conversational layer, on both the conference map (goal to plan: `update_profile` → `list_concepts` → `talks_for_concepts` → `plan_day`) and the talk page. It can only answer by calling graph tools:
 
 | Tool | What it does |
 |---|---|
-| `get_learning_path(talk)` | Ordered concepts still to learn for this attendee |
-| `find_where_to_learn(concept, after, before)` | Teaching talks in free slots, or outside explainers |
-| `plan_day(target_talk)` | The full greedy plan with clashes flagged |
-| `mark_attended(talk)` / `mark_known(concept)` | Updates the attendee's memory in the graph and moves the clock |
-| `explain_step(step)` | The graph path, evidence phrase and source behind one answer |
+| `get_attendee()` | The attendee's clock, profile, known concepts, attended and saved talks |
+| `search_talks(query)` | Finds talks by words in the title, abstract, speakers or topics |
+| `get_learning_path(talk)` | Ordered concepts still to learn before this talk (empty = ready) |
+| `plan_day(talk)` | Where to learn each step before the talk starts, with clashes flagged |
+| `find_where_to_learn(concept, before_talk)` | Talks that teach a concept after the current time, optionally before a talk |
+| `explain_step(talk, concept)` | The quotes and graph links behind one step |
+| `mark_attended(talk)` | Records the talk; its concepts count as learned and the clock moves to its end |
+| `mark_known(concept)` | Records that the attendee already knows a concept |
+| `save_talk(talk)` | Adds a talk to the attendee's saved talks |
+| `list_concepts()` | Every concept (id, name, short definition), to map a goal onto |
+| `talks_for_concepts(concepts)` | Talks that teach those concepts, ranked by coverage, with readiness for this attendee |
+| `update_profile(role, experience, interests)` | Saves the profile, only from what the attendee actually said |
+| `run_cypher(query)` | Read-only Cypher for questions the other tools don't cover, **on the public view only** |
 
-If no tool returns an answer, the agent says it doesn't know. It never answers from its own knowledge. A trace panel shows every tool call and the graph path it returned.
-
-OpenAI is also used offline to build the concept list and to propose edges with evidence. The concept list includes aliases, so "RAG" and "retrieval-augmented generation" become one node, and "memory," "context mechanics" and "token bloat" don't split one idea three ways.
+If no tool returns an answer, the agent says it doesn't know. It never answers from its own knowledge. "Why this answer?" lists every tool call in plain words, with its arguments, the Cypher it ran and a summary of the result.
 
 ### The data (Bright Data)
 
-- **Browser API** loads the GitHub Universe session catalog. The catalog page renders its sessions with JavaScript, so its HTML contains no session data. The browser session records the JSON feed the page loads. *That feed also answers a plain request, so we say so, and use it as a cross-check and fallback.*
-- **SERP API** finds short outside explainers for concepts the conference doesn't teach, live when the agent needs one.
-- **When a scrape goes wrong:** if the catalog returns far fewer sessions than the last run, or required fields (title, time, abstract) are missing, we keep the last good snapshot and flag it on screen.
+Bright Data supplies the live data that's hard to reach: a catalog that only renders with JavaScript (Browser API) and Google results (SERP API) for nearby conferences, explainers and readings. Each comes with a quality check: links must be among the returned results, conferences must fall in the date window, results are merged across searches, and the last good catalog snapshot is kept.
+
+- **Browser API** loads the GitHub Universe session catalog. The catalog page renders its sessions with JavaScript, so its HTML contains no session data. The browser session records the JSON feed the page loads. *That feed also answers a plain request, so we say so, and use it as a cross-check and fallback.* If a scrape returns far fewer sessions than the last run, or required fields are missing, we keep the last good snapshot.
+- **SERP API, conferences near you:** 3 searches run in parallel for the place you give. OpenAI picks out real upcoming conferences, using only the result URLs it was given; code then checks each start date falls in the next 60 days (the model's own date filter wasn't reliable). Results are merged with earlier searches for the same place and cached for 48 hours.
+- **SERP API, explainers:** short outside explainers for the concepts talks assume, from documentation and education sites, vetted by OpenAI against the concept's definition. Cached in `data/explainers.json`.
+- **SERP API, readings:** for each talk, searches on its topic and concepts; OpenAI writes the two-sentence summary and picks readings only from the returned results. The conference's own pages, schedule platforms and social media are excluded. Built for all 125 talks and cached in `data/briefings.json`.
 
 ### How we keep answers honest
 
-- **Evidence is checked, not trusted.** Every evidence phrase must appear word for word in its source, after cleaning up the text (tags stripped, HTML entities decoded, quotes straightened, whitespace collapsed). The source is the talk's title and abstract for `REQUIRES`, `TEACHES` and `DEPENDS_ON`. If the phrase isn't there, the edge is discarded. For `EXPLAINS`, the evidence is the explainer's search-result snippet from Bright Data; we don't fetch the page itself, so explainers are vetted by the model and labeled as outside sources.
+- **Evidence is checked, not trusted.** Every evidence phrase must appear word for word in its source, after cleaning up the text (tags stripped, HTML entities decoded, quotes straightened, whitespace collapsed). The source is the talk's title, stated level and abstract for `REQUIRES` and `TEACHES`. If the phrase isn't there, the edge is discarded. For `EXPLAINS` and `READ_BEFORE`, the evidence is the search-result snippet from Bright Data; we don't fetch the page itself, so these are vetted by the model and labeled as outside sources.
 - **Unsure is a real answer.** Edges below our confidence threshold are shown as "unsure." `REQUIRES` is always our inference, since abstracts rarely state their prerequisites, and it's labeled "assumed."
 - **What the graph covers, plainly:** a talk's prerequisites come only from what the conference published for it: its title, its stated level (for example "Level 300: Advanced", which is evidence that it assumes the basics) and its abstract. We don't use concept definitions or our own judgment as evidence, so a prerequisite the speaker never signals isn't in the graph.
 - **The agent only speaks from tool results,** and every tool result is a graph path you can open.
-- **Fetched pages are data, never instructions.** Text on explainer pages is never followed as a command.
-- **Explainers must pass a filter:** under 10 minutes to watch or read, from documentation or established educational sources, and checked by the model against the concept's definition.
+- **Fetched pages are data, never instructions.** Search results are treated as untrusted text and never followed as commands.
+- **The AI summary is labeled as one.** "About this talk" says the summary is an AI summary of the abstract; the full abstract is one click away.
 
 ## Measured quality
 
-*Numbers we measured on the day from the live graph, not estimates.*
+*Numbers measured on the day from the live graph, not estimates.*
 
-- Talks: 125 · Concepts: 70 · Edges: 419 (83 `REQUIRES`, 277 `TEACHES`, 46 `DEPENDS_ON`, 13 `EXPLAINS`)
-- Coverage: 100% of required concepts have a teaching talk or an outside explainer. Talks assume 15 distinct concepts; 14 are taught by at least one talk, and the last one is covered by an outside explainer only.
-- Accuracy: 20 randomly chosen `REQUIRES`/`TEACHES` edges (fixed seed) were checked against each talk's abstract; 15 were correct, 4 were only partly right (the phrase is real but the concept is a side mention, not what the talk teaches or assumes), and 1 was wrong (a migration story marked as teaching GitHub Actions workflows). This check was done by an AI reviewer, not a person, and should be spot-checked by one. Verdicts and reasons: [data/quality_handcheck.json](data/quality_handcheck.json).
-- Baseline: on the 15 talks we hand-checked the evening before ([checks/prerequisite-baseline.json](checks/prerequisite-baseline.json)), the graph found at least one expected teaching talk for 6 of the 12 talks that have one; it matched 10 of the 23 expected teaching talks and missed 13. It also found 102 other earlier teaching talks the hand check didn't list (41 distinct talks); we have not checked those by hand yet, so we don't count them as right or wrong. The one talk that needs nothing first correctly says "You're ready."
-- Evidence check: 0% of model-proposed edges were discarded for failing the word-for-word check (0 of 360). The model was asked to copy phrases exactly, and every phrase it gave was found in the talk's title or abstract.
-- Edges marked "unsure" (confidence below 0.6): 10
-- Orphan concepts (assumed by talks, taught by none): 1, "Browser-based agent testing" (it has an outside explainer)
+- Talks: 125 · Concepts: 55 (9 basics) · Edges: 491 (159 `REQUIRES`, 241 `TEACHES`, 72 `DEPENDS_ON`, 19 `EXPLAINS`). Plus 434 `READ_BEFORE` readings covering 115 of the 125 talks (for the other 10, no result passed the vetting).
+- Coverage: 100% of required concepts (22 of 22) have a teaching talk or an outside explainer: 14 are taught by at least one talk, 8 only by an outside explainer.
+- Evidence check: 1 of 401 model-proposed edges was discarded for failing the word-for-word check (0.2%): its phrase wasn't in the talk's title, level or abstract.
+- Accuracy: 20 randomly chosen `REQUIRES`/`TEACHES` edges (fixed seed 2026) were judged strictly against each talk's title, level and abstract: **15 correct, 5 partly right, 0 wrong.** "Partly" means the phrase is real but the concept is a side mention, not what the talk teaches or assumes (for example a modernization talk marked as teaching human-in-the-loop oversight because of one closing phrase). **This check was done by an AI reviewer, not a person, and should be spot-checked by one.** Verdicts and reasons: [data/quality_handcheck.json](data/quality_handcheck.json).
+- Baseline: on the 15 talks we hand-checked the evening before ([checks/prerequisite-baseline.json](checks/prerequisite-baseline.json)), the graph found at least one expected teaching talk for 6 of the 12 talks that have one; it matched 10 of the 23 expected teaching talks and missed 13. It also found 56 other earlier teaching talks the hand check didn't list (37 distinct talks); we haven't checked those by hand, so we don't count them as right or wrong. The one talk that needs nothing first correctly says "You're ready."
+- Edges marked "unsure" (confidence below 0.6): 18.
+- Concepts that talks assume but no talk teaches: 8, every one covered by an outside explainer. Seven are basics (most assumed: "GitHub Copilot basics", by 43 talks); the other is "Agent mode in the editor and CLI" (1 talk). This list comes from the quality report; there's no organizer screen for it.
 
-To recompute every number here: `uv run python -m throughline.quality` (prints the report and writes `data/quality.json`).
+To recompute every number here: `uv run python -m throughline.quality` (prints the report and writes `data/quality.json`). `--sample` prints the 20 edges for the hand check.
 
-## Demo plan (3 minutes)
+## Demo plan (about 4:30)
 
-1. A judge picks any talk from the schedule. If nothing is missing, Throughline says "You're ready."
-2. We tell the agent which concepts the judge already knows; the path shrinks.
-3. The agent shows the ordered path and day plan, including one clash and its substitute. The trace panel shows the tool calls.
-4. We say, "I just came out of [an earlier talk]." The agent marks it attended, the clock moves to the end of that talk, and the path shrinks again.
-5. We click one step and show the graph path, the evidence phrase and the source.
-6. We close the tab and reopen with the same code: the memory is still there.
-7. We close on the organizer view: the concepts this conference assumes but never teaches.
+The video follows [docs/demo-script.md](docs/demo-script.md).
+
+1. **The problem** (20 s).
+2. **Find the conference:** type "San Francisco, CA"; nearby conferences appear (an unloaded one gets an honest card); pick GitHub Universe from "Ready now". The talk flow appears.
+3. **Ask the graph** with a goal ("I'm new to MCP and want to build my first server"): the picks light up on the map, with cards saying why.
+4. **Open "Own your Copilot"** (BLD1428W): "About this talk", then the path graph and day plan for a newcomer (4 steps). Switch the profile to "Some experience": 1 step, the basics skipped.
+5. **Click a concept** to see its quote from the abstract.
+6. **Mark the teaching talk attended** (the Wed 1:00 PM knowledge base workshop): the clock moves to 2:30 PM and the page says "You're ready."
+7. **How it's built** (FalkorDB, Bright Data, OpenAI) and one honest accuracy line.
 
 ### What's live and what's prepared
 
 | Part | Status |
 |---|---|
-| Schedule and abstracts | Scraped on the morning of the hackathon; last good snapshot kept as fallback |
+| Schedule and abstracts | Scraped through Bright Data on the morning of the hackathon; last good snapshot kept as fallback |
 | Concept list and knowledge graph | Built during the hackathon, loaded before the demo |
+| Conferences near you | Live search; a search for the same place within 48 hours is answered from the cache (instant) |
+| "About this talk" and explainers | Built for every talk during the day, stored in the graph and cached in `data/` |
 | Agent answers, path, plan and memory updates | Live, for whatever the judge picks |
-| Explainer for an uncovered concept | Fetched live; a cached copy is used if the network is slow, and labeled "cached" on screen |
 | Clock | Starts at Wednesday 8:30 AM (day 1, before the first talk), shown on screen, and moves forward when a talk is marked attended |
-| Fallback | If the agent misbehaves, the same graph queries run from plain buttons, without the model |
+| Fallback | If the agent misbehaves, "Plan without AI" runs the same graph queries without the model |
 
-## Build timeline
+## What we built today
 
-| Time | Work |
-|---|---|
-| 10:00–11:00 | *(During the workshops)* Repo created; FalkorDB running; all talks and time slots loaded from the snapshot; empty app with the clock and talk list |
-| 11:00–12:00 | Scrape the schedule through Bright Data (snapshot as fallback); generate the concept list with aliases |
-| 12:00–12:30 | Propose edges with evidence; derive `DEPENDS_ON`; run the word-for-word check |
-| 12:30–1:00 | Lunch |
-| 1:00–2:30 | Path, plan and mark-attended queries; plain button interface; "You're ready" screen; click-to-explain view |
-| 2:30–3:30 | Agent with graph tools and trace panel; attendee memory |
-| 3:30–4:15 | Live explainer fetch with fallback; organizer view |
-| 4:00–4:15 | Hand-check edges; compare with the baseline; fill in measured quality |
-| 4:15–4:30 | **Freeze features.** Rehearse the demo once |
-| 4:30–5:00 | **Record the demo video** (screen recording, following the demo plan); upload it and check the link opens without logging in |
-| 5:00–5:30 | Submit (repo link, video link, this document); rehearse the stage demo, once with the network off |
+All of it between 10:00 AM and 2:00 PM, in about 30 commits:
 
-**Rule:** the plain button interface must work by 2:30. The agent is built on top of it, never instead of it.
+- **Morning:** talks in FalkorDB; the knowledge layer (concepts, `REQUIRES`/`TEACHES`, derived `DEPENDS_ON`) with the word-for-word evidence check; the planner; the graph-tool agent with its trace; the attendee-free public view; the live Bright Data catalog scrape; vetted explainers; the offline kit; the first quality numbers.
+- **Midday:** the talk page (clickable path graph, day timeline, readiness progress); profile, saved talks and server-side chat memory; the concept review (70 → 55 concepts, basics, stated level as evidence).
+- **Early afternoon:** the landing page (find your conference, talk flow, Don't miss, calendar); the goal-to-plan chat; conferences near you; resizable panels; "About this talk" for all 125 talks.
 
-## Scope
+## What's next
 
-**Must ship:** everything in the timeline above.
-
-**Stretch:** recordings of past talks as a third catch-up option, planning for several target talks at once, loading a second conference.
+- Load a second conference (the nearby search already finds them; the honest card says when one isn't loaded).
+- Recordings of past talks as a third way to catch up, between "earlier talk" and "outside explainer."
+- Planning for several saved talks at once, sharing prerequisites between them.
+- A person's review of the hand-checked edges and of the 37 extra teaching talks the baseline didn't list.
 
 ## Team
 
@@ -142,66 +155,43 @@ We're two.
 - [Name]: data, concept extraction and evidence checks (Bright Data, OpenAI)
 - [Name]: graph model, queries, memory, agent, interface and demo (FalkorDB, OpenAI)
 
-The chat stays in scope. The plain buttons come first (the 2:30 rule), so the chat is always built on top of working features and never something they depend on.
-
 ## Our principles
 
 - **Evidence for every answer.** Every link in the graph carries the text that justifies it, checked against the source.
-- **Say when we're unsure,** and be honest about scheduling conflicts rather than hiding them.
-- **Minimal attendee data.** Attendees get an anonymous code, not an account. We store only which concepts they know and which talks they attended, and they can delete it with one button.
-- **Public data only** for everything else: public schedules, abstracts and explainer pages.
-
-## If we're ahead or behind on time
-
-**If we're ahead (in this order):**
-
-1. Recordings of past talks as a third catch-up option, between "earlier talk" and "outside explainer."
-2. Planning for two or three target talks at once, sharing prerequisites between them.
-3. "Re-plan from here" when the attendee skips a planned step.
-4. Loading a second conference to show the approach isn't tied to one schedule.
-
-**If we're behind (cut in this order, and update this document to match):**
-
-1. **The agent's chat.** Keep the same graph tools as plain buttons. Memory and mark-attended still work.
-2. **The live explainer fetch.** Use explainers fetched earlier in the day, labeled "fetched at [time]."
-3. **Reopening a session with a code.** Keep memory within the session only.
-4. **The measured quality sample.** Shrink it to 15 edges, but never skip it.
-5. **Last resort:** drop `DEPENDS_ON` and show one level of prerequisites. This removes the multi-hop path, so avoid it if at all possible. It should rarely be needed, because `DEPENDS_ON` comes from abstracts we already check.
-
-**Never cut:** the evidence check, the click-to-explain view, the "You're ready" answer, the on-screen clock, or the model-free fallback.
+- **Say when we're unsure,** and be honest about scheduling conflicts and unloaded conferences rather than hiding them.
+- **Minimal attendee data.** Attendees get an anonymous code, not an account. We store which concepts they know, which talks they attended and saved, their profile and their chat, all on their attendee record, and "Forget me" deletes all of it. A location from the browser is used for one search and never stored.
+- **Public data only** for everything else: public schedules, abstracts and web search results.
 
 ---
 
 ## Before submitting (delete this section from the final version)
 
-**The submission itself** *(the event website doesn't say; ask the organizers)*
+**The submission itself**
 
-- [ ] Where and how to submit, and the exact deadline (submission is during 2:00–5:30 PM)
 - [x] A demo video is required on the submission page
-- [ ] Demo video is 3–5 minutes, on YouTube (unlisted) or Google Drive ("anyone with the link"), submitted by 5:30 PM
-- [ ] Whether a public repo is required, and how long each team's stage demo is
+- [ ] Demo video is 3–5 minutes, recorded and uploaded to YouTube (unlisted) or Google Drive ("anyone with the link"), submitted by 5:30 PM
+- [ ] Where and how to submit, and how long each team's stage demo is (ask the organizers)
 
 **The document**
 
-- [ ] Every [N] and [X] in "Measured quality" is a number we actually measured
+- [x] Every number in "Measured quality" is one we actually measured (`throughline.quality`, re-run at 2:05 PM)
 - [ ] The team section has real names, and the roles match our team size
-- [ ] Anything we cut is removed from "What Throughline does," the demo plan and the timeline
-- [ ] The data section is honest about the Browser API: the catalog page needs JavaScript, and the feed behind it also answers a plain request
-- [ ] The repo is public, and the repo link and any demo video link open without logging in
-- [ ] The track is stated as FalkorDB
+- [x] Anything we didn't build is removed from "What Throughline does" and the demo plan (no organizer view)
+- [x] The data section is honest about the Browser API: the catalog page needs JavaScript, and the feed behind it also answers a plain request
+- [ ] The repo is public, and the repo link and the demo video link open without logging in
+- [x] The track is stated as FalkorDB
 
 **The data**
 
-- [ ] The number of scraped sessions roughly matches the published schedule (100+)
-- [ ] A random handful of talks have the right times, rooms and abstracts
-- [ ] No concept appears twice under different names
+- [x] The number of scraped sessions roughly matches the published schedule (125)
+- [x] A random handful of talks have the right times, rooms and abstracts
+- [x] No concept appears twice under different names (concept review: 70 → 55)
 
 **The demo**
 
-- [ ] The on-screen clock starts at Wednesday 8:30 AM and moves when a talk is marked attended
-- [ ] We've tested one talk of each kind from the baseline: a strong chain, a clash, a partial chain, one covered only later, one needing an outside explainer, and one that should say "You're ready"
-- [ ] Mark-attended visibly shrinks the path
-- [ ] Reopening with the code restores memory, and the delete button works
-- [ ] The full demo runs with the network off, using the cached fallback
-- [ ] The demo fits in 3 minutes, rehearsed at least twice
+- [x] The on-screen clock starts at Wednesday 8:30 AM and moves when a talk is marked attended
+- [x] Mark-attended visibly shrinks the path (BLD1428W: attending the Wed 1:00 PM workshop gives "You're ready")
+- [x] Reopening with the code restores memory, and "Forget me" deletes it
+- [ ] The full demo runs with the network off, using the local copy (`throughline.offline sync` then `check`)
+- [ ] The demo fits in its time, rehearsed at least twice
 - [ ] No API keys are in the repo or visible on screen
