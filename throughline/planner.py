@@ -49,8 +49,20 @@ def format_minutes(minutes: int | None) -> str | None:
 
 # --- attendee memory -------------------------------------------------------
 
+# No 0/O, 1/I/L: the code is read off a screen and typed back in.
+CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+
+
+def new_code() -> str:
+    """12 characters (~59 bits) grouped for reading, e.g. K7QF-M2XA-9PLR. The code is the only
+    key to an attendee's memory, so it has to be unguessable; 128-bit tokens would be too long
+    to retype on stage, and the page keeps the code in local storage so most visits never type it."""
+    chars = "".join(secrets.choice(CODE_ALPHABET) for _ in range(12))
+    return "-".join(chars[i:i + 4] for i in range(0, 12, 4))
+
+
 def new_attendee(g: Graph) -> str:
-    code = secrets.token_hex(3).upper()
+    code = new_code()
     date, time = settings.clock_start.split("T")
     g.query(
         "CREATE (:Attendee {code: $code, clock_min: $clock})",

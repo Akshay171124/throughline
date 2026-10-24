@@ -145,11 +145,13 @@ if __name__ == "__main__":
     import json
 
     from .extract import CONCEPTS, EDGES
-    from .graph import backend, connect
+    from .graph import backend, connect, publish_public_view
 
     concepts = json.loads(CONCEPTS.read_text())["concepts"]
     edges = [json.loads(line) for line in EDGES.open() if line.strip()]
-    report = reload_all(connect(), concepts, edges)
+    graph = connect()
+    report = reload_all(graph, concepts, edges)
+    publish_public_view(graph)
     print(f"{backend()}: {len(concepts)} concepts; edges proposed {report['proposed']}, "
           f"kept {report['kept']}, discarded {report['discarded']} "
           f"({report['discarded'] / max(report['proposed'], 1):.0%} failed the word-for-word check); "

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from . import planner
 from .agent import Tools, run_agent
 from .config import ROOT, settings
-from .graph import backend, connect
+from .graph import backend, connect, public_name
 
 app = FastAPI(title="Throughline")
 
@@ -19,6 +19,7 @@ TALK_FIELDS = [
 DETAIL_FIELDS = TALK_FIELDS + ["abstract", "source", "fetched_at"]
 
 _graph: Graph | None = None
+_public: Graph | None = None
 
 
 def graph() -> Graph:
@@ -26,6 +27,14 @@ def graph() -> Graph:
     if _graph is None:
         _graph = connect()
     return _graph
+
+
+def public_graph() -> Graph:
+    """The attendee-free copy that the agent's free-form Cypher runs on."""
+    global _public
+    if _public is None:
+        _public = connect(public_name())
+    return _public
 
 
 def _rows(result, fields: list[str]) -> list[dict]:
@@ -139,7 +148,7 @@ class AgentTurn(BaseModel):
 @app.post("/api/agent")
 def agent(body: AgentTurn):
     _require_attendee(body.attendee)
-    return run_agent(graph(), body.attendee, body.message, body.history)
+    return run_agent(graph(), body.attendee, body.message, body.history, public=public_graph())
 
 
 app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")

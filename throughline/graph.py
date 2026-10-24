@@ -36,6 +36,26 @@ def connect(graph_name: str | None = None, local: bool = False) -> Graph:
     return db.select_graph(graph_name or settings.graph_name)
 
 
+PUBLIC_SUFFIX = "_public"
+
+
+def public_name(graph_name: str | None = None) -> str:
+    return (graph_name or settings.graph_name) + PUBLIC_SUFFIX
+
+
+def publish_public_view(g: Graph) -> Graph:
+    """Copy the graph without any attendee data. Free-form (GraphRAG) Cypher only ever runs here,
+    so no query, however it's written, can read another attendee's code or memory."""
+    target = g.name + PUBLIC_SUFFIX
+    try:
+        g.execute_command("GRAPH.DELETE", target)
+    except Exception:  # no previous view
+        pass
+    view = g.copy(target)
+    view.query("MATCH (a:Attendee) DETACH DELETE a")
+    return view
+
+
 def ensure_schema(g: Graph) -> None:
     for label, prop in INDEXES:
         try:
@@ -95,4 +115,5 @@ if __name__ == "__main__":
     graph = connect()
     ensure_schema(graph)
     count = load_talks(graph, read_snapshot())
-    print(f"loaded {count} talks into graph '{settings.graph_name}'")
+    publish_public_view(graph)
+    print(f"loaded {count} talks into graph '{settings.graph_name}' (public view refreshed)")

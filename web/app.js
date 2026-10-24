@@ -226,8 +226,10 @@ async function init() {
     addMessage("agent card", `<p>Forgotten. You have a fresh code: <strong>${escapeHtml(attendee)}</strong>.</p>`);
   });
   document.getElementById("switch-code").addEventListener("click", async () => {
-    const code = (prompt("Enter your Throughline code") || "").trim().toUpperCase();
-    if (!code) return;
+    // Accept the code with or without dashes or spaces: "k7qf m2xa 9plr" -> "K7QF-M2XA-9PLR".
+    const raw = (prompt("Enter your Throughline code") || "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+    if (!raw) return;
+    const code = raw.length === 12 ? raw.match(/.{4}/g).join("-") : raw;
     const previous = attendee;
     try {
       attendee = code;

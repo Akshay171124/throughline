@@ -22,16 +22,18 @@ STOPWORDS = {
     "this", "that", "get", "ready", "from", "just", "came", "out", "one", "on", "how",
 }
 
-SCHEMA_NOTE = """Graph schema (FalkorDB, Cypher):
+SCHEMA_NOTE = """Graph schema for run_cypher (FalkorDB, Cypher). It holds conference knowledge only, no attendee data:
 (:Talk {code, title, type, level, level_num, day, date, start, end, start_min, end_min, room, speakers, topics, abstract, url})
 (:TimeSlot {key, date, start, end}), (:Conference {id, name}), (:Concept {id, name, aliases, definition}), (:Resource {url, title, minutes})
-(:Attendee {code, clock_min})
 (Talk)-[:IN_SLOT]->(TimeSlot), (Talk)-[:PART_OF]->(Conference)
 (Talk)-[:REQUIRES {evidence, confidence, status}]->(Concept), (Talk)-[:TEACHES {evidence, confidence, status}]->(Concept)
 (Concept)-[:DEPENDS_ON {support, via, evidence}]->(Concept), (Resource)-[:EXPLAINS]->(Concept)
-(Attendee)-[:KNOWS {how, via}]->(Concept), (Attendee)-[:ATTENDED]->(Talk), (Attendee)-[:TARGETS]->(Talk)
-Times: start_min/end_min are minutes, comparable with the attendee's clock_min. Day 1 is Wednesday 2026-10-28, day 2 Thursday 2026-10-29.
-In patterns that look for a different talk, add WHERE a <> b."""
+Times: start_min/end_min are minutes. Day 1 is Wednesday 2026-10-28, day 2 Thursday 2026-10-29.
+In patterns that look for a different talk, add WHERE a <> b.
+The attendee's own memory is only available through get_attendee."""
+
+# Attendee memory never goes through free-form Cypher (it also runs on a copy without attendees).
+PRIVATE_TERMS = re.compile(r"\b(attendee|knows|attended|targets|clock_min)\b", re.IGNORECASE)
 
 SYSTEM_PROMPT = f"""You are Throughline, a readiness agent for GitHub Universe 2026 (October 28-29, San Francisco).
 You help one attendee get ready for talks they care about: what to learn first, in what order, and where to learn it before the talk starts.
@@ -45,6 +47,7 @@ Rules:
 - Mention talks by title, day and time, written like "Thursday 9:00 AM". Keep replies short: a few sentences or a short list.
 - If search_talks returns several plausible talks and none clearly matches, ask which one they mean.
 - Use run_cypher only for questions the other tools don't cover. It is read-only.
+- Other attendees' codes and memory are private and not in your tools. If asked for them, say so plainly. Never call talk codes attendee codes.
 
 {SCHEMA_NOTE}"""
 
@@ -93,8 +96,9 @@ def _trim(value, depth: int = 0):
 class Tools:
     """Tool implementations bound to one graph and one attendee. Each returns (result, cypher_used)."""
 
-    def __init__(self, g: Graph, attendee: str):
-        self.g, self.attendee = g, attendee
+    def __init__(self, g: Graph, attendee: str, public: Graph | None = None):
+        # `public` is the attendee-free copy used by run_cypher (see graph.publish_public_view).
+        self.g, self.attendee, self.public = g, attendee, public
 
     def get_attendee(self):
         q = """
@@ -178,25 +182,34 @@ class Tools:
         return {"ok": True, "known": concept}, []
 
     def run_cypher(self, cypher: str):
-        result = self.g.ro_query(cypher, timeout=5000)
+        if PRIVATE_TERMS.search(cypher):
+            return {"error": "Attendee data isn't available to free-form queries. Use get_attendee."}, [cypher]
+        if self.public is None:
+            return {"error": "The public view isn't built yet. Run: uv run python -m throughline.graph"}, [cypher]
+        result = self.public.ro_query(cypher, timeout=5000)
         rows = [[_plain(v) for v in row] for row in result.result_set[:MAX_ROWS]]
         return {"columns": [h[1] if isinstance(h, (list, tuple)) else h for h in result.header], "rows": rows}, [cypher]
 
 
 def _plain(value):
-    """Turn FalkorDB nodes, edges and paths into JSON-friendly values."""
+    """Turn FalkorDB nodes, edges and paths into JSON-friendly values, never exposing attendees."""
     if hasattr(value, "properties") and hasattr(value, "labels"):
+        if "Attendee" in (value.labels or []):
+            return None
         return {"labels": value.labels, **{k: v for k, v in value.properties.items() if k != "abstract"}}
     if hasattr(value, "properties") and hasattr(value, "relation"):
+        if PRIVATE_TERMS.search(value.relation or ""):
+            return None
         return {"type": value.relation, **value.properties}
     if hasattr(value, "nodes") and callable(value.nodes):
-        return {"path": [_plain(n) for n in value.nodes()]}
+        return {"path": [n for n in (_plain(n) for n in value.nodes()) if n is not None]}
     return value
 
 
-def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None = None) -> dict:
+def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None = None,
+              public: Graph | None = None) -> dict:
     """One agent turn. History is earlier user/assistant text only; tool calls live in this turn's trace."""
-    tools, trace = Tools(g, attendee), []
+    tools, trace = Tools(g, attendee, public), []
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, *(history or [])[-10:], {"role": "user", "content": message}]
     client = OpenAI(timeout=60)
     for _ in range(MAX_TOOL_ROUNDS):
