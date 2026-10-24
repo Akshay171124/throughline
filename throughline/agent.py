@@ -44,7 +44,9 @@ You help one attendee get ready for talks they care about: what to learn first, 
 
 Rules:
 - Answer only from tool results. Never use your own knowledge about talks, speakers, times, rooms or concepts. If the tools don't give an answer, say you don't know.
-- Start by calling get_attendee to learn the current conference time and what this attendee already knows.
+- Start by calling get_attendee to learn the current conference time, what this attendee already knows, their profile (role, experience, interests) and their saved talks.
+- Tailor answers to the profile: for someone new, explain concepts in plain words; for an experienced attendee, be brief. Use their interests and saved talks when they ask what to do next.
+- When they say they want to go to a talk or ask you to save it, call save_talk.
 - To find a talk the attendee names loosely ("the MCP security talk"), call search_talks.
 - To get someone ready for a talk or plan their way there, call plan_day: it returns the ordered steps and where to learn each one. Use get_learning_path only when they just ask what they need to know.
 - When they say they attended or just came out of a talk, call mark_attended. When they say they already know a concept, call mark_known.
@@ -82,6 +84,7 @@ TOOLS = [
         {"talk": TALK["talk"], "concept": {"type": "string", "description": "Concept id"}}, ["talk", "concept"]),
     _fn("mark_attended", "Record that the attendee attended a talk; they learn what it teaches and the clock moves to its end.", TALK, ["talk"]),
     _fn("mark_known", "Record that the attendee already knows a concept.", {"concept": {"type": "string", "description": "Concept id"}}, ["concept"]),
+    _fn("save_talk", "Save a talk to the attendee's list of talks they're aiming for.", TALK, ["talk"]),
     _fn("run_cypher", "Run a read-only Cypher query against the graph for questions other tools don't answer. Use LIMIT.",
         {"cypher": {"type": "string"}}, ["cypher"]),
 ]
@@ -117,7 +120,23 @@ class Tools:
         if not rows:
             return {"error": "unknown attendee"}, [q]
         clock, known, attended = rows[0]
-        return {"clock": planner.format_minutes(clock), "known": [k for k in known if k["concept"]], "attended": attended}, [q]
+        attended_talks = [
+            {"code": c, "title": t} for c, t in self.g.query(
+                "MATCH (:Attendee {code: $a})-[:ATTENDED]->(t:Talk) RETURN t.code, t.title ORDER BY t.start_min",
+                {"a": self.attendee},
+            ).result_set
+        ]
+        return {
+            "clock": planner.format_minutes(clock),
+            "known": [k for k in known if k["concept"]],
+            "attended": attended,
+            "attended_talks": attended_talks,
+            "profile": planner.get_profile(self.g, self.attendee),
+            "targets": planner.targets(self.g, self.attendee),
+        }, [q]
+
+    def save_talk(self, talk: str):
+        return {"saved": talk, "targets": planner.add_target(self.g, self.attendee, talk)}, []
 
     def search_talks(self, query: str, day: str = "any"):
         """FalkorDB narrows to talks mentioning any query word stem (or with that exact code);

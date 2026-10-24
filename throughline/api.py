@@ -125,6 +125,59 @@ def known(code: str, body: ConceptRef):
     return {"ok": True}
 
 
+@app.delete("/api/attendees/{code}/known/{concept}")
+def unknown(code: str, concept: str):
+    _require_attendee(code)
+    planner.forget_known(graph(), code, concept)
+    return {"ok": True}
+
+
+class Profile(BaseModel):
+    role: str = ""
+    experience: str = ""
+    interests: list[str] = []
+
+
+@app.put("/api/attendees/{code}/profile")
+def put_profile(code: str, body: Profile):
+    _require_attendee(code)
+    try:
+        return {"profile": planner.set_profile(graph(), code, body.role, body.experience, body.interests)}
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@app.post("/api/attendees/{code}/targets")
+def add_target(code: str, body: TalkRef):
+    _require_attendee(code)
+    return {"targets": planner.add_target(graph(), code, body.talk)}
+
+
+@app.delete("/api/attendees/{code}/targets/{talk}")
+def remove_target(code: str, talk: str):
+    _require_attendee(code)
+    return {"targets": planner.remove_target(graph(), code, talk)}
+
+
+@app.get("/api/attendees/{code}/chat")
+def get_chat(code: str):
+    _require_attendee(code)
+    return {"messages": planner.chat_history(graph(), code)}
+
+
+@app.delete("/api/attendees/{code}/chat")
+def delete_chat(code: str):
+    _require_attendee(code)
+    planner.clear_chat(graph(), code)
+    return {"ok": True}
+
+
+@app.get("/api/concepts")
+def list_concepts():
+    rows = graph().query("MATCH (c:Concept) RETURN c.id, c.name, c.definition ORDER BY toLower(c.name)").result_set
+    return [{"id": i, "name": n, "definition": d} for i, n, d in rows]
+
+
 @app.get("/api/path/{talk}")
 def path(talk: str, attendee: str | None = None):
     return planner.learning_path(graph(), talk, attendee)
@@ -152,13 +205,23 @@ def talk_graph(talk: str, attendee: str | None = None):
 class AgentTurn(BaseModel):
     attendee: str
     message: str
-    history: list[dict] = []
+    history: list[dict] = []  # ignored: the server keeps the conversation
 
 
 @app.post("/api/agent")
 def agent(body: AgentTurn):
     _require_attendee(body.attendee)
-    return run_agent(graph(), body.attendee, body.message, body.history, public=public_graph())
+    g = graph()
+    # The stored conversation, not what the browser sends, so it survives a refresh and can't be forged.
+    history = [{"role": m["role"], "content": m["content"]} for m in planner.chat_history(g, body.attendee)
+               if m.get("role") in ("user", "assistant") and m.get("content")]
+    turn = run_agent(g, body.attendee, body.message[:2000], history, public=public_graph())
+    view = turn.get("view") or {}
+    planner.append_chat(g, body.attendee, [
+        {"role": "user", "content": body.message[:2000]},
+        {"role": "assistant", "content": turn.get("reply") or "", **({"talk": view["talk"]} if view.get("talk") else {})},
+    ])
+    return turn
 
 
 app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")

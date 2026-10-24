@@ -3,6 +3,7 @@
 Each function returns the Cypher it ran under "queries", so the trace panel can show it.
 """
 
+import json
 import secrets
 from datetime import datetime, timezone
 
@@ -108,6 +109,92 @@ def mark_attended(g: Graph, attendee: str, talk: str) -> list[str]:
         params,
     ).result_set
     return [r[0] for r in rows]
+
+
+def forget_known(g: Graph, attendee: str, concept: str) -> None:
+    g.query(
+        "MATCH (:Attendee {code: $attendee})-[k:KNOWS]->(:Concept {id: $concept}) DELETE k",
+        {"attendee": attendee, "concept": concept},
+    )
+
+
+# --- profile, saved talks and chat memory (all on the Attendee node, so "Forget me" removes them) ---
+
+EXPERIENCE_LEVELS = ("", "new", "some", "experienced")
+CHAT_LIMIT = 50
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def set_profile(g: Graph, attendee: str, role: str = "", experience: str = "", interests: list[str] | None = None) -> dict:
+    if experience not in EXPERIENCE_LEVELS:
+        raise ValueError(f"experience must be one of {EXPERIENCE_LEVELS[1:]}")
+    clean = [i.strip()[:40] for i in (interests or []) if i and i.strip()][:10]
+    g.query(
+        """
+        MATCH (a:Attendee {code: $a})
+        SET a.role = $role, a.experience = $experience, a.interests = $interests, a.profile_updated_at = $at
+        """,
+        {"a": attendee, "role": (role or "").strip()[:60], "experience": experience, "interests": clean, "at": _now()},
+    )
+    return get_profile(g, attendee)
+
+
+def get_profile(g: Graph, attendee: str) -> dict:
+    rows = g.query(
+        "MATCH (a:Attendee {code: $a}) RETURN a.role, a.experience, a.interests, a.profile_updated_at", {"a": attendee}
+    ).result_set
+    if not rows or rows[0][3] is None:
+        return {}
+    role, experience, interests, updated_at = rows[0]
+    return {"role": role or "", "experience": experience or "", "interests": interests or [], "updated_at": updated_at}
+
+
+TARGET_FIELDS = ["code", "title", "day", "start", "end", "room"]
+
+
+def add_target(g: Graph, attendee: str, talk: str) -> list[dict]:
+    g.query(
+        "MATCH (a:Attendee {code: $a}), (t:Talk {code: $t}) MERGE (a)-[r:TARGETS]->(t) SET r.at = $at",
+        {"a": attendee, "t": talk, "at": _now()},
+    )
+    return targets(g, attendee)
+
+
+def remove_target(g: Graph, attendee: str, talk: str) -> list[dict]:
+    g.query("MATCH (:Attendee {code: $a})-[r:TARGETS]->(:Talk {code: $t}) DELETE r", {"a": attendee, "t": talk})
+    return targets(g, attendee)
+
+
+def targets(g: Graph, attendee: str) -> list[dict]:
+    rows = g.query(
+        "MATCH (:Attendee {code: $a})-[:TARGETS]->(t:Talk) "
+        "RETURN t.code, t.title, t.day, t.start, t.end, t.room ORDER BY t.start_min",
+        {"a": attendee},
+    ).result_set
+    return [dict(zip(TARGET_FIELDS, r)) for r in rows]
+
+
+def chat_history(g: Graph, attendee: str) -> list[dict]:
+    rows = g.query("MATCH (a:Attendee {code: $a}) RETURN a.chat", {"a": attendee}).result_set
+    if not rows or not rows[0][0]:
+        return []
+    try:
+        return json.loads(rows[0][0])
+    except ValueError:
+        return []
+
+
+def append_chat(g: Graph, attendee: str, messages: list[dict]) -> None:
+    stamped = [{**m, "at": m.get("at") or _now()} for m in messages]
+    history = (chat_history(g, attendee) + stamped)[-CHAT_LIMIT:]
+    g.query("MATCH (a:Attendee {code: $a}) SET a.chat = $chat", {"a": attendee, "chat": json.dumps(history)})
+
+
+def clear_chat(g: Graph, attendee: str) -> None:
+    g.query("MATCH (a:Attendee {code: $a}) SET a.chat = NULL", {"a": attendee})
 
 
 def forget_attendee(g: Graph, attendee: str) -> None:
