@@ -959,7 +959,14 @@ function conceptName(id) {
   const n = view.graph && view.graph.nodes.find((x) => x.id === `concept:${id}`);
   if (n) return n.label;
   const k = view.known.find((x) => x.concept === id);
-  return k ? k.name : id;
+  if (k && k.name) return k.name;
+  // Basics skipped through the profile aren't drawn on the graph, so use the concept list.
+  const c = me.concepts && me.concepts.find((x) => x.id === id);
+  if (c) return c.name;
+  loadConceptNames().then(() => { if (me.concepts && view.plan) renderHead(true); });
+  // Never show a raw id: "git_and_pull_request_basics" -> "Git and pull request basics".
+  const words = String(id).replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 function renderHead(sameTalk) {
