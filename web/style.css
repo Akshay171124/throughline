@@ -273,3 +273,59 @@ pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospac
   .panel { max-height: 80vh; }
   .top { flex-wrap: wrap; }
 }
+
+/* profile entry in the header */
+.profile-entry { max-width: 260px; }
+.profile-btn { font-size: 14px; font-weight: 600; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* my talks, above the schedule */
+.mytalks { border-bottom: 1px solid var(--line); max-height: 34%; overflow-y: auto; flex: 0 0 auto; }
+.mytalks .day { padding-bottom: 4px; }
+.count { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); text-align: center; font-weight: 700; }
+.mytalk-list { list-style: none; margin: 0; padding: 0 8px 8px; }
+.mytalk { display: grid; grid-template-columns: 96px 1fr auto; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--ink); text-align: left; font-size: 13px; }
+.mytalk:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.mytalk.current { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.mytalk-when { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mytalk-title { font-weight: 550; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mytalk .pill { white-space: nowrap; }
+.muted-pill { background: var(--code-bg); color: var(--muted); }
+.badge.saved { background: var(--warn-soft); color: var(--warn); }
+.talk.saved .when { color: var(--warn); font-weight: 600; }
+
+/* save toggle */
+.head-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.save-btn { border: 1px solid var(--accent); background: none; color: var(--accent); border-radius: 999px; padding: 1px 12px; font-size: 13px; font-weight: 600; }
+.save-btn.saved { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.dialog-actions .save-btn { border-radius: 8px; padding: 9px 14px; font-size: 15px; }
+
+/* chat bar */
+.chat-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px 6px 16px; border-bottom: 1px solid var(--line); }
+.small-btn { padding: 6px 12px; font-size: 13px; }
+.profile-prompt { border-color: var(--accent); }
+.profile-prompt .dialog-actions { margin-top: 8px; align-items: center; }
+
+/* profile dialog */
+.profile { width: min(640px, 94vw); }
+.profile-form .dialog-actions { align-items: center; margin-top: 4px; }
+.profile-form { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.field { display: flex; flex-direction: column; gap: 6px; border: 0; padding: 0; margin: 0; }
+.field > span, .field > legend { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0; }
+.field input:not([type]), .field input[list], #concept-search { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; }
+.segs { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: inline-block; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; cursor: pointer; }
+.seg input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags:empty { display: none; }
+.tag { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; }
+.tag button { border: 0; background: none; color: inherit; padding: 0 4px; font-size: 15px; line-height: 1; }
+.profile .mytalk-list { padding: 0; }
+#concept-search { width: 100%; margin: 4px 0 8px; }
+.concept-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.concept-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+.concept-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.concept-row input { accent-color: var(--ok); width: 16px; height: 16px; flex: 0 0 auto; }
+.concept-row input:checked ~ .concept-name { color: var(--ok); font-weight: 600; }
+.concept-row .muted { margin-left: auto; }

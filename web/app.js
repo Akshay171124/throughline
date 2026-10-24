@@ -6,7 +6,19 @@ const AUTO_ALTS_MAX_NODES = 12; // show faded alternatives by default only on sm
 
 let allTalks = [];
 let attendee = null;
-let history = []; // earlier user/assistant text for the agent
+const SKIP_KEY = "throughline.profile-skipped";
+
+// The attendee's own record. `null` fields mean the server doesn't offer that feature (yet).
+const me = {
+  profile: null,        // {role, experience, interests, updated_at} or {}
+  targets: null,        // saved talks [{code, title, day, start, end, room}]
+  readiness: new Map(), // talk code -> plan result (for "Ready" / "N steps to go")
+  readinessTurn: 0,
+  chatApi: false,
+  concepts: null,       // GET /api/concepts, loaded when the profile opens
+};
+const EXPERIENCE = { new: "New to this", some: "Some experience", experienced: "Experienced" };
+let introHtml = "";   // the greeting in the chat, restored when the chat is cleared
 
 // What the right-hand panel is showing.
 const view = {
@@ -109,6 +121,11 @@ async function refreshAttendee() {
   }
   view.known = state.known || [];
   view.attended = state.attended || [];
+  me.profile = state.profile && typeof state.profile === "object" ? state.profile : null;
+  me.targets = Array.isArray(state.targets) ? state.targets : null;
+  renderProfileSummary();
+  renderMyTalks();
+  refreshReadiness();
   return state;
 }
 
@@ -131,6 +148,376 @@ async function refreshAll() {
   await refreshAttendee();
   if (view.talk) await loadTalkView(view.talk);
   else renderTalks(currentTalkList());
+}
+
+// ---- profile, saved talks and chat memory ------------------------------------
+
+function isSaved(code) {
+  return Boolean(me.targets && me.targets.some((t) => t.code === code));
+}
+
+function profileIsSet(p) {
+  return Boolean(p && (p.updated_at || p.role || p.experience || (p.interests || []).length));
+}
+
+function profileSummary(p) {
+  if (!p) return "";
+  const parts = [p.role, EXPERIENCE[p.experience]].filter(Boolean);
+  if (!parts.length && (p.interests || []).length) parts.push(p.interests.slice(0, 2).join(", "));
+  return parts.join(" · ");
+}
+
+function renderProfileSummary() {
+  const entry = document.getElementById("profile-entry");
+  entry.hidden = me.profile === null && me.targets === null;
+  document.getElementById("profile-btn").textContent = profileSummary(me.profile) || (profileIsSet(me.profile) ? "Edit profile" : "Set up profile");
+}
+
+// Saved talks in schedule order.
+function sortedTargets() {
+  const order = (t) => { const full = findTalk(t.code); return full ? Number(full.start_min) || 0 : 0; };
+  return [...(me.targets || [])].sort((a, b) => order(a) - order(b));
+}
+
+function readinessPill(code) {
+  const plan = me.readiness.get(code);
+  if (!plan) return `<span class="pill muted-pill">…</span>`;
+  if (plan.error) return `<span class="pill muted-pill">?</span>`;
+  if (plan.ready || !(plan.plan || []).length) return `<span class="pill ok">✓ Ready</span>`;
+  return `<span class="pill">${plural(plan.plan.length, "step", "steps")} to go</span>`;
+}
+
+function myTalksItems() {
+  return sortedTargets().map((t) => {
+    const full = findTalk(t.code) || t;
+    const current = t.code === view.talk ? " current" : "";
+    return `<li><button class="mytalk${current}" data-mytalk="${escapeHtml(t.code)}" title="Show the path to this talk">
+        <span class="mytalk-when">${escapeHtml(dayShort(full.day))} ${formatTime(full.start)}</span>
+        <span class="mytalk-title">${escapeHtml(shortTitle(full.title || t.title, 60))}</span>
+        ${readinessPill(t.code)}
+      </button></li>`;
+  }).join("");
+}
+
+function renderMyTalks() {
+  const box = document.getElementById("mytalks");
+  if (!me.targets || !me.targets.length) { box.hidden = true; box.innerHTML = ""; }
+  else {
+    box.hidden = false;
+    box.innerHTML = `<h2 class="day">My talks <span class="count">${me.targets.length}</span></h2><ul class="mytalk-list">${myTalksItems()}</ul>`;
+  }
+  const inDialog = document.getElementById("mytalks-dialog");
+  if (inDialog) inDialog.innerHTML = myTalksDialogHtml();
+}
+
+function myTalksDialogHtml() {
+  if (!me.targets || !me.targets.length) {
+    return `<p class="muted">None yet. Use “☆ Save” on a talk to keep it here and see how ready you are.</p>`;
+  }
+  return `<ul class="mytalk-list">${myTalksItems()}</ul>`;
+}
+
+// Fetch the plan for each saved talk to show how close the attendee is.
+async function refreshReadiness() {
+  const targets = me.targets || [];
+  const turn = ++me.readinessTurn;
+  if (!targets.length || !attendee) return;
+  const q = `?attendee=${encodeURIComponent(attendee)}`;
+  await Promise.all(targets.map(async (t) => {
+    let plan;
+    try { plan = await api(`/api/plan/${encodeURIComponent(t.code)}${q}`); } catch { plan = { error: true }; }
+    if (turn !== me.readinessTurn) return;
+    me.readiness.set(t.code, plan);
+  }));
+  if (turn === me.readinessTurn) renderMyTalks();
+}
+
+async function toggleTarget(code) {
+  if (me.targets === null) return;
+  const saved = isSaved(code);
+  const base = `/api/attendees/${encodeURIComponent(attendee)}/targets`;
+  try {
+    const result = saved
+      ? await api(`${base}/${encodeURIComponent(code)}`, { method: "DELETE" })
+      : await api(base, { method: "POST", body: JSON.stringify({ talk: code }) });
+    me.targets = Array.isArray(result.targets) ? result.targets : me.targets;
+  } catch (err) {
+    addMessage("agent card", `<p class="error">Couldn't ${saved ? "unsave" : "save"} that talk: ${escapeHtml(err.message)}</p>`);
+    return;
+  }
+  if (view.talk === code && view.plan) me.readiness.set(code, view.plan);
+  renderMyTalks();
+  renderTalks(currentTalkList());
+  if (view.plan) renderHead(true);
+  refreshReadiness();
+}
+
+function saveButton(code, cls = "save-btn") {
+  if (me.targets === null) return "";
+  const saved = isSaved(code);
+  return `<button class="${cls}${saved ? " saved" : ""}" data-save="${escapeHtml(code)}" aria-pressed="${saved}"
+    title="${saved ? "Remove from My talks" : "Keep this talk in My talks"}">${saved ? "★ Saved" : "☆ Save"}</button>`;
+}
+
+// The talk on screen is remembered per attendee code, so a refresh reopens it.
+function rememberTalk(code) {
+  storageSet(TALK_KEY, code ? JSON.stringify({ attendee, talk: code }) : null);
+}
+
+function rememberedTalk() {
+  const raw = storageGet(TALK_KEY);
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw);
+    return v && v.attendee === attendee && typeof v.talk === "string" ? v.talk : null;
+  } catch {
+    return raw; // the older format: a bare talk code
+  }
+}
+
+function resetChat() {
+  document.getElementById("messages").innerHTML = introHtml;
+}
+
+// Render the stored conversation; returns the talk of the last assistant reply, if any.
+async function loadChat() {
+  resetChat();
+  let messages;
+  try {
+    messages = (await api(`/api/attendees/${encodeURIComponent(attendee)}/chat`)).messages;
+    me.chatApi = Array.isArray(messages);
+  } catch {
+    me.chatApi = false;
+  }
+  document.getElementById("chat-bar").hidden = !me.chatApi;
+  if (!me.chatApi) return null;
+  let lastTalk = null;
+  for (const m of messages) {
+    if (m.role === "user") addMessage("user", `<p>${escapeHtml(m.content)}</p>`);
+    else if (m.role === "assistant") {
+      addMessage("agent", `<p>${formatReply(m.content || "")}</p>`);
+      lastTalk = m.talk || null;
+    }
+  }
+  return lastTalk;
+}
+
+async function clearChat() {
+  if (!confirm("Clear this conversation? Your profile, saved talks and what you know stay.")) return;
+  try {
+    await api(`/api/attendees/${encodeURIComponent(attendee)}/chat`, { method: "DELETE" });
+    resetChat();
+  } catch (err) {
+    addMessage("agent card", `<p class="error">Couldn't clear the chat: ${escapeHtml(err.message)}</p>`);
+  }
+}
+
+function skippedProfile() {
+  return storageGet(SKIP_KEY) === attendee;
+}
+
+function maybePromptProfile() {
+  document.querySelectorAll(".profile-prompt").forEach((el) => el.remove());
+  if (me.profile === null || profileIsSet(me.profile) || skippedProfile()) return;
+  addMessage("agent card profile-prompt", `<p><strong>New here?</strong> Tell me your role and what you already know, and I'll skip the basics you don't need.</p>
+    <div class="dialog-actions"><button class="primary small-btn" data-prompt="open">Set up my profile</button>
+    <button class="link" data-prompt="skip">Not now</button></div>`);
+}
+
+// Back to the empty right-hand panel (after "Forget me").
+function resetTalkView() {
+  view.version++;
+  view.talk = null; view.plan = null; view.graph = null; view.showAlts = null; view.wasReady = null;
+  destroyGraph();
+  document.getElementById("graph").hidden = true;
+  document.getElementById("path").innerHTML = "";
+  document.getElementById("dayplan").innerHTML = "";
+  document.getElementById("legend").hidden = true;
+  document.getElementById("toggle-alts").hidden = true;
+  document.getElementById("graph-wrap").classList.remove("loading");
+  document.getElementById("trace").innerHTML = `<p class="muted pad">Nothing yet. Ask the agent, or use “Plan without AI” on a talk.</p>`;
+  document.getElementById("how-count").textContent = "";
+  rememberTalk(null);
+  renderHead(false);
+}
+
+// ---- the profile dialog --------------------------------------------------------
+
+const profileDraft = { interests: [], knownDirty: false };
+
+async function openProfile() {
+  const dlg = document.getElementById("profile");
+  const p = me.profile || {};
+  profileDraft.interests = [...(p.interests || [])];
+  profileDraft.knownDirty = false;
+  const exp = ["", "new", "some", "experienced"].map((v) => `
+    <label class="seg"><input type="radio" name="experience" value="${v}" ${(p.experience || "") === v ? "checked" : ""}>
+      <span>${v ? escapeHtml(EXPERIENCE[v]) : "Not saying"}</span></label>`).join("");
+  document.getElementById("profile-body").innerHTML = `
+    <span class="label">Your profile · ${escapeHtml(attendee)}</span>
+    <h2>About you</h2>
+    ${me.profile === null ? "" : `
+    <form id="profile-form" class="profile-form">
+      <label class="field"><span>Role</span>
+        <input id="pf-role" list="role-options" maxlength="60" placeholder="e.g. Developer" value="${escapeHtml(p.role || "")}"></label>
+      <fieldset class="field"><legend>Experience</legend><div class="segs">${exp}</div></fieldset>
+      <div class="field"><span>Interests</span>
+        <div class="tags" id="pf-tags"></div>
+        <input id="pf-interest" maxlength="40" placeholder="Type a topic, press Enter (e.g. agents, security)"></div>
+      <div class="dialog-actions"><button class="primary" type="submit">Save profile</button><span id="pf-status" class="muted" role="status"></span></div>
+    </form>`}
+    ${me.targets === null ? "" : `<h3>My talks</h3><div id="mytalks-dialog">${myTalksDialogHtml()}</div>`}
+    <div id="known-section"><h3>Concepts I already know</h3><p class="muted">Loading concepts…</p></div>`;
+  renderTags();
+  if (!dlg.open) {
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+  }
+  renderKnownSection();
+}
+
+function closeProfile() {
+  const dlg = document.getElementById("profile");
+  if (dlg.open) { if (typeof dlg.close === "function") dlg.close(); else { dlg.removeAttribute("open"); onProfileClosed(); } }
+}
+
+function onProfileClosed() {
+  if (profileDraft.knownDirty) {
+    profileDraft.knownDirty = false;
+    refreshAll().catch(() => {});
+  }
+}
+
+function renderTags() {
+  const box = document.getElementById("pf-tags");
+  if (!box) return;
+  box.innerHTML = profileDraft.interests.map((t, i) =>
+    `<span class="tag">${escapeHtml(t)}<button type="button" data-untag="${i}" aria-label="Remove ${escapeHtml(t)}">×</button></span>`).join("");
+}
+
+function addInterest(raw) {
+  for (const part of String(raw).split(",")) {
+    const tag = part.trim().slice(0, 40);
+    if (tag && !profileDraft.interests.some((x) => x.toLowerCase() === tag.toLowerCase()) && profileDraft.interests.length < 12) {
+      profileDraft.interests.push(tag);
+    }
+  }
+  renderTags();
+}
+
+async function renderKnownSection() {
+  const box = document.getElementById("known-section");
+  if (!me.concepts) {
+    try {
+      const list = await api("/api/concepts");
+      me.concepts = Array.isArray(list) ? [...list].sort((a, b) => String(a.name).localeCompare(String(b.name))) : null;
+    } catch { me.concepts = null; }
+  }
+  if (!box || !box.isConnected) return;
+  if (!me.concepts) { box.hidden = true; return; }
+  const known = new Set(view.known.map((k) => k.concept));
+  const how = new Map(view.known.map((k) => [k.concept, k.how]));
+  box.hidden = false;
+  box.innerHTML = `<h3>Concepts I already know <span class="muted" id="known-count">${known.size} of ${me.concepts.length}</span></h3>
+    <p class="muted small">Ticked concepts come off every path. Untick one to learn it again.</p>
+    <input id="concept-search" type="search" placeholder="Search concepts…" autocomplete="off">
+    <div class="concept-list" id="concept-list">${me.concepts.map((c) => `
+      <label class="concept-row" data-name="${escapeHtml(String(c.name).toLowerCase())}" title="${escapeHtml(c.definition || "")}">
+        <input type="checkbox" data-concept="${escapeHtml(c.id)}" ${known.has(c.id) ? "checked" : ""}>
+        <span class="concept-name">${escapeHtml(c.name)}</span>
+        ${how.get(c.id) === "attended" ? `<span class="muted small">from a talk</span>` : ""}
+      </label>`).join("")}</div>`;
+}
+
+async function toggleKnown(box) {
+  const concept = box.dataset.concept;
+  const want = box.checked;
+  const base = `/api/attendees/${encodeURIComponent(attendee)}/known`;
+  box.disabled = true;
+  try {
+    if (want) await api(base, { method: "POST", body: JSON.stringify({ concept }) });
+    else await api(`${base}/${encodeURIComponent(concept)}`, { method: "DELETE" });
+    const c = (me.concepts || []).find((x) => x.id === concept);
+    view.known = want
+      ? [...view.known.filter((k) => k.concept !== concept), { concept, name: c ? c.name : concept, how: "told" }]
+      : view.known.filter((k) => k.concept !== concept);
+    profileDraft.knownDirty = true;
+    const count = document.getElementById("known-count");
+    if (count) count.textContent = `${view.known.length} of ${(me.concepts || []).length}`;
+  } catch (err) {
+    box.checked = !want;
+    alert(`Couldn't save that: ${err.message}`);
+  } finally {
+    box.disabled = false;
+  }
+}
+
+async function saveProfile() {
+  const status = document.getElementById("pf-status");
+  const pending = document.getElementById("pf-interest");
+  if (pending && pending.value.trim()) { addInterest(pending.value); pending.value = ""; }
+  const checked = document.querySelector('#profile-form input[name="experience"]:checked');
+  const body = {
+    role: document.getElementById("pf-role").value.trim(),
+    experience: checked ? checked.value : "",
+    interests: profileDraft.interests,
+  };
+  status.textContent = "Saving…";
+  try {
+    const result = await api(`/api/attendees/${encodeURIComponent(attendee)}/profile`, { method: "PUT", body: JSON.stringify(body) });
+    me.profile = result.profile || { ...body, updated_at: "now" };
+    renderProfileSummary();
+    maybePromptProfile();
+    status.textContent = "Saved ✓";
+  } catch (err) {
+    status.textContent = `Couldn't save: ${err.message}`;
+  }
+}
+
+function wireProfile() {
+  const dlg = document.getElementById("profile");
+  document.getElementById("profile-btn").addEventListener("click", openProfile);
+  dlg.addEventListener("close", onProfileClosed);
+  dlg.addEventListener("click", (e) => {
+    if (e.target === dlg || e.target.closest("[data-close]")) return closeProfile();
+    const untag = e.target.closest("[data-untag]");
+    if (untag) { profileDraft.interests.splice(Number(untag.dataset.untag), 1); renderTags(); return; }
+    const talk = e.target.closest("[data-mytalk]");
+    if (talk) { closeProfile(); loadTalkView(talk.dataset.mytalk, { trace: true }).catch(() => {}); }
+  });
+  dlg.addEventListener("submit", (e) => { e.preventDefault(); saveProfile(); });
+  dlg.addEventListener("keydown", (e) => {
+    if (e.target.id !== "pf-interest") return;
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addInterest(e.target.value);
+      e.target.value = "";
+    } else if (e.key === "Backspace" && !e.target.value && profileDraft.interests.length) {
+      profileDraft.interests.pop();
+      renderTags();
+    }
+  });
+  dlg.addEventListener("input", (e) => {
+    if (e.target.id !== "concept-search") return;
+    const q = e.target.value.trim().toLowerCase();
+    dlg.querySelectorAll(".concept-row").forEach((row) => { row.hidden = Boolean(q) && !row.dataset.name.includes(q); });
+  });
+  dlg.addEventListener("change", (e) => {
+    if (e.target.matches("input[data-concept]")) toggleKnown(e.target);
+  });
+
+  document.getElementById("mytalks").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-mytalk]");
+    if (b) loadTalkView(b.dataset.mytalk, { trace: true }).catch(() => {});
+  });
+  document.getElementById("clear-chat").addEventListener("click", clearChat);
+  document.getElementById("messages").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-prompt]");
+    if (!b) return;
+    if (b.dataset.prompt === "skip") storageSet(SKIP_KEY, attendee);
+    document.querySelectorAll(".profile-prompt").forEach((el) => el.remove());
+    if (b.dataset.prompt === "open") openProfile();
+  });
 }
 
 // ---- schedule --------------------------------------------------------------
@@ -158,6 +545,8 @@ function renderTalks(talks) {
     if (t.code === view.talk) { classes.push("is-target"); badge = `<span class="badge target">Your talk</span>`; }
     else if (inPlan.has(t.code)) { classes.push("in-plan"); badge = `<span class="badge plan">In your plan</span>`; }
     if (attended.has(t.title)) { classes.push("attended"); badge += `<span class="badge done">✓ Attended</span>`; }
+    const saved = isSaved(t.code);
+    if (saved) { classes.push("saved"); badge += `<span class="badge saved">★ Saved</span>`; }
     html += `
       <div class="${classes.join(" ")}" data-code="${escapeHtml(t.code)}" tabindex="0" role="button" aria-label="Talk details">
         <span class="when">${formatTime(t.start)}</span>
@@ -168,6 +557,7 @@ function renderTalks(talks) {
             <button class="chip" data-action="ask">Get me ready</button>
             <button class="chip ghost" data-action="plan" title="Same graph queries, no AI">Plan without AI</button>
             <button class="chip ghost" data-action="attended">I attended this</button>
+            ${me.targets === null ? "" : `<button class="chip ghost" data-action="save">${saved ? "★ Saved" : "☆ Save"}</button>`}
           </span>
         </span>
       </div>`;
@@ -241,11 +631,10 @@ async function ask(message) {
   try {
     const turn = await api("/api/agent", {
       method: "POST",
-      body: JSON.stringify({ attendee, message, history }),
+      body: JSON.stringify({ attendee, message }), // the server keeps the conversation
     });
     pending.classList.remove("pending");
     pending.innerHTML = `<p>${formatReply(turn.reply || "")}</p>`;
-    history.push({ role: "user", content: message }, { role: "assistant", content: turn.reply || "" });
     renderTrace(turn.trace || []);
     await refreshAttendee();
     const target = turn.view && turn.view.talk;
@@ -328,11 +717,13 @@ async function loadTalkView(code, { trace = false } = {}) {
     view.talk = code;
     view.plan = plan;
     view.graph = graph;
-    storageSet(TALK_KEY, code);
+    rememberTalk(code);
+    if (isSaved(code)) me.readiness.set(code, plan);
     renderHead(sameTalk);
     renderGraph(sameTalk);
     renderDayPlan();
     renderTalks(currentTalkList());
+    renderMyTalks();
     if (trace) {
       renderTrace([{ tool: "plan_day (no AI)", args: { talk: code }, cypher: plan.queries || [], result: { steps: plan.plan.length, ready: plan.ready } }]);
     }
@@ -384,7 +775,7 @@ function renderHead(sameTalk) {
       </div>`;
   }
   head.innerHTML = `
-    <span class="label">Your path to</span>
+    <div class="head-top"><span class="label">Your path to</span>${saveButton(plan.talk)}</div>
     <button class="head-title" data-open-talk="1">${escapeHtml(plan.talk_title)}</button>
     <div class="muted">${when}</div>
     ${status}`;
@@ -880,6 +1271,7 @@ async function openTalk(code) {
       <button class="primary" data-act="ready">Get me ready</button>
       <button class="secondary" data-act="plan">Plan without AI</button>
       ${attended ? "" : `<button class="secondary" data-act="attended">I attended this</button>`}
+      ${saveButton(t.code, "secondary save-btn")}
     </div>`;
   document.getElementById("detail-body").innerHTML = html;
 }
@@ -911,10 +1303,13 @@ async function init() {
   document.getElementById("status").textContent = `${health.talks} talks · graph “${health.graph}” on ${health.backend}${
     graphAvailable() ? "" : " · graph drawing unavailable, showing text path"}`;
   allTalks = talks;
+  introHtml = document.getElementById("messages").innerHTML;
   renderTalks(allTalks);
   renderHead(false);
+  wireProfile();
   await startAttendee();
   renderTalks(allTalks);
+  const lastChatTalk = await loadChat();
 
   const talksBox = document.getElementById("talks");
   talksBox.addEventListener("click", (e) => {
@@ -928,6 +1323,7 @@ async function init() {
     if (button.dataset.action === "ask") ask(`Get me ready for "${talk.title}" (${code}).`);
     if (button.dataset.action === "plan") planWithoutAI(code);
     if (button.dataset.action === "attended") attendedTalk(code);
+    if (button.dataset.action === "save") toggleTarget(code);
   });
   talksBox.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.target.closest("button")) return;
@@ -946,6 +1342,8 @@ async function init() {
 
   // Right panel: talk title, timeline rows and the alternatives toggle.
   document.getElementById("ready-head").addEventListener("click", (e) => {
+    const save = e.target.closest("[data-save]");
+    if (save) return toggleTarget(save.dataset.save);
     if (e.target.closest("[data-open-talk]") && view.talk) openTalk(view.talk);
   });
   document.getElementById("dayplan").addEventListener("click", (e) => {
@@ -961,6 +1359,12 @@ async function init() {
   const dlg = document.getElementById("detail");
   dlg.addEventListener("click", (e) => {
     if (e.target === dlg || e.target.closest("[data-close]")) return closeDialog();
+    const save = e.target.closest("button[data-save]");
+    if (save) {
+      const code = save.dataset.save;
+      toggleTarget(code).then(() => { if (dialogCtx && dialogCtx.kind === "talk" && dialogCtx.code === code) openTalk(code); });
+      return;
+    }
     const b = e.target.closest("button[data-act]");
     if (b) onDialogAction(b.dataset.act);
   });
@@ -975,10 +1379,14 @@ async function init() {
     if (!confirm("Delete everything Throughline remembers about you?")) return;
     await api(`/api/attendees/${encodeURIComponent(attendee)}`, { method: "DELETE" });
     storageSet(CODE_KEY, null);
-    history = [];
+    storageSet(TALK_KEY, null);
+    me.readiness.clear();
+    resetTalkView();
     await startAttendee();
+    await loadChat();
     addMessage("agent card", `<p>Forgotten. You have a fresh code: <strong>${escapeHtml(attendee)}</strong>.</p>`);
-    await refreshAll();
+    renderTalks(currentTalkList());
+    maybePromptProfile();
   });
   document.getElementById("switch-code").addEventListener("click", async () => {
     // Accept the code with or without dashes or spaces: "k7qf m2xa 9plr" -> "K7QF-M2XA-9PLR".
@@ -990,9 +1398,13 @@ async function init() {
       attendee = code;
       const state = await refreshAttendee();
       storageSet(CODE_KEY, code);
-      history = [];
+      me.readiness.clear();
+      const lastTalk = await loadChat();
       addMessage("agent card", `<p>Welcome back. You know ${state.known.length} concept(s) and attended ${state.attended.length} talk(s).</p>`);
-      await refreshAll();
+      const talk = rememberedTalk() || lastTalk;
+      if (talk && findTalk(talk)) await loadTalkView(talk, { trace: true });
+      else { resetTalkView(); renderTalks(currentTalkList()); }
+      maybePromptProfile();
     } catch {
       attendee = previous;
       await refreshAttendee();
@@ -1000,10 +1412,11 @@ async function init() {
     }
   });
 
-  // Come back to the talk you were looking at.
-  const saved = storageGet(TALK_KEY);
+  // Come back to the talk you were looking at (or the one the conversation was about).
+  maybePromptProfile();
+  const saved = rememberedTalk() || lastChatTalk;
   if (saved && findTalk(saved)) {
-    loadTalkView(saved, { trace: true }).catch(() => storageSet(TALK_KEY, null));
+    loadTalkView(saved, { trace: true }).catch(() => rememberTalk(null));
   }
 }
 

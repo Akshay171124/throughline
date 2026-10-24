@@ -19,6 +19,10 @@
         <button class="link" id="switch-code" title="Come back with an earlier code">Use another</button>
         <button class="link danger" id="forget" title="Delete everything Throughline remembers about you">Forget me</button>
       </div>
+      <div class="profile-entry" id="profile-entry" hidden>
+        <span class="label">Profile</span>
+        <button class="link profile-btn" id="profile-btn" title="Your role, experience, interests, saved talks and what you already know">Set up profile</button>
+      </div>
       <div class="clock" title="The on-screen conference clock">
         <span class="label">Conference time</span>
         <span id="clock">--</span>
@@ -28,11 +32,16 @@
 
   <main class="layout">
     <section class="panel schedule">
+      <div id="mytalks" class="mytalks" hidden></div>
       <input id="search" type="search" placeholder="Search talks, speakers, topics…" autocomplete="off">
       <div id="talks" class="talks"><p class="muted pad">Loading the schedule…</p></div>
     </section>
 
     <section class="panel chat">
+      <div class="chat-bar" id="chat-bar" hidden>
+        <span class="label">Conversation</span>
+        <button class="link" id="clear-chat" title="Delete this conversation; your profile and saved talks stay">Clear chat</button>
+      </div>
       <div id="messages" class="messages">
         <div class="msg agent">
           <p>Tell me the talk you care about and I'll build your path there: what to learn first, in what order, and where to learn it before it starts.</p>
@@ -78,6 +87,20 @@
     <button class="close" data-close aria-label="Close">×</button>
     <div id="detail-body"></div>
   </dialog>
+
+  <dialog id="profile" class="detail profile" aria-label="Your profile">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div id="profile-body"></div>
+  </dialog>
+
+  <datalist id="role-options">
+    <option value="Developer"></option>
+    <option value="Team lead / manager"></option>
+    <option value="Platform / DevOps"></option>
+    <option value="Security"></option>
+    <option value="Student"></option>
+    <option value="Other"></option>
+  </datalist>
 
   <footer class="status" id="status"></footer>
   <script src="vendor/cytoscape.min.js"></script>
