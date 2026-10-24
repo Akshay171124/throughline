@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from falkordb import Graph
 from pydantic import BaseModel
 
-from . import planner
+from . import flow, planner
 from .agent import Tools, run_agent
 from .config import ROOT, settings
 from .graph import backend, connect, public_name
@@ -198,6 +198,18 @@ def talk_graph(talk: str, attendee: str | None = None):
         return graph_for_talk(graph(), talk, attendee)
     except (ValueError, IndexError):
         raise HTTPException(404, f"No talk with code {talk}")
+
+
+@app.get("/api/flow")
+def conference_flow(attendee: str | None = None):
+    """The conference as a left-to-right flow of 'prepares you for' links, for the landing page."""
+    return flow.flow(graph(), attendee)
+
+
+@app.get("/api/featured")
+def featured_talks(attendee: str | None = None):
+    """Don't-miss talks: keynotes, then the talks that prepare you for the most others."""
+    return flow.featured(graph(), attendee)
 
 
 # --- the agent ---
