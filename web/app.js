@@ -264,6 +264,26 @@ function rememberTalk(code) {
   storageSet(TALK_KEY, code ? JSON.stringify({ attendee, talk: code }) : null);
 }
 
+// The talk on screen is also in the address bar (?code=TALKCODE), so a refresh or a shared link
+// opens the same talk. The landing page links here the same way.
+function linkedTalk() {
+  try {
+    const code = (new URLSearchParams(window.location.search).get("code") || "").trim().toUpperCase();
+    return code && findTalk(code) ? code : null; // unknown codes are ignored
+  } catch {
+    return null;
+  }
+}
+
+function syncUrl(code) {
+  try {
+    const url = new URL(window.location.href);
+    if (code) url.searchParams.set("code", code);
+    else url.searchParams.delete("code");
+    if (url.href !== window.location.href) history.replaceState(history.state, "", url);
+  } catch { /* old browsers: the address bar just doesn't follow */ }
+}
+
 function rememberedTalk() {
   const raw = storageGet(TALK_KEY);
   if (!raw) return null;
@@ -338,6 +358,7 @@ function resetTalkView() {
   document.getElementById("trace").innerHTML = `<p class="muted pad">Nothing yet. Ask the agent, or use “Plan without AI” on a talk.</p>`;
   document.getElementById("how-count").textContent = "";
   rememberTalk(null);
+  syncUrl(null);
   renderHead(false);
 }
 
@@ -718,6 +739,7 @@ async function loadTalkView(code, { trace = false } = {}) {
     view.plan = plan;
     view.graph = graph;
     rememberTalk(code);
+    syncUrl(code);
     if (isSaved(code)) me.readiness.set(code, plan);
     renderHead(sameTalk);
     renderGraph(sameTalk);
@@ -735,7 +757,16 @@ async function loadTalkView(code, { trace = false } = {}) {
 }
 
 function knownHow(how) {
-  return how === "attended" ? "learned at a talk you attended" : "you told me you know it";
+  if (how === "attended") return "learned at a talk you attended";
+  if (how === "profile") return "from your profile (you have experience)";
+  return "you told me you know it";
+}
+
+// Basics the server took off the path because the profile says "some" or "experienced".
+function profileSkippedNote(plan) {
+  const n = (plan.already_known || []).filter((k) => k.how === "profile").length;
+  if (!n) return "";
+  return `<p class="profile-skip">${plural(n, "basic", "basics")} skipped from your profile · <button class="link" data-open-profile="1" title="Change your experience level">change</button></p>`;
 }
 
 function conceptName(id) {
@@ -759,7 +790,7 @@ function renderHead(sameTalk) {
   const pct = total ? Math.round((learned / total) * 100) : 100;
   let status;
   if (plan.ready) {
-    const known = (plan.already_known || []).map((k) => `<li><span class="tick-mark">✓</span> ${escapeHtml(conceptName(k.concept))} <span class="muted">(${knownHow(k.how)})</span></li>`).join("");
+    const known = (plan.already_known || []).map((k) => `<li><span class="tick-mark">✓</span> ${escapeHtml(conceptName(k.concept))} <span class="muted">· ${knownHow(k.how)}</span></li>`).join("");
     const celebrate = sameTalk && view.wasReady === false ? " celebrate" : "";
     status = `<div class="ready-banner${celebrate}">
         <span class="big-check" aria-hidden="true">✓</span>
@@ -778,7 +809,8 @@ function renderHead(sameTalk) {
     <div class="head-top"><span class="label">Your path to</span>${saveButton(plan.talk)}</div>
     <button class="head-title" data-open-talk="1">${escapeHtml(plan.talk_title)}</button>
     <div class="muted">${when}</div>
-    ${status}`;
+    ${status}
+    ${profileSkippedNote(plan)}`;
 }
 
 // ---- the graph ---------------------------------------------------------------
@@ -1344,6 +1376,7 @@ async function init() {
   document.getElementById("ready-head").addEventListener("click", (e) => {
     const save = e.target.closest("[data-save]");
     if (save) return toggleTarget(save.dataset.save);
+    if (e.target.closest("[data-open-profile]")) return openProfile();
     if (e.target.closest("[data-open-talk]") && view.talk) openTalk(view.talk);
   });
   document.getElementById("dayplan").addEventListener("click", (e) => {
@@ -1412,11 +1445,17 @@ async function init() {
     }
   });
 
-  // Come back to the talk you were looking at (or the one the conversation was about).
+  // A ?code= link wins (the conference map links here that way), then the talk you were
+  // looking at, then the one the conversation was about. All model-free: no agent call.
   maybePromptProfile();
+  const linked = linkedTalk();
   const saved = rememberedTalk() || lastChatTalk;
-  if (saved && findTalk(saved)) {
-    loadTalkView(saved, { trace: true }).catch(() => rememberTalk(null));
+  if (linked && linked !== saved) {
+    planWithoutAI(linked);
+  } else if (linked || (saved && findTalk(saved))) {
+    loadTalkView(linked || saved, { trace: true }).catch(() => { rememberTalk(null); syncUrl(null); });
+  } else {
+    syncUrl(null); // drop an unknown ?code=
   }
 }
 
