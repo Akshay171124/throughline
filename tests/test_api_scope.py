@@ -89,6 +89,27 @@ def test_map_stays_open_while_it_rebuilds(world):
     assert r.status_code == 409 and r.json()["detail"] == "This conference's map isn't built yet"
 
 
+def test_rebuild_keeps_reads_and_refuses_attendee_writes(world):
+    code = world.client.post(f"/api/attendees?conf={world.qcon}").json()["code"]
+    registry.set_status(world.reg, world.qcon, status="building", step="Reading the talks")  # a retry: graph B stays
+    c = world.client
+    assert c.get(f"/api/talks?conf={world.qcon}").status_code == 200
+    r = c.post(f"/api/attendees/{code}/attended?conf={world.qcon}", json={"talk": "QCON1"})
+    assert r.status_code == 409 and r.json()["detail"] == api.REBUILDING
+    for method, path, body in (
+        ("post", "/api/attendees", None), ("post", f"/api/attendees/{code}/known", {"concept": "qcon1"}),
+        ("delete", f"/api/attendees/{code}/known/qcon1", None), ("post", f"/api/attendees/{code}/targets", {"talk": "QCON1"}),
+        ("delete", f"/api/attendees/{code}/targets/QCON1", None), ("put", f"/api/attendees/{code}/profile", {"role": "Dev"}),
+        ("delete", f"/api/attendees/{code}/chat", None), ("post", "/api/agent", {"attendee": code, "message": "hi"}),
+    ):
+        kwargs = {"json": body} if body is not None else {}
+        assert getattr(c, method)(f"{path}?conf={world.qcon}", **kwargs).status_code == 409, (method, path)
+    assert count_attendees(world.b, code) == 1  # nothing was written; reads still work
+    assert c.get(f"/api/attendees/{code}?conf={world.qcon}").status_code == 200
+    assert c.delete(f"/api/attendees/{code}").status_code == 200  # "Forget me" still works everywhere
+    assert count_attendees(world.b, code) == 0
+
+
 def test_unknown_conference_is_404(world):
     r = world.client.get("/api/talks?conf=no-such-conference")
     assert r.status_code == 404 and r.json()["detail"] == "Unknown conference"

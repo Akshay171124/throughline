@@ -846,7 +846,7 @@ async function ask(message) {
     pending.innerHTML = `<p>${formatReply(turn.reply || "")}</p>`;
   } catch (err) {
     pending.classList.remove("pending");
-    const why = err.name === "AbortError" ? "it took too long" : err.message;
+    const why = err.name === "AbortError" ? "it took too long" : String(err.message).replace(/\.$/, "");
     pending.innerHTML = `<p class="error">The agent failed: ${escapeHtml(why)}. Use “Plan without AI” on the talk instead.</p>`;
   } finally {
     clearInterval(tick);

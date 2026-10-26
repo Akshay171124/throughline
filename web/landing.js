@@ -1223,7 +1223,7 @@ async function sendGoal(raw) {
     const box = document.getElementById("chat-input");
     if (box && !box.value) box.value = message; // keep what they typed, so they can just press Enter again
     pending.className = "msg agent error";
-    pending.innerHTML = `<p>${err.status === 404
+    pending.innerHTML = `<p>${err.status === 409 ? escapeHtml(err.message) : err.status === 404
       ? "The assistant isn't available on the landing page yet. Try again in a few minutes."
       : `The assistant couldn't answer: ${escapeHtml(err.message)}. Try again, or plan a talk directly on the <a href="${escapeHtml(talkPage())}">attendee page</a>.`}</p>`;
   } finally {
@@ -1247,7 +1247,7 @@ async function saveSuggestion(btn) {
     renderProfileButton();
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = "Retry save";
+    btn.textContent = err.status === 409 ? err.message : "Retry save"; // a map being rebuilt says so
     btn.title = `Couldn't save: ${err.message}`;
   }
 }
@@ -1728,6 +1728,7 @@ function showDetail(c) {
 }
 
 let chatIntroHtml = "";   // the chat's greeting, restored when another conference opens
+let homeExamplesHtml = ""; // the page's example goals, written for the home conference
 const GENERIC_GOAL = "I'm new to this topic and want the basics";
 let healthTurn = 0;
 
@@ -1750,11 +1751,12 @@ function resetMap(id) {
   setFlowState(`<span class="spinner"></span> Building the talk flow from the graph…`);
   document.getElementById("featured").innerHTML = `<div class="lp-cards-state"><span class="spinner"></span> Picking the talks you shouldn't miss…</div>`;
   if (chatIntroHtml) chatLog().innerHTML = chatIntroHtml;
-  // The example goals in the page are about the default conference (Universe); elsewhere, one generic goal.
-  const home = conferences && conferences.current && conferences.current.id;
-  if (home && id !== home) {
-    document.getElementById("chat-examples").innerHTML = `<button type="button" class="chip" data-goal="${escapeHtml(GENERIC_GOAL)}">${escapeHtml(GENERIC_GOAL)}</button>`;
-  }
+  // The example goals in the page are about the home conference (Universe); elsewhere, one generic goal.
+  const home = (conferences && conferences.current && conferences.current.id) || "universe26";
+  const examples = document.getElementById("chat-examples");
+  examples.innerHTML = id === home ? homeExamplesHtml
+    : `<button type="button" class="chip" data-goal="${escapeHtml(GENERIC_GOAL)}">${escapeHtml(GENERIC_GOAL)}</button>`;
+  showExamples(true);
   document.getElementById("cal-title").textContent = "Your schedule"; // the day count comes with the talks
   document.getElementById("plan-link").href = talkPage();
   const turn = ++healthTurn;
@@ -1894,6 +1896,7 @@ let clockReady = null;
 
 async function init() {
   chatIntroHtml = chatLog().innerHTML;
+  homeExamplesHtml = document.getElementById("chat-examples").innerHTML;
   wireProfile();
   wireFlow();
   wireCalendar();

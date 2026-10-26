@@ -95,6 +95,17 @@ def ctx(conf: str | None = Query(None), x_conference: str | None = Header(None))
     return _conference(conf or x_conference or registry_db.UNIVERSE_ID)
 
 
+REBUILDING = "This map is being rebuilt — try again in a minute."
+
+
+def writable(c: Ctx = Depends(ctx)) -> Ctx:
+    """The conference, for a request that writes attendee data. While a map is rebuilt its reads stay open,
+    but a write could land on the old graph after the build copied attendees over, and be lost."""
+    if c.conf["status"] == "building":
+        raise HTTPException(409, REBUILDING)
+    return c
+
+
 def graph() -> Graph:
     """Universe's graph."""
     return _conference(registry_db.UNIVERSE_ID).g
@@ -208,7 +219,7 @@ def _newer(profile: dict, other: dict) -> bool:
 
 
 @app.post("/api/attendees")
-def create_attendee(c: Ctx = Depends(ctx)):
+def create_attendee(c: Ctx = Depends(writable)):
     code = planner.new_attendee(c.g)
     registry_db.create_account(registry(), code)
     return {"code": code}
@@ -243,21 +254,21 @@ class ConceptRef(BaseModel):
 
 
 @app.post("/api/attendees/{code}/attended")
-def attended(code: str, body: TalkRef, c: Ctx = Depends(ctx)):
+def attended(code: str, body: TalkRef, c: Ctx = Depends(writable)):
     ensure_attendee(c, code)
     learned = planner.mark_attended(c.g, code, body.talk)
     return {"learned": learned, "clock": planner.format_minutes(planner.attendee_clock(c.g, code))}
 
 
 @app.post("/api/attendees/{code}/known")
-def known(code: str, body: ConceptRef, c: Ctx = Depends(ctx)):
+def known(code: str, body: ConceptRef, c: Ctx = Depends(writable)):
     ensure_attendee(c, code)
     planner.mark_known(c.g, code, body.concept)
     return {"ok": True}
 
 
 @app.delete("/api/attendees/{code}/known/{concept}")
-def unknown(code: str, concept: str, c: Ctx = Depends(ctx)):
+def unknown(code: str, concept: str, c: Ctx = Depends(writable)):
     ensure_attendee(c, code)
     planner.forget_known(c.g, code, concept)
     return {"ok": True}
@@ -270,7 +281,7 @@ class Profile(BaseModel):
 
 
 @app.put("/api/attendees/{code}/profile")
-def put_profile(code: str, body: Profile, c: Ctx = Depends(ctx)):
+def put_profile(code: str, body: Profile, c: Ctx = Depends(writable)):
     """The account first (it follows the attendee to other conferences), then this conference's node."""
     ensure_attendee(c, code)
     try:
@@ -281,13 +292,13 @@ def put_profile(code: str, body: Profile, c: Ctx = Depends(ctx)):
 
 
 @app.post("/api/attendees/{code}/targets")
-def add_target(code: str, body: TalkRef, c: Ctx = Depends(ctx)):
+def add_target(code: str, body: TalkRef, c: Ctx = Depends(writable)):
     ensure_attendee(c, code)
     return {"targets": planner.add_target(c.g, code, body.talk)}
 
 
 @app.delete("/api/attendees/{code}/targets/{talk}")
-def remove_target(code: str, talk: str, c: Ctx = Depends(ctx)):
+def remove_target(code: str, talk: str, c: Ctx = Depends(writable)):
     ensure_attendee(c, code)
     return {"targets": planner.remove_target(c.g, code, talk)}
 
@@ -299,7 +310,7 @@ def get_chat(code: str, c: Ctx = Depends(ctx)):
 
 
 @app.delete("/api/attendees/{code}/chat")
-def delete_chat(code: str, c: Ctx = Depends(ctx)):
+def delete_chat(code: str, c: Ctx = Depends(writable)):
     ensure_attendee(c, code)
     planner.clear_chat(c.g, code)
     return {"ok": True}
@@ -423,7 +434,7 @@ class AgentTurn(BaseModel):
 
 
 @app.post("/api/agent")
-def agent(body: AgentTurn, c: Ctx = Depends(ctx)):
+def agent(body: AgentTurn, c: Ctx = Depends(writable)):
     ensure_attendee(c, body.attendee)
     g = c.g
     # The stored conversation, not what the browser sends, so it survives a refresh and can't be forged.
