@@ -345,6 +345,11 @@ def parse_time(text: str) -> str | None:
     return None
 
 
+def parse_times(text: str) -> list[str]:
+    """Every clock time in the text, in order, as HH:MM: "10:35 - 11:25" gives both."""
+    return [t for m in _CLOCK.finditer(text or "") if (t := parse_time(m.group(0)))]
+
+
 def on_page(needle: str, text: str) -> bool:
     """True if `needle` is in `text` (both normalized) as whole words: "ag" is not in "storage"."""
     n, t = normalize(needle), normalize(text)
@@ -356,6 +361,7 @@ def verify_listing(page: Page, raw: list[dict]) -> tuple[list[dict], Counter]:
     An abstract that is not on the page is blanked (the talk is kept).
 
     The time is checked by code: the time text must be on the page and must parse to the model's start.
+    The end comes only from a second clock in that time text; a duration is kept only if it is on the page.
     """
     urls = {url for _, url in page.links}
     kept, dropped = [], Counter()
@@ -369,7 +375,11 @@ def verify_listing(page: Page, raw: list[dict]) -> tuple[list[dict], Counter]:
             dropped["time_not_on_page"] += 1
             continue
         abstract = talk.get("abstract") or ""
-        kept.append({**talk, "detail_url": talk.get("detail_url") if talk.get("detail_url") in urls else None,
+        clocks = parse_times(time_text)  # the end is the second clock of the verified time, never the model's word
+        duration_text = talk.get("duration_text") or ""
+        kept.append({**talk, "end": clocks[1] if len(clocks) > 1 else None,
+                     "duration_text": duration_text if on_page(duration_text, page.text) else None,
+                     "detail_url": talk.get("detail_url") if talk.get("detail_url") in urls else None,
                      "abstract": abstract if on_page(abstract, page.text) else ""})
     return kept, dropped
 
@@ -432,7 +442,7 @@ def _read_detail(talk: dict, fetch, ask) -> dict | None:
         found["duration_text"] = duration_text
     time_text = answer.get("time_text") or ""
     if on_page(time_text, page.text):
-        clocks = [parse_time(m.group(0)) for m in _CLOCK.finditer(time_text)]
+        clocks = parse_times(time_text)
         if len(clocks) == 2 and clocks[0] == talk.get("start"):
             found["end"] = clocks[1]  # a range such as "10:35 - 11:25" gives the end
     return found
@@ -452,22 +462,41 @@ def enrich(talks: list[dict], fetch=fetch_page, ask: Ask = ask_openai,
             else:
                 if "abstract" in found:
                     talk["abstract"] = found["abstract"]
+                if "end" in found:  # a verified time range wins
+                    talk["end"] = found["end"]
+                elif not talk.get("end") and "duration_text" in found:
+                    talk["duration_text"] = found["duration_text"]
+                    talk["end"] = _add_minutes(talk["start"], duration_minutes(found["duration_text"]))
                 if "duration_text" in found and not talk.get("duration_text"):
                     talk["duration_text"] = found["duration_text"]
-                end = found.get("end")
-                if not talk.get("end") and (end or "duration_text" in found):
-                    talk["end"] = end or _add_minutes(talk["start"], duration_minutes(found["duration_text"]))
             progress(done, len(todo))
     return counts
 
 
+_HHMM = re.compile(r"\d\d:\d\d")
+
+
+def _valid(date: str | None, start: str | None, end: str | None) -> bool:
+    """Date is YYYY-MM-DD, start and end are real HH:MM clocks, and the talk ends after it starts."""
+    try:
+        if not (date and start and end and _HHMM.fullmatch(start) and _HHMM.fullmatch(end)):
+            return False
+        return to_minutes(date, end) > to_minutes(date, start)
+    except ValueError:
+        return False
+
+
 def finish_times(talks: list[dict]) -> Counter:
-    """Set `end` from start + duration where it is missing; drop talks still without a date, start and end."""
+    """Set `end` from start + duration where it is missing; drop talks without a valid date, start and end."""
     kept, dropped = [], Counter()
     for talk in talks:
-        if not talk.get("end") and talk.get("start") and duration_minutes(talk.get("duration_text") or ""):
-            talk["end"] = _add_minutes(talk["start"], duration_minutes(talk["duration_text"]))
-        if talk.get("date") and talk.get("start") and talk.get("end") and talk["end"] > talk["start"]:
+        start = talk.get("start")
+        if not talk.get("end") and _HHMM.fullmatch(start or "") and duration_minutes(talk.get("duration_text") or ""):
+            try:
+                talk["end"] = _add_minutes(start, duration_minutes(talk["duration_text"]))
+            except ValueError:
+                pass
+        if _valid(talk.get("date"), start, talk.get("end")):
             kept.append(talk)
         else:
             dropped["no_time"] += 1
@@ -487,9 +516,11 @@ def level_num(level: str | None) -> int | None:
     return None
 
 
-def talk_code(conf_id: str, title: str) -> str:
-    """A stable 8-character code for a talk: the same conference and title always give the same code."""
-    digest = hashlib.sha1(f"{conf_id}|{normalize(title)}".encode()).digest()
+def talk_code(conf_id: str, title: str, date: str | None = None, start: str | None = None) -> str:
+    """A stable 8-character code for a talk: the same conference and title always give the same code.
+    A repeated session passes its date and start too, so each showing gets its own code."""
+    key = f"{conf_id}|{normalize(title)}" + (f"|{date}|{start}" if date else "")
+    digest = hashlib.sha1(key.encode()).digest()
     letters = base64.b32encode(digest).decode()[:8]
     return "".join(CODE_ALPHABET[(ord(c) - 50 if c.isdigit() else ord(c) - 65) % len(CODE_ALPHABET)]
                    for c in letters)
@@ -505,9 +536,9 @@ def _day_number(date: str) -> int:
 
 def check_event(talks: list[dict], start_date: str | None, end_date: str | None) -> tuple[list[dict], str | None]:
     """Keep talks within a day of the conference's dates; refuse the schedule if under 80% of them are."""
-    if not (start_date and end_date and talks):
+    if not (start_date and talks):
         return talks, None
-    low, high = _day_number(start_date) - 1, _day_number(end_date) + 1
+    low, high = _day_number(start_date) - 1, _day_number(end_date or start_date) + 1
     kept = [t for t in talks if low <= _day_number(t["date"]) <= high]
     if len(kept) >= 0.8 * len(talks):
         return kept, None
@@ -518,11 +549,13 @@ def check_event(talks: list[dict], start_date: str | None, end_date: str | None)
 def to_talks(conf_id: str, raw: list[dict], page_url: str = "") -> list[dict]:
     """The talks in the same shape `catalog.normalize_items` gives, sorted by start time."""
     talks = []
+    titles = Counter(normalize(r["title"]) for r in raw)
     for r in raw:
         abstract = (r.get("abstract") or "").strip()
         day_number = _day_number(r["date"])
         talks.append({
-            "code": talk_code(conf_id, r["title"]),
+            "code": talk_code(conf_id, r["title"]) if titles[normalize(r["title"])] == 1
+            else talk_code(conf_id, r["title"], r["date"], r["start"]),
             "session_id": None,
             "title": r["title"],
             "type": r.get("type"),
@@ -539,7 +572,7 @@ def to_talks(conf_id: str, raw: list[dict], page_url: str = "") -> list[dict]:
             "room": r.get("room") or "",
             "speakers": [{"name": s["name"], "company": s.get("company") or "", "title": ""}
                          for s in r.get("speakers") or []],
-            "abstract": "" if normalize(abstract) in PLACEHOLDERS else abstract,
+            "abstract": "" if normalize(abstract).rstrip(" .!?:;,") in PLACEHOLDERS else abstract,
             "url": r.get("detail_url") or page_url,
         })
     talks.sort(key=lambda t: (t["start_min"], t["code"]))

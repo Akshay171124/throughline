@@ -115,3 +115,37 @@ def test_to_talks_matches_catalog_shape():
     assert (t["day"], t["start_min"], t["end_min"] - t["start_min"]) == ("Monday", t["start_min"], 50)
     assert t["level_num"] == 300 and t["topics"] == ["APIs"] and t["url"] == TALK_URL
     assert t["speakers"] == [{"name": "Fawziyah Alebiosu", "company": "Imprint", "title": ""}]
+
+
+def test_malformed_times_are_dropped_not_raised():
+    talks = [raw_talk(date="Nov 16", end="11:25"), raw_talk(end="9:30"), raw_talk(end="11:25AM"),
+             raw_talk(end="10:00"), raw_talk(end="11:25")]
+    assert finish_times(talks) == Counter({"no_time": 4})
+    assert len(talks) == 1
+
+
+def test_repeated_title_gets_one_code_per_showing():
+    a, b = raw_talk(date="2026-11-16", end="11:25"), raw_talk(date="2026-11-17", end="11:25")
+    codes = [t["code"] for t in to_talks("c1", [a, b])]
+    assert len(set(codes)) == 2
+    unique = to_talks("c1", [a, raw_talk(title="Other", end="11:25")])
+    assert unique[0]["code"] == talk_code("c1", unique[0]["title"])
+
+
+def test_placeholders_ignore_trailing_punctuation():
+    for text in ("Details coming soon.", "TBA!"):
+        assert to_talks("c1", [raw_talk(abstract=text, end="11:25")])[0]["abstract"] == ""
+
+
+def test_check_event_with_only_a_start_date():
+    kept, reason = check_event([raw_talk(date="2026-11-16")], "2026-11-16", None)
+    assert len(kept) == 1 and reason is None
+    assert check_event([raw_talk(date="2026-11-20")], "2026-11-16", None)[1] is not None
+
+
+def test_detail_range_replaces_listing_end_and_duration_needs_page():
+    talk = raw_talk(end="11:00")
+    page = Page(TALK_URL, "", "Monday 10:35AM - 11:25AM (50 minutes)", [])
+    enrich([talk], fetch=lambda u: page,
+           ask=lambda *a: {"abstract": None, "time_text": "10:35AM - 11:25AM", "duration_text": None})
+    assert talk["end"] == "11:25"

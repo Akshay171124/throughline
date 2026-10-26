@@ -111,3 +111,11 @@ def test_abstract_kept_only_if_on_page():
     assert kept[0]["abstract"] == ""
     kept, _ = verify_listing(page, [raw_talk(TITLE, abstract=sentence)])
     assert kept[0]["abstract"] == sentence
+
+
+def test_end_comes_from_the_verified_time_range_and_duration_must_be_on_page():
+    page = Page(QCON, "", "Monday 10:35AM - 11:25AM Talk One Monday 2:00PM Talk Two (50 minutes)", [])
+    raw = [raw_talk("Talk One", time_text="10:35AM - 11:25AM", end="9:30", duration_text="(99 minutes)"),
+           raw_talk("Talk Two", time_text="2:00PM", start="14:00", end="11:25AM", duration_text="(50 minutes)")]
+    kept, _ = verify_listing(page, raw)
+    assert [(t["end"], t["duration_text"]) for t in kept] == [("11:25", None), (None, "(50 minutes)")]
