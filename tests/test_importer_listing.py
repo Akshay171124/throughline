@@ -81,3 +81,33 @@ def test_parse_time():
     assert parse_time("12:30 AM") == "00:30"
     assert parse_time("14:20") == "14:20"
     assert parse_time("no time") is None
+
+
+def test_title_matches_whole_words_only():
+    kept, dropped = verify_listing(qcon_page(), [raw_talk("ag"), raw_talk(TITLE)])
+    assert [t["title"] for t in kept] == [TITLE]
+    assert dropped == Counter({"title_not_on_page": 1})
+
+
+def test_time_matches_whole_token():
+    page = Page("u", "", "Talk A 11:35 PM", [])
+    kept, dropped = verify_listing(page, [raw_talk("Talk A", "1:35 PM", "13:35")])
+    assert kept == []
+    assert dropped == Counter({"time_not_on_page": 1})
+
+
+def test_unparseable_time_is_dropped_even_with_no_start():
+    page = Page("u", "", "Talk A TBA", [])
+    kept, dropped = verify_listing(page, [raw_talk("Talk A", "TBA", None)])
+    assert kept == []
+    assert dropped == Counter({"time_not_on_page": 1})
+
+
+def test_abstract_kept_only_if_on_page():
+    page = qcon_page()
+    sentence = page.text[page.text.index(TITLE) + len(TITLE) + 200:][:120].strip()
+    sentence = sentence[sentence.index(" ") + 1: sentence.rindex(" ")]
+    kept, _ = verify_listing(page, [raw_talk(TITLE, abstract="An invented abstract nobody wrote.")])
+    assert kept[0]["abstract"] == ""
+    kept, _ = verify_listing(page, [raw_talk(TITLE, abstract=sentence)])
+    assert kept[0]["abstract"] == sentence

@@ -340,23 +340,30 @@ def parse_time(text: str) -> str | None:
     return None
 
 
+def on_page(needle: str, text: str) -> bool:
+    """True if `needle` is in `text` (both normalized) as whole words: "ag" is not in "storage"."""
+    n, t = normalize(needle), normalize(text)
+    return bool(n) and re.search(r"(?<!\w)" + re.escape(n) + r"(?!\w)", t) is not None
+
+
 def verify_listing(page: Page, raw: list[dict]) -> tuple[list[dict], Counter]:
     """Keep only talks whose title and time are on the page, and whose link is one of its links.
+    An abstract that is not on the page is blanked (the talk is kept).
 
     The time is checked by code: the time text must be on the page and must parse to the model's start.
     """
-    text = normalize(page.text)
     urls = {url for _, url in page.links}
     kept, dropped = [], Counter()
     for talk in raw:
-        title = normalize(talk.get("title"))
-        if not title or title not in text:
+        if not on_page(talk.get("title") or "", page.text):
             dropped["title_not_on_page"] += 1
             continue
         time_text = talk.get("time_text") or ""
-        if (not normalize(time_text) or normalize(time_text) not in text
-                or parse_time(time_text) != talk.get("start")):
+        parsed = parse_time(time_text)
+        if parsed is None or not on_page(time_text, page.text) or parsed != talk.get("start"):
             dropped["time_not_on_page"] += 1
             continue
-        kept.append({**talk, "detail_url": talk.get("detail_url") if talk.get("detail_url") in urls else None})
+        abstract = talk.get("abstract") or ""
+        kept.append({**talk, "detail_url": talk.get("detail_url") if talk.get("detail_url") in urls else None,
+                     "abstract": abstract if on_page(abstract, page.text) else ""})
     return kept, dropped
