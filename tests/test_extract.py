@@ -51,3 +51,19 @@ def test_extract_edges_counts_failures():
     )
     assert failed == 1
     assert [(e["talk"], e["type"]) for e in edges] == [("A2", "TEACHES")]
+
+
+def test_draft_concepts_can_shorten_long_abstracts():
+    seen = []
+
+    def ask(system, user, schema):
+        seen.append(user)
+        return {"concepts": []}
+
+    long = "word " * 600  # 3000 characters
+    extract.draft_concepts([_talk("A1", abstract=long), _talk("B2")], ask=ask, abstract_chars=100)
+    assert "Builds on OAuth 2.0 tokens in depth." in seen[0]  # short abstracts are sent whole
+    block = seen[0].split("<abstract>\n")[1].split("\n</abstract>")[0]
+    assert len(block) <= 102 and block.endswith("…") and "wor…" not in block  # cut between words
+    extract.draft_concepts([_talk("A1", abstract=long)], ask=ask)
+    assert long in seen[-1]  # Universe's offline run keeps whole abstracts

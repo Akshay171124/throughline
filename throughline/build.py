@@ -17,6 +17,7 @@ Universe is never built here.
 
 import logging
 import re
+import time
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -24,7 +25,8 @@ from threading import Lock, Thread, current_thread
 from typing import Callable
 
 from falkordb import Graph
-from openai import OpenAI
+import httpx
+from openai import APIConnectionError, APITimeoutError, OpenAI
 
 from . import explainers, extract, graph, importer, registry
 from .evidence import normalize
@@ -52,11 +54,31 @@ GRAPH_PREFIX = "throughline_c_"
 CLOCK_TIME = "08:30"
 
 
+CONCEPTS_DEADLINE = 600  # wall-clock seconds for one try at the concept list (QCon's first took 80 s)
+ASK_DEADLINE = 420  # every other model call: importer.ask_openai's 180 s reads and its one retry fit inside
+DRAFT_ABSTRACT_CHARS = 1200  # QCon's 97 whole abstracts were 140,000 characters
+SLOW = "the model took too long to answer"
+
+
 def ask_openai(system: str, user: str, schema: dict) -> dict:
-    """importer.ask_openai, with a 600 s wait for the one call that reads every abstract at once."""
-    if system == extract.CONCEPTS_PROMPT:
-        return extract._ask(OpenAI(timeout=600, max_retries=1), system, user, schema)
-    return importer.ask_openai(system, user, schema)
+    """importer.ask_openai under a hard wall-clock deadline. The one call that reads every abstract at
+    once gets a longer deadline and a second try, and its size and time go to the log."""
+    if system != extract.CONCEPTS_PROMPT:
+        return importer.within(ASK_DEADLINE, importer.ask_openai, system, user, schema)
+    for attempt in (1, 2):
+        started = time.monotonic()
+        client = OpenAI(timeout=httpx.Timeout(CONCEPTS_DEADLINE, connect=15), max_retries=0)
+        try:
+            answer = importer.within(CONCEPTS_DEADLINE, extract._ask, client, system, user, schema)
+        except (importer.DeadlineExceeded, APITimeoutError, APIConnectionError) as e:
+            log.warning("concept list: try %d failed after %.0f s (%d characters): %s",
+                        attempt, time.monotonic() - started, len(user), type(e).__name__)
+            if attempt == 2:
+                raise
+            continue
+        log.info("concept list: %d concepts in %.0f s from %d characters",
+                 len(answer.get("concepts", [])), time.monotonic() - started, len(user))
+        return answer
 
 
 def find_explainers(g: Graph) -> None:
@@ -161,7 +183,7 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
             return registry.set_status(reg, conf_id, status=old["status"], step="", reason=KEPT_OLD)
 
         step("concepts")
-        concepts = extract.draft_concepts(talks, ask=deps.ask)
+        concepts = extract.draft_concepts(talks, ask=deps.ask, abstract_chars=DRAFT_ABSTRACT_CHARS)
         edges, failed = [], 0
         if concepts:
             edges, failed = extract.extract_edges(
@@ -199,7 +221,8 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
         log.exception("the build of %s stopped", conf_id)
         if new_name:
             _drop(deps, new_name)
-        return finish("failed", f"The build stopped: {type(e).__name__}")
+        slow = isinstance(e, (importer.DeadlineExceeded, APITimeoutError))
+        return finish("failed", f"The build stopped: {SLOW if slow else type(e).__name__}.")
 
     try:
         deps.explain(g)

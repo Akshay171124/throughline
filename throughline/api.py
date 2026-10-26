@@ -3,6 +3,7 @@
 Every request is about one conference: `?conf=<id>`, else the `X-Conference` header, else GitHub Universe.
 Attendee accounts (code and profile) live in the registry graph, so one code works at every conference."""
 
+import logging
 import socket
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -21,6 +22,14 @@ from .graph import backend, conferences, connect, public_name
 from .graphview import graph_for_talk
 
 BUILT = ("ready", "partial")
+
+# Builds report their steps (and failures) to the server log, next to uvicorn's own lines.
+_log = logging.getLogger("throughline")
+if not _log.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
+    _log.addHandler(_handler)
+    _log.setLevel(logging.INFO)
 
 
 @asynccontextmanager

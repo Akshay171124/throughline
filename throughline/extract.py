@@ -118,15 +118,25 @@ def _ask(client: OpenAI, system: str, user: str, schema: dict) -> dict:
     return json.loads(response.choices[0].message.content)
 
 
-def _talk_block(talk: dict) -> str:
+def _talk_block(talk: dict, abstract_chars: int | None = None) -> str:
     return (
         f"[{talk['code']}] {talk['title']}\nLevel: {talk['level'] or 'not given'} · Type: {talk['type']}\n"
-        f"<abstract>\n{talk['abstract']}\n</abstract>"
+        f"<abstract>\n{_shorten(talk['abstract'], abstract_chars)}\n</abstract>"
     )
 
 
-def draft_concepts(talks: list[dict], ask: Ask = ask_openai) -> list[dict]:
-    result = ask(CONCEPTS_PROMPT, "\n\n".join(_talk_block(t) for t in talks), CONCEPTS_SCHEMA)
+def _shorten(text: str, limit: int | None) -> str:
+    """The first `limit` characters, cut between words and marked with "…"; whole when short enough."""
+    if not limit or len(text) <= limit:
+        return text
+    cut = text.rfind(" ", 0, limit)
+    return text[:cut if cut > 0 else limit].rstrip() + "…"
+
+
+def draft_concepts(talks: list[dict], ask: Ask = ask_openai, abstract_chars: int | None = None) -> list[dict]:
+    """The shared concept list from every talk at once. `abstract_chars` shortens long abstracts for this
+    one call (a big conference's whole text makes it slow); linking talks always reads them whole."""
+    result = ask(CONCEPTS_PROMPT, "\n\n".join(_talk_block(t, abstract_chars) for t in talks), CONCEPTS_SCHEMA)
     seen, concepts = set(), []
     for c in result["concepts"]:
         if c["id"] not in seen:  # duplicate ids keep the first

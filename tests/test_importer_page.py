@@ -114,3 +114,20 @@ def test_public_redirect_is_followed():
 
     page = fetch_page("http://good.org/", http=http, render=never, resolve=resolve)
     assert seen == ["http://good.org/", "http://good.org/next"] and page.url == "http://good.org/next"
+
+
+def test_within_gives_up_on_a_call_that_never_returns():
+    import threading
+    import time
+
+    from throughline.importer import DeadlineExceeded, within
+
+    never = threading.Event()
+    started = time.monotonic()
+    with pytest.raises(DeadlineExceeded):
+        within(0.05, never.wait)
+    assert time.monotonic() - started < 1
+    never.set()
+    assert within(1, lambda a, b: a + b, 2, 3) == 5
+    with pytest.raises(KeyError):
+        within(1, {}.__getitem__, "missing")

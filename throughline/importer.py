@@ -12,6 +12,7 @@ import ipaddress
 import json
 import re
 import socket
+import threading
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -171,6 +172,35 @@ def fetch_page(url: str, http=httpx.get, render=brightdata.render_page, resolve=
 Ask = Callable[[str, str, dict], dict]  # system, user, JSON schema -> parsed JSON
 OVERLAP = 500  # characters shared by neighbouring chunks, so a talk on a seam is seen whole
 HEAD_CHARS = 6000
+
+
+class DeadlineExceeded(TimeoutError):
+    """A call gave no answer within its wall-clock limit."""
+
+
+def within(seconds: float, fn: Callable, *args):
+    """fn(*args), or DeadlineExceeded after `seconds` of wall-clock time.
+
+    An HTTP client's timeout is per read, so a server that keeps a response open (or trickles bytes)
+    can hold a call far longer. The call runs in a daemon thread; on a deadline it is abandoned, and
+    whatever it returns later is dropped."""
+    box: dict = {}
+    done = threading.Event()
+
+    def work():
+        try:
+            box["value"] = fn(*args)
+        except BaseException as e:  # handed to the caller
+            box["error"] = e
+        finally:
+            done.set()
+
+    threading.Thread(target=work, name="call-with-deadline", daemon=True).start()
+    if not done.wait(seconds):
+        raise DeadlineExceeded(f"no answer within {seconds:g} s")
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
 
 
 def ask_openai(system: str, user: str, schema: dict) -> dict:

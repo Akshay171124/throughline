@@ -181,7 +181,7 @@ def test_unexpected_error_fails_the_build(reg):
     deps = make_deps([raw(*t) for t in TALKS])
     deps.ask = lambda *a: (_ for _ in ()).throw(KeyError("boom"))
     entry = build.run(reg, cid, None, deps)
-    assert (entry["status"], entry["reason"]) == ("failed", "The build stopped: KeyError")
+    assert (entry["status"], entry["reason"]) == ("failed", "The build stopped: KeyError.")
     assert built_graphs() == []
 
 
@@ -333,3 +333,44 @@ def test_restart_gives_back_maps_and_fails_first_builds(reg):
     assert (entry["status"], entry["reason"]) == ("ready", "A retry was interrupted; the earlier map was kept.")
     entry = registry.get(reg, first)
     assert (entry["status"], entry["reason"]) == ("failed", "The build was interrupted")
+
+
+def test_a_model_that_never_answers_ends_the_build_in_plain_words(reg):
+    cid = qcon(reg)
+    deps = make_deps([raw(*t) for t in TALKS])
+    listing = deps.ask
+
+    def ask(system, user, schema):
+        if system == build.extract.CONCEPTS_PROMPT:
+            raise build.importer.DeadlineExceeded("no answer within 600 s")
+        return listing(system, user, schema)
+
+    deps.ask = ask
+    entry = build.run(reg, cid, None, deps)
+    assert (entry["status"], entry["reason"]) == ("failed", "The build stopped: the model took too long to answer.")
+
+
+def test_concept_drafting_has_a_hard_deadline_and_one_retry(monkeypatch):
+    # A float timeout is per read: the QCon retry sat 46 minutes on one drafting call. The wall clock rules now.
+    calls, never = [], threading.Event()
+
+    def hang(client, system, user, schema):
+        calls.append(len(user))
+        never.wait(5)
+        return {"concepts": []}
+
+    monkeypatch.setattr(build, "CONCEPTS_DEADLINE", 0.05)
+    monkeypatch.setattr(build.extract, "_ask", hang)
+    with pytest.raises(build.importer.DeadlineExceeded):
+        build.ask_openai(build.extract.CONCEPTS_PROMPT, "x" * 10, {})
+    never.set()
+    assert calls == [10, 10]
+
+
+def test_other_model_calls_have_a_hard_deadline(monkeypatch):
+    never = threading.Event()
+    monkeypatch.setattr(build, "ASK_DEADLINE", 0.05)
+    monkeypatch.setattr(build.importer, "ask_openai", lambda system, user, schema: never.wait(5))
+    with pytest.raises(build.importer.DeadlineExceeded):
+        build.ask_openai("listing", "x", {})
+    never.set()
