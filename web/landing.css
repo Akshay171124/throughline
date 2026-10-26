@@ -366,6 +366,10 @@ h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
 .pk-card-foot .primary { padding: 7px 14px; font-size: 14px; }
 .pk-more { padding: 6px 14px; font-size: 13.5px; }
 .pk-link { color: var(--accent); font-size: 13px; font-weight: 600; }
+.pk-card.partial { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); box-shadow: inset 4px 0 0 var(--warn); }
+.pk-card-foot .lp-btn .spinner { width: 12px; height: 12px; }
+.pill.bad { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.pk-reason { margin: 0; font-size: 13px; color: var(--danger); overflow-wrap: anywhere; }
 
 /* ---- step 2 for a conference without a map ---- */
 .pk-detail { padding: 32px 0; max-width: 720px; }
@@ -373,6 +377,29 @@ h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
 .pk-detail-card h1 { font-size: clamp(24px, 2.8vw, 32px); margin: 4px 0 8px; }
 .pk-detail-card p { margin: 0 0 8px; }
 .pk-note { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 600; }
+
+/* ---- the build screen, and the schedule-link form (also under a partial map's label) ---- */
+.pk-detail-card .bd-step { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; font-size: 16px; font-weight: 600; }
+.pk-detail-card .pk-elapsed { font-variant-numeric: tabular-nums; }
+.bd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 14px; }
+.bd-actions .primary { padding: 8px 16px; font-size: 14px; }
+.sch { margin-top: 14px; }
+.sch summary { cursor: pointer; color: var(--accent); font-size: 14px; font-weight: 600; width: max-content; max-width: 100%; }
+.sch-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; max-width: 560px; }
+.sch-form input {
+  flex: 1 1 240px; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); color: var(--ink); font: inherit; font-size: 14px;
+}
+.sch-form input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.sch-form .primary { padding: 8px 14px; font-size: 14px; }
+.sch-form .primary:disabled { opacity: 0.6; cursor: default; }
+.sch-status { margin: 6px 0 0; }
+.sch-status:empty { display: none; }
+.sch-status.error { color: var(--danger); }
+.lp-partial { padding: 9px 16px; border-bottom: 1px solid var(--line); background: var(--warn-soft); color: var(--warn); font-size: 13.5px; }
+.lp-partial p { margin: 0; }
+.lp-partial .sch { margin-top: 4px; }
+.lp-partial .sch summary { font-size: 13px; }
 
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin 0.8s linear infinite; flex: 0 0 auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
