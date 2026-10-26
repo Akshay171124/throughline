@@ -203,4 +203,4 @@ def test_nearby_lists_universe_with_its_talk_count(world, monkeypatch, tmp_path)
     monkeypatch.setattr(nearby, "_extract", lambda place, today, results: [])
     out = world.client.get("/api/conferences/nearby", params={"place": "San Francisco, CA"}).json()
     universe = next(c for c in out["conferences"] if c["id"] == registry.UNIVERSE_ID)
-    assert universe["snippet"] == "1 talks loaded"
+    assert universe["snippet"] == "1 talk loaded"

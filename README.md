@@ -73,7 +73,7 @@ Universe was built by hand once. Every other conference the "Near you" search fi
 
 The first real runs, on QCon San Francisco 2026 (Oct 26, 2026): the map that is open now took about 8½ minutes from click to map (3 minutes reading the listing, 2½ reading 107 talk pages, 1 making the concept list, 2 linking talks). It ended `partial`: 101 talks kept; the 6 Unconference slots were left out because their shared page states no time. 77 concepts and 274 checked links. Outside explainers arrived about 1½ minutes after the map opened; a talk's readings take 15–30 seconds the first time it is opened. AI Engineer Code Summit (Nov 10–12), whose site says "full agenda soon", ends `not_found` in about 10 seconds; pasting QCon's schedule link there is refused as "a different event (dates Nov 16–20, 2026)".
 
-Every model call in a build has a wall-clock limit (10 minutes for the concept list, with one more try; 7 for the others), so a stuck call ends the build with "the model took too long to answer" instead of leaving it on one step.
+Every model call in a build has a wall-clock limit (10 minutes for the concept list, with one more try; 7 for the others). A stuck call while finding the schedule, reading the listing or making the concept list stops the build with "the model took too long to answer" instead of leaving it on one step. A stuck talk-page read only means that talk keeps the listing's values, and a stuck link step for one talk counts that talk as not linked.
 
 **Statuses** (on each card and the build screen):
 
@@ -83,7 +83,7 @@ Every model call in a build has a wall-clock limit (10 minutes for the concept l
 | `building` | A build is running. Clicking again joins it. |
 | `ready` | The map is open; nothing was left out. |
 | `partial` | The map is open, with a label saying what was left out, for example "Partial schedule: 101 talks found · 6 listed without times were left out". |
-| `not_found` | Fewer than 5 talks could be read. The screen says why ("couldn't find a schedule page", "doesn't list any talks yet", "a different event", "needs a login") and offers "Open the conference site" and "I have the schedule link". The result is saved: the next visit shows "No schedule yet (checked 2 hours ago)" at once. |
+| `not_found` | No map could be made from what was found: no schedule page, a page that couldn't be loaded or can't be fetched safely, a schedule for a different event, a page that needs a login, or fewer than 5 talks that check out. The screen says which ("couldn't find a schedule page", "couldn't load …", "can't be fetched safely", "a different event", "needs a login", "doesn't list any talks yet") and offers "Open the conference site" and "I have the schedule link". The result is saved: the next visit shows "No schedule yet (checked 2 hours ago)" at once. |
 | `failed` | The build stopped (the app restarted mid-build, or the model took too long to answer). "Try again" starts over; a map that was already open stays open. |
 
 "Try again" on a partial map builds a fresh graph and swaps it in only if it kept more talks; attended, saved and "I know this" marks carry over. A pasted schedule link goes through the same right-event check.

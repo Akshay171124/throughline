@@ -87,15 +87,17 @@ def end_date_from(dates: str, start_date: str) -> str:
     except ValueError:
         return ""
     text = dates or ""
-    if len(iso := _ISO.findall(text)) >= 2:
-        tail = iso[-1]
-        candidates = [tail]
+    iso = _ISO.findall(text)
+    if len(iso) == 1:  # one ISO date is a single day, not a range ("2026-11-05" must not read as the 11th)
+        return ""
+    if len(iso) >= 2:
+        candidates = [iso[-1]]
     else:
         parts = _RANGE.split(text, maxsplit=1)
         if len(parts) < 2:
             return ""
         tail = parts[1]
-        day = re.search(r"(?<!\d)(\d{1,2})(?!\d)", tail)
+        day = re.search(r"(?<![\d:])(\d{1,2})(?![\d:])", tail)  # not the hour or minutes of a time
         if not day:
             return ""
         month = next((m for w in re.findall(r"[A-Za-z]+\.?", tail) if (m := _month(w))), start.month)

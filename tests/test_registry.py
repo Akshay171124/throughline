@@ -110,6 +110,9 @@ def test_account_profile_round_trip(reg):
     ("November 2026", "2026-11-01", ""),
     ("Nov 20-16, 2026", "2026-11-20", ""),  # ends before it starts: not trusted
     ("Nov 16-20, 2026", "", ""),  # no start date to anchor it
+    ("2026-11-05", "2026-11-05", ""),  # one ISO date is not a range
+    ("Nov 3 – 9:00am", "2026-11-03", ""),  # a time is not a day
+    ("Nov 16, 2026 - 6:00 PM", "2026-11-16", ""),
 ])
 def test_end_date_from_the_dates_text(dates, start, end):
     assert registry.end_date_from(dates, start) == end

@@ -228,7 +228,7 @@ def nearby(reg_upsert: Callable[[dict], dict], place: str = "", lat: float | Non
         city = gc["location"].split(",")[0].lower()
         if gc["id"] not in ids and city and city in place.lower():
             out.insert(0, {"name": gc["name"], "dates": gc["dates"], "start_date": gc["start_date"],
-                           "location": gc["location"], "url": "", "snippet": f"{gc['talks']} talks loaded",
+                           "location": gc["location"], "url": "", "snippet": f"{gc['talks']} {'talk' if gc['talks'] == 1 else 'talks'} loaded",
                            "loaded": True, "id": gc["id"], "status": gc.get("status", "ready"),
                            "reason": gc.get("reason", ""), "checked_at": gc.get("checked_at"), "counts": gc.get("counts", {})})
     return {**{k: v for k, v in result.items() if k != "conferences"}, "conferences": out}

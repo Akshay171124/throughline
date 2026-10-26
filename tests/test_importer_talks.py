@@ -164,3 +164,10 @@ def test_same_title_at_the_same_time_gets_one_code_per_room():
     codes = [t["code"] for t in to_talks("c1", [a, b])]
     assert len(set(codes)) == 2
     assert codes == [t["code"] for t in to_talks("c1", [dict(a), dict(b)])]  # stable
+
+
+def test_entries_that_still_share_a_code_are_kept_once():
+    # Same title, date, start and room: one Talk node. Kept counts distinct talks; the rest are "duplicate".
+    counts = Counter()
+    out = to_talks("c1", [raw_talk(end="11:25"), raw_talk(end="11:25", abstract="Longer teaser.")], counts=counts)
+    assert len(out) == 1 and counts == Counter({"duplicate": 1})

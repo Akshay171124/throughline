@@ -54,8 +54,10 @@ def test_detail_url_must_be_a_page_link():
     page = Page(QCON, "", "Talk One at 9:00AM", [("Talk One", "https://qconsf.com/talk/1")])
     good = raw_talk("Talk One", "9:00AM", "09:00", detail_url="https://qconsf.com/talk/1")
     bad = raw_talk("Talk One", "9:00AM", "09:00", detail_url="https://evil.example/1")
-    kept, dropped = verify_listing(page, [good, bad])
-    assert [t["detail_url"] for t in kept] == ["https://qconsf.com/talk/1", None]
+    assert [t["detail_url"] for t in verify_listing(page, [good])[0]] == ["https://qconsf.com/talk/1"]
+    assert [t["detail_url"] for t in verify_listing(page, [bad])[0]] == [None]
+    kept, dropped = verify_listing(page, [bad, good])  # one talk read twice: the checked link wins
+    assert [t["detail_url"] for t in kept] == ["https://qconsf.com/talk/1"]
     assert not dropped
 
 
@@ -121,16 +123,46 @@ def test_end_comes_from_the_verified_time_range_and_duration_must_be_on_page():
     assert [(t["end"], t["duration_text"]) for t in kept] == [("11:25", None), (None, "(50 minutes)")]
 
 
-def test_read_listing_keeps_same_titled_sessions_in_different_rooms():
-    # QCon lists eight "Sponsored session" slots, two of them at the same time on Monday. De-duplicating
-    # on title and date kept one per day and silently lost five real sessions.
-    page = Page(QCON, "", " ".join(f"word{i}" for i in range(400)), [])
-    s = lambda **kw: raw_talk("Sponsored session", **kw)  # noqa: E731
-    marina = s(room="Marina", detail_url="https://qconsf.com/presentation/nov2026/sponsored-session-2")
-    pacific = s(room="Pacific LM", detail_url="https://qconsf.com/presentation/nov2026/sponsored-session")
-    later = s(time_text="01:35PM PST", start="13:35", room="Marina",
-              detail_url="https://qconsf.com/presentation/nov2026/sponsored-session-3")
-    answers = iter([{"talks": [marina, pacific]}, {"talks": [dict(marina), {**pacific, "detail_url": None}, later]}])
-    talks = read_listing(page, ask=lambda *a: next(answers, {"talks": []}), chunk_chars=1000)
-    # The second chunk repeats both first sessions (one without its link): those are the same talks.
-    assert [(t["start"], t["room"]) for t in talks] == [("10:35", "Marina"), ("10:35", "Pacific LM"), ("13:35", "Marina")]
+SESSION_TEXT = ("Monday Nov 16 10:35AM PST Sponsored session Marina Sponsored session Pacific LM "
+                "10:35AM PST Agent Evals in Practice Marina ")
+S1, S2 = "https://qconsf.com/presentation/nov2026/sponsored-session", "https://qconsf.com/presentation/nov2026/sponsored-session-2"
+EVALS = "https://qconsf.com/p/agent-evals"
+
+
+def session_page() -> Page:
+    words = " ".join(f"w{i}" for i in range(400))
+    return Page(QCON, "", SESSION_TEXT + words, [("Sponsored session", S1), ("Sponsored session", S2), ("Agent Evals", EVALS)])
+
+
+def test_one_talk_read_twice_with_unchecked_fields_stays_one_talk():
+    # The review's probe: a talk on a chunk seam, read again with a mangled link and a reworded room.
+    # Fields the page doesn't vouch for must never split a talk (it became 3, two with one code).
+    page = session_page()
+    a = raw_talk("Agent Evals in Practice", room="Marina", detail_url=EVALS)
+    b = raw_talk("Agent Evals in Practice", room="Marina", detail_url="https://qconsf.com/p/agent-evals-in-practice")
+    c = raw_talk("Agent Evals in Practice", room="Marina Ballroom", detail_url=None)
+    answers = iter([{"talks": [a]}, {"talks": [b, c]}])
+    raw = read_listing(page, ask=lambda *x: next(answers, {"talks": []}), chunk_chars=1000)
+    kept, dropped = verify_listing(page, raw)
+    assert [(t["title"], t["room"], t["detail_url"]) for t in kept] == [("Agent Evals in Practice", "Marina", EVALS)]
+    assert dropped == Counter()  # the copies are the same talk, not drops
+
+
+def test_same_titled_sessions_with_page_rooms_or_links_stay_apart():
+    # QCon lists nine "Sponsored session" slots, two at the same time on Monday in different rooms.
+    page = session_page()
+    by_link = [raw_talk("Sponsored session", room=None, detail_url=S1), raw_talk("Sponsored session", room=None, detail_url=S2)]
+    by_room = [raw_talk("Sponsored session", room="Marina", detail_url=None),
+               raw_talk("Sponsored session", room="Pacific LM", detail_url=None)]
+    for pair in (by_link, by_room):
+        kept, _ = verify_listing(page, pair)
+        assert len(kept) == 2
+    # A copy without its link, or with a room the page doesn't name, is one of the two, not a third.
+    kept, _ = verify_listing(page, by_link + [raw_talk("Sponsored session", room="Hall Z", detail_url=None)])
+    assert len(kept) == 2
+
+
+def test_a_talk_seen_twice_is_dropped_once():
+    kept, dropped = verify_listing(session_page(), [raw_talk("Invented Talk"), raw_talk("Invented Talk", room="Marina")])
+    assert kept == [] and dropped == Counter({"title_not_on_page": 1})
+

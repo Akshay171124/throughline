@@ -140,8 +140,9 @@ def recover_interrupted(reg: Graph) -> int:
 
 
 def status_for(counts: dict) -> str:
-    """partial when anything was left out (dropped talks, unread talk pages, failed extractions)."""
-    return "partial" if any(n for key, n in counts.items() if key != "kept") else "ready"
+    """partial when anything was left out (dropped talks, unread talk pages, failed extractions).
+    A merged duplicate is the same talk again, not something left out."""
+    return "partial" if any(n for key, n in counts.items() if key not in ("kept", "duplicate")) else "ready"
 
 
 def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | None = None) -> dict:
@@ -177,7 +178,7 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
         kept, counts, reason = _read_talks(page, entry, deps, step)
         if reason:
             return finish("not_found", reason)
-        talks = importer.to_talks(conf_id, kept, page_url=page.url)
+        talks = importer.to_talks(conf_id, kept, page_url=page.url, counts=counts)
         counts = {"kept": len(talks), **counts}
         if old and len(talks) <= old["talks"]:
             return registry.set_status(reg, conf_id, status=old["status"], step="", reason=KEPT_OLD)

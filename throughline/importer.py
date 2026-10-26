@@ -344,31 +344,50 @@ def _chunks(text: str, size: int) -> list[str]:
 
 
 def read_listing(page: Page, ask: Ask = ask_openai, chunk_chars: int = 20000) -> list[dict]:
-    """Have the model list the talks, chunk by chunk; merge and de-duplicate on (title, date).
+    """Have the model list the talks, chunk by chunk. Only exact repeats (a talk on a chunk seam, read
+    the same way twice) are dropped here; verify_listing merges the rest once their fields are checked.
 
     The page's links go along with every chunk so the model can copy each talk's detail_url.
     """
     links = "\n".join(f"{text or '(no text)'} -> {url}" for text, url in page.links)
-    talks, seen = [], {}
+    talks, seen = [], set()
     for chunk in _chunks(page.text, chunk_chars):
         user = (f"<untrusted_page url={page.url}>\n{chunk}\n</untrusted_page>\n\n"
                 f"<untrusted_links>\n{links}\n</untrusted_links>")
         for talk in ask(LISTING_PROMPT, user, LISTING_SCHEMA).get("talks", []):
-            key = (normalize(talk.get("title")), talk.get("date"), talk.get("start"))
-            if not any(_same_session(talk, other) for other in seen.get(key, [])):
-                seen.setdefault(key, []).append(talk)
+            key = json.dumps(talk, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
                 talks.append(talk)
     return talks
 
 
-def _same_session(a: dict, b: dict) -> bool:
-    """Two entries with the same title, date and start are one talk seen twice (chunks overlap) unless
-    they name different rooms or different talk links: "Sponsored session" runs in two rooms at once."""
-    for field_name in ("detail_url", "room"):
-        x, y = a.get(field_name), b.get(field_name)
-        if x and y and normalize(x) != normalize(y):
-            return False
+def _slot(talk: dict) -> tuple:
+    return normalize(talk.get("title") or ""), talk.get("date"), talk.get("start")
+
+
+def _same_session(page: Page, a: dict, b: dict) -> bool:
+    """Two checked entries in the same slot (title, date, start) are one talk read twice, unless the
+    page itself tells them apart: two different links of the page, or two different rooms the page
+    names ("Sponsored session" runs in Marina and Pacific LM at once). A mangled link was already
+    blanked by verify_listing; a room the page doesn't name never splits a talk."""
+    if a["detail_url"] and b["detail_url"] and a["detail_url"] != b["detail_url"]:
+        return False
+    ra, rb = a.get("room") or "", b.get("room") or ""
+    if ra and rb and normalize(ra) != normalize(rb) and on_page(ra, page.text) and on_page(rb, page.text):
+        return False
     return True
+
+
+def _fill(talk: dict, twin: dict, page: Page) -> None:
+    """The kept entry takes checked values only its twin has."""
+    for key in ("detail_url", "duration_text", "end"):
+        if not talk.get(key) and twin.get(key):
+            talk[key] = twin[key]
+    if len(twin["abstract"]) > len(talk["abstract"]):
+        talk["abstract"] = twin["abstract"]
+    if twin.get("room") and on_page(twin["room"], page.text) and not on_page(talk.get("room") or "", page.text):
+        talk["room"] = twin["room"]
 
 
 _CLOCK = re.compile(r"\b(\d{1,2}):(\d{2})\s*([ap])\.?m\b\.?|\b(\d{1,2}):(\d{2})\b", re.I)
@@ -407,26 +426,51 @@ def verify_listing(page: Page, raw: list[dict]) -> tuple[list[dict], Counter]:
 
     The time is checked by code: the time text must be on the page and must parse to the model's start.
     The end comes only from a second clock in that time text; a duration is kept only if it is on the page.
+    Entries in the same slot are then merged unless the page tells them apart (_same_session); a slot
+    none of whose entries passes counts as one drop.
     """
     urls = {url for _, url in page.links}
-    kept, dropped = [], Counter()
+    slots: dict[tuple, list[dict]] = {}
     for talk in raw:
-        if not on_page(talk.get("title") or "", page.text):
-            dropped["title_not_on_page"] += 1
+        slots.setdefault(_slot(talk), []).append(talk)
+    kept, dropped = [], Counter()
+    for entries in slots.values():
+        checked, reasons = [], []
+        for talk in entries:
+            reason, result = _check(page, urls, talk)
+            if result:
+                checked.append(result)
+            else:
+                reasons.append(reason)
+        if not checked:
+            dropped[reasons[0]] += 1
             continue
-        time_text = talk.get("time_text") or ""
-        parsed = parse_time(time_text)
-        if parsed is None or not on_page(time_text, page.text) or parsed != talk.get("start"):
-            dropped["time_not_on_page"] += 1
-            continue
-        abstract = talk.get("abstract") or ""
-        clocks = parse_times(time_text)  # the end is the second clock of the verified time, never the model's word
-        duration_text = talk.get("duration_text") or ""
-        kept.append({**talk, "end": clocks[1] if len(clocks) > 1 else None,
-                     "duration_text": duration_text if on_page(duration_text, page.text) else None,
-                     "detail_url": talk.get("detail_url") if talk.get("detail_url") in urls else None,
-                     "abstract": abstract if on_page(abstract, page.text) else ""})
+        sessions: list[dict] = []
+        for talk in checked:
+            twin = next((s for s in sessions if _same_session(page, s, talk)), None)
+            if twin:
+                _fill(twin, talk, page)
+            else:
+                sessions.append(talk)
+        kept.extend(sessions)
     return kept, dropped
+
+
+def _check(page: Page, urls: set[str], talk: dict) -> tuple[str, dict | None]:
+    """One entry checked against the page: (reason, None) if it fails, else ("", the checked entry)."""
+    if not on_page(talk.get("title") or "", page.text):
+        return "title_not_on_page", None
+    time_text = talk.get("time_text") or ""
+    parsed = parse_time(time_text)
+    if parsed is None or not on_page(time_text, page.text) or parsed != talk.get("start"):
+        return "time_not_on_page", None
+    abstract = talk.get("abstract") or ""
+    clocks = parse_times(time_text)  # the end is the second clock of the verified time, never the model's word
+    duration_text = talk.get("duration_text") or ""
+    return "", {**talk, "end": clocks[1] if len(clocks) > 1 else None,
+                "duration_text": duration_text if on_page(duration_text, page.text) else None,
+                "detail_url": talk.get("detail_url") if talk.get("detail_url") in urls else None,
+                "abstract": abstract if on_page(abstract, page.text) else ""}
 
 
 MAX_DETAIL_PAGES = 300
@@ -605,9 +649,11 @@ def dates_text(start: str, end: str) -> str:
     return f"{first}–{last}, {a.year}"
 
 
-def to_talks(conf_id: str, raw: list[dict], page_url: str = "") -> list[dict]:
-    """The talks in the same shape `catalog.normalize_items` gives, sorted by start time."""
-    talks = []
+def to_talks(conf_id: str, raw: list[dict], page_url: str = "", counts: Counter | None = None) -> list[dict]:
+    """The talks in the same shape `catalog.normalize_items` gives, sorted by start time.
+    Codes are unique: an entry whose code is already taken is the same talk again, so it is left out
+    and counted in `counts["duplicate"]` (kept then equals the number of Talk nodes)."""
+    talks, codes = [], set()
     titles = Counter(normalize(r["title"]) for r in raw)
     slots = Counter((normalize(r["title"]), r["date"], r["start"]) for r in raw)
     for r in raw:
@@ -619,6 +665,11 @@ def to_talks(conf_id: str, raw: list[dict], page_url: str = "") -> list[dict]:
             code = talk_code(conf_id, r["title"], r["date"], r["start"])
         else:
             code = talk_code(conf_id, r["title"], r["date"], r["start"], r.get("room") or r.get("detail_url"))
+        if code in codes:
+            if counts is not None:
+                counts["duplicate"] += 1
+            continue
+        codes.add(code)
         talks.append({
             "code": code,
             "session_id": None,

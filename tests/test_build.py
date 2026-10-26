@@ -374,3 +374,8 @@ def test_other_model_calls_have_a_hard_deadline(monkeypatch):
     with pytest.raises(build.importer.DeadlineExceeded):
         build.ask_openai("listing", "x", {})
     never.set()
+
+
+def test_merged_duplicates_do_not_make_a_map_partial():
+    assert build.status_for({"kept": 10, "duplicate": 2}) == "ready"
+    assert build.status_for({"kept": 10, "duplicate": 2, "no_time": 1}) == "partial"
