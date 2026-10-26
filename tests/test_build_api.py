@@ -13,6 +13,14 @@ from throughline.graph import connect
 from .test_api_scope import world  # noqa: F401  (the two-conference fixture)
 
 
+@pytest.fixture(autouse=True)
+def no_dns(monkeypatch):
+    """Tests make no DNS lookups: every host resolves to a public address unless a test says otherwise."""
+    def resolve(host, port):
+        return [(0, 0, 0, "", ("93.184.216.34", 0))]
+    monkeypatch.setattr(api, "_resolver", lambda: resolve)
+
+
 def test_build_endpoint_validates_and_starts(world, monkeypatch):
     calls = []
 
