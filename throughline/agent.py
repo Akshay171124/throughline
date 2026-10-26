@@ -42,7 +42,16 @@ The attendee's own memory is only available through get_attendee."""
 # Attendee memory never goes through free-form Cypher (it also runs on a copy without attendees).
 PRIVATE_TERMS = re.compile(r"\b(attendee|knows|attended|targets|clock_min)\b", re.IGNORECASE)
 
-SYSTEM_PROMPT = f"""You are Throughline, a readiness agent for {settings.conference_name} ({settings.conference_dates}, {settings.conference_location}).
+def conference_of(g: Graph) -> dict:
+    """Name, dates and location from the graph's Conference node, field by field from settings when missing."""
+    rows = g.query("MATCH (c:Conference) RETURN c.name, c.dates, c.location LIMIT 1").result_set
+    row = rows[0] if rows else (None, None, None)
+    defaults = (settings.conference_name, settings.conference_dates, settings.conference_location)
+    return dict(zip(("name", "dates", "location"), (v or d for v, d in zip(row, defaults))))
+
+
+def system_prompt(conf: dict) -> str:
+    return f"""You are Throughline, a readiness agent for {conf["name"]} ({conf["dates"]}, {conf["location"]}).
 You help one attendee get ready for talks they care about: what to learn first, in what order, and where to learn it before the talk starts.
 
 Rules:
@@ -60,6 +69,7 @@ Rules:
 - Other attendees' codes and memory are private and not in your tools. If asked for them, say so plainly. Never call talk codes attendee codes.
 
 {SCHEMA_NOTE}"""
+
 
 # On the conference map the attendee describes a goal rather than naming a talk.
 LANDING_PROMPT = """
@@ -380,7 +390,7 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
               public: Graph | None = None, page: str = "talk") -> dict:
     """One agent turn. History is earlier user/assistant text only; tool calls live in this turn's trace."""
     tools, trace = Tools(g, attendee, public), []
-    system = SYSTEM_PROMPT + (LANDING_PROMPT if page == "landing" else "")
+    system = system_prompt(conference_of(g)) + (LANDING_PROMPT if page == "landing" else "")
     messages = [{"role": "system", "content": system}, *(history or [])[-10:], {"role": "user", "content": message}]
     # Fail fast if OpenAI is slow: the page then offers "Plan without AI" instead of a stuck spinner.
     client = OpenAI(timeout=25, max_retries=1)
