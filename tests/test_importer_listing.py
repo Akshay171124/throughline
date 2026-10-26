@@ -119,3 +119,18 @@ def test_end_comes_from_the_verified_time_range_and_duration_must_be_on_page():
            raw_talk("Talk Two", time_text="2:00PM", start="14:00", end="11:25AM", duration_text="(50 minutes)")]
     kept, _ = verify_listing(page, raw)
     assert [(t["end"], t["duration_text"]) for t in kept] == [("11:25", None), (None, "(50 minutes)")]
+
+
+def test_read_listing_keeps_same_titled_sessions_in_different_rooms():
+    # QCon lists eight "Sponsored session" slots, two of them at the same time on Monday. De-duplicating
+    # on title and date kept one per day and silently lost five real sessions.
+    page = Page(QCON, "", " ".join(f"word{i}" for i in range(400)), [])
+    s = lambda **kw: raw_talk("Sponsored session", **kw)  # noqa: E731
+    marina = s(room="Marina", detail_url="https://qconsf.com/presentation/nov2026/sponsored-session-2")
+    pacific = s(room="Pacific LM", detail_url="https://qconsf.com/presentation/nov2026/sponsored-session")
+    later = s(time_text="01:35PM PST", start="13:35", room="Marina",
+              detail_url="https://qconsf.com/presentation/nov2026/sponsored-session-3")
+    answers = iter([{"talks": [marina, pacific]}, {"talks": [dict(marina), {**pacific, "detail_url": None}, later]}])
+    talks = read_listing(page, ask=lambda *a: next(answers, {"talks": []}), chunk_chars=1000)
+    # The second chunk repeats both first sessions (one without its link): those are the same talks.
+    assert [(t["start"], t["room"]) for t in talks] == [("10:35", "Marina"), ("10:35", "Pacific LM"), ("13:35", "Marina")]

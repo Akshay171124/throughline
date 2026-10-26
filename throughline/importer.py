@@ -319,16 +319,26 @@ def read_listing(page: Page, ask: Ask = ask_openai, chunk_chars: int = 20000) ->
     The page's links go along with every chunk so the model can copy each talk's detail_url.
     """
     links = "\n".join(f"{text or '(no text)'} -> {url}" for text, url in page.links)
-    talks, seen = [], set()
+    talks, seen = [], {}
     for chunk in _chunks(page.text, chunk_chars):
         user = (f"<untrusted_page url={page.url}>\n{chunk}\n</untrusted_page>\n\n"
                 f"<untrusted_links>\n{links}\n</untrusted_links>")
         for talk in ask(LISTING_PROMPT, user, LISTING_SCHEMA).get("talks", []):
-            key = (normalize(talk.get("title")), talk.get("date"))
-            if key not in seen:
-                seen.add(key)
+            key = (normalize(talk.get("title")), talk.get("date"), talk.get("start"))
+            if not any(_same_session(talk, other) for other in seen.get(key, [])):
+                seen.setdefault(key, []).append(talk)
                 talks.append(talk)
     return talks
+
+
+def _same_session(a: dict, b: dict) -> bool:
+    """Two entries with the same title, date and start are one talk seen twice (chunks overlap) unless
+    they name different rooms or different talk links: "Sponsored session" runs in two rooms at once."""
+    for field_name in ("detail_url", "room"):
+        x, y = a.get(field_name), b.get(field_name)
+        if x and y and normalize(x) != normalize(y):
+            return False
+    return True
 
 
 _CLOCK = re.compile(r"\b(\d{1,2}):(\d{2})\s*([ap])\.?m\b\.?|\b(\d{1,2}):(\d{2})\b", re.I)
@@ -521,10 +531,12 @@ def level_num(level: str | None) -> int | None:
     return None
 
 
-def talk_code(conf_id: str, title: str, date: str | None = None, start: str | None = None) -> str:
+def talk_code(conf_id: str, title: str, date: str | None = None, start: str | None = None,
+              room: str | None = None) -> str:
     """A stable 8-character code for a talk: the same conference and title always give the same code.
-    A repeated session passes its date and start too, so each showing gets its own code."""
-    key = f"{conf_id}|{normalize(title)}" + (f"|{date}|{start}" if date else "")
+    A repeated session passes its date and start too, so each showing gets its own code, and its room
+    when the same title runs in two rooms at once."""
+    key = f"{conf_id}|{normalize(title)}" + (f"|{date}|{start}" if date else "") + (f"|{normalize(room)}" if room else "")
     digest = hashlib.sha1(key.encode()).digest()
     letters = base64.b32encode(digest).decode()[:8]
     return "".join(CODE_ALPHABET[(ord(c) - 50 if c.isdigit() else ord(c) - 65) % len(CODE_ALPHABET)]
@@ -567,12 +579,18 @@ def to_talks(conf_id: str, raw: list[dict], page_url: str = "") -> list[dict]:
     """The talks in the same shape `catalog.normalize_items` gives, sorted by start time."""
     talks = []
     titles = Counter(normalize(r["title"]) for r in raw)
+    slots = Counter((normalize(r["title"]), r["date"], r["start"]) for r in raw)
     for r in raw:
         abstract = (r.get("abstract") or "").strip()
         day_number = _day_number(r["date"])
+        if titles[normalize(r["title"])] == 1:
+            code = talk_code(conf_id, r["title"])
+        elif slots[(normalize(r["title"]), r["date"], r["start"])] == 1:
+            code = talk_code(conf_id, r["title"], r["date"], r["start"])
+        else:
+            code = talk_code(conf_id, r["title"], r["date"], r["start"], r.get("room") or r.get("detail_url"))
         talks.append({
-            "code": talk_code(conf_id, r["title"]) if titles[normalize(r["title"])] == 1
-            else talk_code(conf_id, r["title"], r["date"], r["start"]),
+            "code": code,
             "session_id": None,
             "title": r["title"],
             "type": r.get("type"),

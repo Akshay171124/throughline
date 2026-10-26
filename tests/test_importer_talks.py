@@ -156,3 +156,11 @@ def test_detail_range_replaces_listing_end_and_duration_needs_page():
     enrich([talk], fetch=lambda u: page,
            ask=lambda *a: {"abstract": None, "time_text": "10:35AM - 11:25AM", "duration_text": None})
     assert talk["end"] == "11:25"
+
+
+def test_same_title_at_the_same_time_gets_one_code_per_room():
+    a = raw_talk(title="Sponsored session", end="11:25", room="Marina")
+    b = raw_talk(title="Sponsored session", end="11:25", room="Pacific LM")
+    codes = [t["code"] for t in to_talks("c1", [a, b])]
+    assert len(set(codes)) == 2
+    assert codes == [t["code"] for t in to_talks("c1", [dict(a), dict(b)])]  # stable
