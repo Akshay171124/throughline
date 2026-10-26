@@ -96,3 +96,36 @@ def test_account_profile_round_trip(reg):
         registry.set_profile(reg, "ABCD-EFGH-JKMN", "x", "guru", [])
     registry.delete_account(reg, "ABCD-EFGH-JKMN")
     assert not registry.account_exists(reg, "ABCD-EFGH-JKMN")
+
+
+@pytest.mark.parametrize("dates, start, end", [
+    ("November 16-20, 2026", "2026-11-16", "2026-11-20"),
+    ("Nov 10–12, 2026", "2026-11-10", "2026-11-12"),
+    ("Oct 30–Nov 2, 2026", "2026-10-30", "2026-11-02"),
+    ("Dec 30, 2026 – Jan 2, 2027", "2026-12-30", "2027-01-02"),
+    ("16-20 November 2026", "2026-11-16", "2026-11-20"),
+    ("2026-11-16 to 2026-11-18", "2026-11-16", "2026-11-18"),
+    ("Sept 29 - Oct 1", "2026-09-29", "2026-10-01"),
+    ("29 October 2026", "2026-10-29", ""),  # one day: no range to read
+    ("November 2026", "2026-11-01", ""),
+    ("Nov 20-16, 2026", "2026-11-20", ""),  # ends before it starts: not trusted
+    ("Nov 16-20, 2026", "", ""),  # no start date to anchor it
+])
+def test_end_date_from_the_dates_text(dates, start, end):
+    assert registry.end_date_from(dates, start) == end
+
+
+def test_upsert_found_reads_the_end_date_from_the_dates_text(reg):
+    # The nearby search gives only a start date; "November 16-20" still means the conference runs to the 20th.
+    qcon = {"name": "QCon San Francisco 2026", "dates": "November 16-20, 2026", "url": "https://qconsf.com/",
+            "start_date": "2026-11-16"}
+    assert registry.upsert_found(reg, qcon)["end_date"] == "2026-11-20"
+
+
+def test_upsert_found_fills_a_missing_end_date_on_an_existing_entry(reg):
+    qcon = {"name": "QCon San Francisco 2026", "dates": "November 16-20, 2026", "url": "https://qconsf.com/",
+            "start_date": "2026-11-16"}
+    registry.upsert_found(reg, {**qcon, "dates": ""})  # saved before the end date was read
+    entry = registry.upsert_found(reg, qcon)
+    assert entry["end_date"] == "2026-11-20"
+    assert registry.get(reg, entry["id"])["end_date"] == "2026-11-20"

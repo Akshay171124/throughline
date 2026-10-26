@@ -6,6 +6,7 @@ too, so one code works across every conference.
 
 import json
 import re
+from datetime import date, timedelta
 from urllib.parse import urlparse
 
 from falkordb import Graph
@@ -62,6 +63,54 @@ def same_conference(a: dict, b: dict) -> bool:
     return a["start_date"] <= b_end and b["start_date"] <= a_end
 
 
+MONTH_NAMES = ("january", "february", "march", "april", "may", "june", "july", "august", "september",
+               "october", "november", "december")
+_ISO = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+_RANGE = re.compile(r"\s*(?:[-–—]|\bto\b|\bthrough\b|\buntil\b)\s*", re.I)
+MAX_DAYS = 31
+
+
+def _month(word: str) -> int | None:
+    word = word.lower().rstrip(".")
+    return next((i for i, name in enumerate(MONTH_NAMES, 1) if len(word) >= 3 and name.startswith(word)), None)
+
+
+def end_date_from(dates: str, start_date: str) -> str:
+    """The last day of a range like "November 16-20, 2026" or "Oct 30–Nov 2", as YYYY-MM-DD; "" if the
+    text gives no range. The nearby search states only a start date, so the end is read from its words.
+    Missing month or year come from the start date; an end before the start or a month after it is refused."""
+    try:
+        start = date.fromisoformat((start_date or "")[:10])
+    except ValueError:
+        return ""
+    text = dates or ""
+    if len(iso := _ISO.findall(text)) >= 2:
+        tail = iso[-1]
+        candidates = [tail]
+    else:
+        parts = _RANGE.split(text, maxsplit=1)
+        if len(parts) < 2:
+            return ""
+        tail = parts[1]
+        day = re.search(r"(?<!\d)(\d{1,2})(?!\d)", tail)
+        if not day:
+            return ""
+        month = next((m for w in re.findall(r"[A-Za-z]+\.?", tail) if (m := _month(w))), start.month)
+        year = re.search(r"\b(\d{4})\b", tail)
+        years = [int(year.group(1))] if year else [start.year, start.year + 1]
+        candidates = []
+        for y in years:
+            try:
+                candidates.append(date(y, month, int(day.group(1))).isoformat())
+            except ValueError:
+                pass
+    for candidate in candidates:
+        end = date.fromisoformat(candidate)
+        if start <= end <= start + timedelta(days=MAX_DAYS):
+            return candidate
+    return ""
+
+
 # --- conferences -------------------------------------------------------------
 
 def _entry(row: list) -> dict:
@@ -101,8 +150,13 @@ def ensure_universe(reg: Graph) -> dict:
 def upsert_found(reg: Graph, found: dict) -> dict:
     """The existing entry when this is the same conference, else a new one (status none)."""
     existing = list_conferences(reg)
+    found = {**found, "end_date": found.get("end_date") or end_date_from(found.get("dates", ""), found.get("start_date", ""))}
     match = next((c for c in existing if same_conference(c, found)), None)
     if match:
+        end = end_date_from(match["dates"] or found.get("dates", ""), match["start_date"])
+        if not match["end_date"] and end and match["id"] != UNIVERSE_ID:  # saved before end dates were read
+            reg.query("MATCH (c:Conference {id: $id}) SET c.end_date = $end", {"id": match["id"], "end": end})
+            match = get(reg, match["id"])
         return match
     base = conference_id(found["name"], found.get("start_date", ""))
     taken = {c["id"] for c in existing}
