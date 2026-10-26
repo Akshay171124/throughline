@@ -88,7 +88,7 @@ def never(*a, **k):
 
 @pytest.mark.parametrize("url", [
     "http://127.0.0.1/", "http://localhost/", "http://169.254.169.254/latest/meta-data",
-    "http://10.0.0.5/", "file:///etc/passwd", "http://[::1]/",
+    "http://10.0.0.5/", "file:///etc/passwd", "http://[::1]/", "http://100.64.1.1/",
 ])
 def test_unsafe_urls_are_refused(url):
     with pytest.raises(UnsafeURL):

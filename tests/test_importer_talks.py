@@ -147,7 +147,7 @@ def test_placeholders_ignore_trailing_punctuation():
 def test_check_event_with_only_a_start_date():
     kept, reason = check_event([raw_talk(date="2026-11-16")], "2026-11-16", None)
     assert len(kept) == 1 and reason is None
-    assert check_event([raw_talk(date="2026-11-20")], "2026-11-16", None)[1] is not None
+    assert check_event([raw_talk(date="2025-11-16")], "2026-11-16", None)[1] is not None
 
 
 def test_detail_range_replaces_listing_end_and_duration_needs_page():
@@ -171,3 +171,12 @@ def test_entries_that_still_share_a_code_are_kept_once():
     counts = Counter()
     out = to_talks("c1", [raw_talk(end="11:25"), raw_talk(end="11:25", abstract="Longer teaser.")], counts=counts)
     assert len(out) == 1 and counts == Counter({"duplicate": 1})
+
+
+def test_check_event_with_only_a_start_date_uses_the_talks_last_day():
+    # A three-day conference whose search result gave only its first day is not a different event.
+    talks = [raw_talk(date=d) for d in ["2026-11-16", "2026-11-17", "2026-11-18"] * 3]
+    kept, reason = check_event(talks, "2026-11-16", None)
+    assert reason is None and len(kept) == 9
+    assert check_event([raw_talk(date="2026-11-14")], "2026-11-16", None)[1] is not None  # before it starts
+    assert check_event([raw_talk(date="2026-12-30")], "2026-11-16", None)[1] is not None  # past start + 31 days

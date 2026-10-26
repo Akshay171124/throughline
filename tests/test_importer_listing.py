@@ -166,3 +166,56 @@ def test_a_talk_seen_twice_is_dropped_once():
     kept, dropped = verify_listing(session_page(), [raw_talk("Invented Talk"), raw_talk("Invented Talk", room="Marina")])
     assert kept == [] and dropped == Counter({"title_not_on_page": 1})
 
+
+
+# --- talk dates are checked in code against the page's day headings (ruling R23) ---
+
+STARTUP = "Transitioning From a Startup to a Mature Platform"  # a Tuesday talk early in the second chunk
+
+
+def test_day_headings_are_read_from_the_page():
+    from throughline.importer import day_headings
+    text = ("Mon 16 Monday Nov 16 Tue 17 Tuesday Nov 17 Monday, November 16th, 2026 07:15AM PST Badge "
+            "Tuesday 17 November talks Thu, Nov 19 Saturn 16 November")
+    days = [(d, h) for _, d, h in day_headings(text)]
+    assert days == [("2026-11-16", "Monday Nov 16"), ("2026-11-17", "Tuesday Nov 17"),
+                    ("2026-11-16", "Monday, November 16th, 2026"), ("2026-11-17", "Tuesday 17 November"),
+                    ("2026-11-19", "Thu, Nov 19")]
+    assert day_headings("Talk One at 9:00AM, released on March 3, 2020") == []
+
+
+def test_each_chunk_gets_the_day_it_starts_in():
+    page, seen = qcon_page(), []
+
+    def ask(system, user, schema):
+        seen.append(user)
+        return {"talks": []}
+
+    read_listing(page, ask=ask, chunk_chars=20000)
+    assert len(seen) == 2
+    assert "Day context" not in seen[0]
+    assert seen[1].startswith("Day context: Tuesday, November 17th, 2026")
+    assert STARTUP in seen[1][:2000]
+
+
+def test_a_talk_date_must_match_the_day_heading_above_it():
+    page = qcon_page()
+    tuesday = raw_talk(STARTUP, "02:45PM PST", "14:45", date="2026-11-17")
+    kept, dropped = verify_listing(page, [tuesday])
+    assert [(t["title"], t["date"]) for t in kept] == [(STARTUP, "2026-11-17")] and not dropped
+    kept, dropped = verify_listing(page, [{**tuesday, "date": "2026-11-16"}])
+    assert kept == [] and dropped == Counter({"date_not_on_page": 1})
+
+
+def test_a_seam_talk_read_with_two_dates_is_one_talk():
+    page = qcon_page()
+    tuesday = raw_talk(STARTUP, "02:45PM PST", "14:45", date="2026-11-17")
+    kept, dropped = verify_listing(page, [{**tuesday, "date": "2026-11-16"}, tuesday])
+    assert [(t["title"], t["date"]) for t in kept] == [(STARTUP, "2026-11-17")]
+    assert dropped == Counter()  # the misdated copy is the same talk, not something left out
+
+
+def test_without_day_headings_dates_are_not_checked():
+    page = Page(QCON, "", "Talk One at 9:00AM and Talk Two at 10:00AM", [])
+    kept, dropped = verify_listing(page, [raw_talk("Talk One", "9:00AM", "09:00", date="2031-01-01")])
+    assert [t["date"] for t in kept] == ["2031-01-01"] and not dropped

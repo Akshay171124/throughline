@@ -7,6 +7,7 @@ model read talks from this text and check every title and URL against it.
 """
 
 import base64
+import bisect
 import hashlib
 import ipaddress
 import json
@@ -131,7 +132,7 @@ def check_url(url: str, resolve=socket.getaddrinfo) -> None:
     for addr in addrs:
         for a in (addr, getattr(addr, "ipv4_mapped", None)):
             if a and (a.is_loopback or a.is_private or a.is_link_local or a.is_reserved
-                      or a.is_multicast or a.is_unspecified):
+                      or a.is_multicast or a.is_unspecified or not a.is_global):  # 100.64.0.0/10 too
                 raise UnsafeURL(f"{host} is not a public address")
 
 
@@ -249,6 +250,8 @@ Copy values from the page; never invent or fill in anything the page does not sa
 - abstract: the description as written, else null.
 - detail_url: the talk's own link, copied exactly from the links given, else null.
 - sponsored: true only if the page marks the talk as sponsored or a vendor session.
+If a "Day context" line comes before the page text, talks before the first day heading in the text are
+on that day.
 Skip breaks, meals, registration and other non-talk entries. The text may start or end in the middle
 of a talk; include a talk only if its title is fully there.
 
@@ -326,33 +329,124 @@ def find_schedule(start_url: str, fetch=fetch_page, ask: Ask = ask_openai,
     return None, tried
 
 
-def _chunks(text: str, size: int) -> list[str]:
-    """Pieces of about `size` characters cut at whitespace, each starting OVERLAP before the last ended."""
+def _spans(text: str, size: int) -> list[tuple[int, int]]:
+    """(start, end) of pieces of about `size` characters cut at whitespace, each starting OVERLAP before the last ended."""
     if len(text) <= size:
-        return [text]
+        return [(0, len(text))]
     out, start = [], 0
     while True:
         end = start + size
         if end >= len(text):
-            out.append(text[start:])
+            out.append((start, len(text)))
             return out
         cut = text.rfind(" ", start + 1, end)
         end = cut if cut > start else end
-        out.append(text[start:end])
+        out.append((start, end))
         nxt = text.find(" ", max(end - OVERLAP, start + 1))
         start = nxt + 1 if 0 <= nxt < end else end
+
+
+def _chunks(text: str, size: int) -> list[str]:
+    return [text[a:b] for a, b in _spans(text, size)]
+
+
+# --- day headings: the dates a talk may have, found by code -------------------------
+
+_WEEKDAY = (r"(monday|tuesday|wednesday|thursday|friday|saturday|sunday"
+            r"|mon|tues|tue|wed|thurs|thur|thu|fri|sat|sun)\.?(?![a-z])")
+_MONTH = (r"(january|february|march|april|may|june|july|august|september|october|november|december"
+          r"|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\.?(?![a-z])")
+_DAY = r"(\d{1,2})(?:st|nd|rd|th)?(?![\d:a-z])"
+_YEAR = r"(?:,?\s*((?:19|20)\d\d)(?![\d:]))?"
+_HEADINGS = [  # (pattern, group of weekday, month, day, year)
+    (re.compile(rf"\b{_WEEKDAY},?\s+{_MONTH}\s+{_DAY}{_YEAR}", re.I), (1, 2, 3, 4)),  # Monday, November 16th, 2026
+    (re.compile(rf"\b{_WEEKDAY},?\s+{_DAY}\s+{_MONTH}{_YEAR}", re.I), (1, 3, 2, 4)),  # Tuesday 17 November
+]
+_PLAIN_HEADING = (re.compile(rf"\b{_MONTH}\s+{_DAY}{_YEAR}", re.I), (None, 1, 2, 3))  # November 16, 2026
+_DAY_NAMES = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+_MONTH_NAMES = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+HEADING_SPREAD = 31  # days: a heading this far from the others is a date in an abstract, not a day of the event
+
+
+def _matches(text: str, patterns) -> list[tuple[int, str | None, int, int, int | None, str]]:
+    found = []
+    for pattern, (w, m, d, y) in patterns:
+        for match in pattern.finditer(text):
+            year = match.group(y)
+            found.append((match.start(), match.group(w) if w else None, _MONTH_NAMES.index(match.group(m)[:3].lower()) + 1,
+                          int(match.group(d)), int(year) if year else None, match.group(0).rstrip(" ,")))
+    return sorted(found)
+
+
+def day_headings(text: str) -> list[tuple[int, str, str]]:
+    """The day headings in a page's text, in order: (position, date, heading as written).
+
+    A heading names a weekday and a month and day ("Monday, November 16th, 2026", "Mon Nov 16",
+    "Tuesday 17 November"); a page without any may use month and day alone ("November 16"), if it names
+    at least two days. A heading without a year takes the year the page's headings (else its text) use
+    most; the date is "--MM-DD" when the page states no year. A stated weekday must fit the date, and a
+    heading far from the page's other days (a date in an abstract) is ignored."""
+    found = _matches(text, _HEADINGS)
+    if not found:
+        found = _matches(text, [_PLAIN_HEADING])
+        if len({(m, d) for _, _, m, d, _, _ in found}) < 2:
+            return []
+    years = Counter(y for *_, y, _ in found if y) or Counter(int(y) for y in re.findall(r"\b(20\d\d)\b", text))
+    context = years.most_common(1)[0][0] if years else None
+    out = []
+    for pos, weekday, month, day, year, heading in found:
+        year = year or context
+        try:
+            when = datetime.date(year or 2000, month, day)  # 2000 is a leap year: Feb 29 stays valid
+        except ValueError:
+            continue
+        if year and weekday and _DAY_NAMES[when.weekday()] != weekday[:3].lower():
+            continue
+        out.append((pos, when.isoformat() if year else f"--{month:02d}-{day:02d}", heading))
+    dated = sorted(datetime.date.fromisoformat(d).toordinal() for _, d, _ in out if not d.startswith("--"))
+    if dated:
+        middle = dated[len(dated) // 2]
+        out = [h for h in out if h[1].startswith("--")
+               or abs(datetime.date.fromisoformat(h[1]).toordinal() - middle) <= HEADING_SPREAD]
+    return out
+
+
+def _same_day(date: str | None, heading_date: str) -> bool:
+    if heading_date.startswith("--"):
+        return bool(date) and date[4:] == heading_date[1:]
+    return date == heading_date
+
+
+def _heading_before(headings: list[tuple[int, str, str]], pos: int) -> tuple[int, str, str] | None:
+    i = bisect.bisect_left([h[0] for h in headings], pos)
+    return headings[i - 1] if i else None
+
+
+def _page_days(norm_text: str, headings: list[tuple[int, str, str]], title: str) -> set[str]:
+    """The days under which the title appears on the page: the nearest heading above each place it appears."""
+    needle = normalize(title)
+    days = set()
+    for match in re.finditer(r"(?<!\w)" + re.escape(needle) + r"(?!\w)", norm_text) if needle else ():
+        heading = _heading_before(headings, match.start())
+        if heading:
+            days.add(heading[1])
+    return days
 
 
 def read_listing(page: Page, ask: Ask = ask_openai, chunk_chars: int = 20000) -> list[dict]:
     """Have the model list the talks, chunk by chunk. Only exact repeats (a talk on a chunk seam, read
     the same way twice) are dropped here; verify_listing merges the rest once their fields are checked.
 
-    The page's links go along with every chunk so the model can copy each talk's detail_url.
+    The page's links go along with every chunk so the model can copy each talk's detail_url, and a chunk
+    that starts under a day heading is told that day, so talks before its first heading get their date.
     """
     links = "\n".join(f"{text or '(no text)'} -> {url}" for text, url in page.links)
+    headings = day_headings(page.text)
     talks, seen = [], set()
-    for chunk in _chunks(page.text, chunk_chars):
-        user = (f"<untrusted_page url={page.url}>\n{chunk}\n</untrusted_page>\n\n"
+    for start, end in _spans(page.text, chunk_chars):
+        heading = _heading_before(headings, start)
+        context = f"Day context: {heading[2]} (the last day heading before this part of the page)\n\n" if heading else ""
+        user = (f"{context}<untrusted_page url={page.url}>\n{page.text[start:end]}\n</untrusted_page>\n\n"
                 f"<untrusted_links>\n{links}\n</untrusted_links>")
         for talk in ask(LISTING_PROMPT, user, LISTING_SCHEMA).get("talks", []):
             key = json.dumps(talk, sort_keys=True)
@@ -426,24 +520,32 @@ def verify_listing(page: Page, raw: list[dict]) -> tuple[list[dict], Counter]:
 
     The time is checked by code: the time text must be on the page and must parse to the model's start.
     The end comes only from a second clock in that time text; a duration is kept only if it is on the page.
+    When the page has day headings, the date is checked by code too: it must be the day heading above
+    the title (above any place the title appears, when it appears more than once).
     Entries in the same slot are then merged unless the page tells them apart (_same_session); a slot
-    none of whose entries passes counts as one drop.
+    none of whose entries passes counts as one drop, unless it was the same talk read with the wrong day
+    (its title and start were kept under the right one).
     """
     urls = {url for _, url in page.links}
+    norm_text = normalize(page.text)
+    headings = day_headings(norm_text)
     slots: dict[tuple, list[dict]] = {}
     for talk in raw:
         slots.setdefault(_slot(talk), []).append(talk)
-    kept, dropped = [], Counter()
-    for entries in slots.values():
+    kept, dropped, misdated = [], Counter(), []
+    for slot, entries in slots.items():
         checked, reasons = [], []
         for talk in entries:
-            reason, result = _check(page, urls, talk)
+            reason, result = _check(page, urls, talk, norm_text, headings)
             if result:
                 checked.append(result)
             else:
                 reasons.append(reason)
         if not checked:
-            dropped[reasons[0]] += 1
+            if reasons[0] == "date_not_on_page":
+                misdated.append(slot)
+            else:
+                dropped[reasons[0]] += 1
             continue
         sessions: list[dict] = []
         for talk in checked:
@@ -453,10 +555,13 @@ def verify_listing(page: Page, raw: list[dict]) -> tuple[list[dict], Counter]:
             else:
                 sessions.append(talk)
         kept.extend(sessions)
-    return kept, dropped
+    read_right = {(normalize(t["title"]), t.get("start")) for t in kept}
+    dropped["date_not_on_page"] += sum(1 for title, _, start in misdated if (title, start) not in read_right)
+    return kept, +dropped
 
 
-def _check(page: Page, urls: set[str], talk: dict) -> tuple[str, dict | None]:
+def _check(page: Page, urls: set[str], talk: dict, norm_text: str | None = None,
+           headings: list | None = None) -> tuple[str, dict | None]:
     """One entry checked against the page: (reason, None) if it fails, else ("", the checked entry)."""
     if not on_page(talk.get("title") or "", page.text):
         return "title_not_on_page", None
@@ -464,6 +569,10 @@ def _check(page: Page, urls: set[str], talk: dict) -> tuple[str, dict | None]:
     parsed = parse_time(time_text)
     if parsed is None or not on_page(time_text, page.text) or parsed != talk.get("start"):
         return "time_not_on_page", None
+    if headings:
+        days = _page_days(norm_text if norm_text is not None else normalize(page.text), headings, talk["title"])
+        if not any(_same_day(talk.get("date"), day) for day in days):
+            return "date_not_on_page", None
     abstract = talk.get("abstract") or ""
     clocks = parse_times(time_text)  # the end is the second clock of the verified time, never the model's word
     duration_text = talk.get("duration_text") or ""
@@ -625,11 +734,20 @@ def _day_number(date: str) -> int:
     return to_minutes(date, "00:00") // 1440
 
 
+MAX_EVENT_DAYS = 31
+
+
 def check_event(talks: list[dict], start_date: str | None, end_date: str | None) -> tuple[list[dict], str | None]:
-    """Keep talks within a day of the conference's dates; refuse the schedule if under 80% of them are."""
+    """Keep talks within a day of the conference's dates; refuse the schedule if under 80% of them are.
+    Without an end date the event runs from its start to the talks' own last day (at most MAX_EVENT_DAYS)."""
     if not (start_date and talks):
         return talks, None
-    low, high = _day_number(start_date) - 1, _day_number(end_date or start_date) + 1
+    first = _day_number(start_date)
+    if end_date:
+        high = _day_number(end_date) + 1
+    else:
+        high = min(max(_day_number(t["date"]) for t in talks), first + MAX_EVENT_DAYS)
+    low = first - 1
     kept = [t for t in talks if low <= _day_number(t["date"]) <= high]
     if len(kept) >= 0.8 * len(talks):
         return kept, None
