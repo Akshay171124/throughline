@@ -221,7 +221,8 @@ MERGE (res)-[x:EXPLAINS]->(c)
 SET x.evidence = $snippet, x.checked_at = $checked_at
 """
 
-PRUNE = "MATCH (r:Resource {source: 'brightdata-serp'}) WHERE NOT (r)-[:EXPLAINS]->() DELETE r"
+# A Resource that explains nothing and is no talk's reading (briefing's READ_BEFORE) is left over: delete it.
+PRUNE = "MATCH (r:Resource {source: 'brightdata-serp'}) WHERE NOT (r)-[:EXPLAINS]->() AND NOT (r)-[:READ_BEFORE]->() DELETE r"
 
 
 def store(g: Graph, concept_id: str, explainer: dict) -> None:

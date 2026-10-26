@@ -168,3 +168,25 @@ def test_run_without_a_cache_reads_and_writes_no_file(tmp_path, monkeypatch):
     out = run(FakeGraph(), fake_search, none, cache=None)
     assert out["results"]["mcp"]["explainer"] is None  # another conference never borrows Universe's picks
     assert (tmp_path / "explainers.json").read_text() == before
+
+
+def test_storing_explainers_keeps_talk_readings():
+    # A new conference's readings are found when a talk is first opened, which can be before its explainer
+    # run ends. Clearing unused explainers must not delete those readings (they share the Resource label).
+    from throughline.graph import connect
+    try:
+        g = connect("throughline_test_explainers", local=True)
+        g.query("RETURN 1")
+    except Exception as e:
+        pytest.skip(f"FalkorDB not reachable: {e}")
+    try:
+        g.query("""
+            CREATE (t:Talk {code: 'T1'}), (:Concept {id: 'mcp'}),
+                   (:Resource {url: 'https://read.me/', source: 'brightdata-serp'})-[:READ_BEFORE]->(t),
+                   (:Resource {url: 'https://old.explainer/', source: 'brightdata-serp'})
+        """)
+        explainers.load_results(g, {})
+        urls = {r[0] for r in g.query("MATCH (r:Resource) RETURN r.url").result_set}
+        assert urls == {"https://read.me/"}
+    finally:
+        g.delete()
