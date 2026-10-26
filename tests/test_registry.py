@@ -129,3 +129,12 @@ def test_upsert_found_fills_a_missing_end_date_on_an_existing_entry(reg):
     entry = registry.upsert_found(reg, qcon)
     assert entry["end_date"] == "2026-11-20"
     assert registry.get(reg, entry["id"])["end_date"] == "2026-11-20"
+
+
+def test_a_short_name_without_dates_matches_itself(reg):
+    # "AI Dev 26 x SF" has no word longer than 3 letters; searching twice must not list it twice.
+    found = {"name": "AI Dev 26 x SF", "dates": "", "url": "https://www.ai21.com/events/ai-dev-2026/", "start_date": ""}
+    assert registry.same_conference(found, dict(found))
+    first, second = registry.upsert_found(reg, found), registry.upsert_found(reg, found)
+    assert first["id"] == second["id"] == "ai-dev-26-x-sf"
+    assert not registry.same_conference(found, {**found, "name": "AI Dev 25 x NYC"})

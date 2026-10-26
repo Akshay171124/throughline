@@ -40,7 +40,10 @@ def _words(name: str) -> set[str]:
 
 
 def _names_match(name: str, other: str) -> bool:
-    """Same event if they share enough distinctive words (one shared word isn't enough)."""
+    """Same event if the names are the same, or share enough distinctive words (one shared word isn't enough)."""
+    same = re.findall(r"[a-z0-9]+", name.lower())
+    if same and same == re.findall(r"[a-z0-9]+", other.lower()):  # "AI Dev 26 x SF" has no long word to share
+        return True
     words, ow = _words(name), _words(other)
     return bool(words and ow and len(words & ow) >= min(2, len(ow)))
 
