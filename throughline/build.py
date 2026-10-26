@@ -43,9 +43,11 @@ STEPS = {
 }
 BUILT = ("ready", "partial")
 KEPT_OLD = "The retry found fewer talks, so the earlier map was kept."
+NOT_LINKED = "The retry couldn't link talks to concepts, so the earlier map was kept."
+RETRY_INTERRUPTED = "A retry was interrupted; the earlier map was kept."
 UNSAFE = "That link can't be fetched safely."
-LOGIN = "The schedule page needs a login."
-LOGIN_WORDS = ("sign in", "log in")
+NEEDS_LOGIN = "The schedule page needs a login."
+LOGIN_WORDS = re.compile(r"\b(sign|log) in\b", re.I)  # not "blog in" or "catalog in"
 GRAPH_PREFIX = "throughline_c_"
 CLOCK_TIME = "08:30"
 
@@ -104,6 +106,15 @@ def _run_then_forget(reg: Graph, conf_id: str, schedule_url: str | None, deps: D
 def _mark_building(reg: Graph, conf_id: str, schedule_url: str | None) -> dict:
     fields = {"schedule_url": schedule_url} if schedule_url else {}
     return registry.set_status(reg, conf_id, status="building", step=STEPS["schedule"], reason="", **fields)
+
+
+def recover_interrupted(reg: Graph) -> int:
+    """At startup: a build left `building` died with the old process. A retry of an existing map gives
+    that map back (its status from its counts); a first build becomes `failed`. Returns how many changed."""
+    retried = [c for c in registry.list_conferences(reg) if c["status"] == "building" and c["graph"]]
+    for c in retried:
+        registry.set_status(reg, c["id"], status=status_for(c["counts"]), step="", reason=RETRY_INTERRUPTED)
+    return len(retried) + registry.mark_interrupted(reg)
 
 
 def status_for(counts: dict) -> str:
@@ -166,7 +177,14 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
         graph.ensure_schema(g)
         graph.load_talks(g, talks, source="schedule page", conf=conf)
         load_concepts(g, concepts)
-        load_edges(g, edges)
+        linked = load_edges(g, edges)["kept"]
+        with_abstracts = sum(1 for t in talks if t["abstract"].strip())
+        if old and (linked == 0 or failed > with_abstracts / 2):  # never swap a linked map for an unlinked one
+            _drop(deps, new_name)
+            new_name = ""
+            return registry.set_status(reg, conf_id, status=old["status"], step="", reason=NOT_LINKED)
+        if linked == 0:  # the talks are real, but nothing connects them yet
+            counts["no_links"] = len(talks)
         derive_depends_on(g)
         if old:
             carry_over(deps.connect(old["graph"]), g)
@@ -211,9 +229,8 @@ def _find_schedule(start_url: str, deps: Deps) -> tuple[importer.Page | None, st
 def _read_talks(page: importer.Page, entry: dict, deps: Deps, step) -> tuple[list[dict], Counter, str]:
     """The talks the page vouches for, what was left out, and the not-found reason if too few remain."""
     raw = importer.read_listing(page, ask=deps.ask)
-    text = page.text.lower()
-    if len(raw) < MIN_TALKS and any(w in text for w in LOGIN_WORDS):
-        return [], Counter(), LOGIN
+    if len(raw) < MIN_TALKS and LOGIN_WORDS.search(page.text):
+        return [], Counter(), NEEDS_LOGIN
     kept, dropped = importer.verify_listing(page, raw)
     if len(kept) >= MIN_TALKS:
         step("details", done=0, total=sum(1 for t in kept if t.get("detail_url")))

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from falkordb import Graph
 from pydantic import BaseModel
 
-from . import briefing, flow, nearby, planner
+from . import briefing, build, flow, nearby, planner
 from . import registry as registry_db
 from .agent import Tools, run_agent
 from .config import ROOT, settings
@@ -25,7 +25,7 @@ BUILT = ("ready", "partial")
 async def lifespan(_app: FastAPI):
     reg = registry()
     registry_db.ensure_universe(reg)
-    registry_db.mark_interrupted(reg)
+    build.recover_interrupted(reg)
     migrate_accounts(reg, graph())
     yield
 

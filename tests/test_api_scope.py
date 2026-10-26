@@ -131,12 +131,15 @@ def test_existing_universe_attendee_is_migrated(world):
 
 
 def test_startup_marks_interrupted_builds(world):
-    registry.set_status(world.reg, world.qcon, status="building")
+    registry.set_status(world.reg, world.qcon, status="building")  # a retry of a built map
+    first = registry.upsert_found(world.reg, {"name": "AI Engineer Code Summit 2026", "url": "https://ai.engineer/"})
+    registry.set_status(world.reg, first["id"], status="building")  # a first build
     # startup points Universe back at its real graph name
     world.graphs.update({settings.graph_name: world.a, public_name(settings.graph_name): world.a})
     with TestClient(api.app):
         pass
-    assert registry.get(world.reg, world.qcon)["status"] == "failed"
+    assert registry.get(world.reg, world.qcon)["status"] == "ready"  # the map stays open
+    assert registry.get(world.reg, first["id"])["status"] == "failed"
     assert registry.get(world.reg, registry.UNIVERSE_ID)["status"] == "ready"
 
 

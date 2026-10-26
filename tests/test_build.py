@@ -282,3 +282,54 @@ def test_failed_retry_leaves_the_earlier_map_open(reg):
     again = build.run(reg, cid, None, make_deps([], fetch=dead))
     assert (again["status"], again["graph"]) == (first["status"], first["graph"])
     assert again["reason"] == f"We couldn't load {HOME}. The earlier map was kept."
+
+
+def unlinked_ask(listing):
+    ask = make_ask(listing, [OAUTH, AGENTS])
+
+    def failing(system, user, schema):
+        if system.startswith("You map one conference talk"):
+            raise RuntimeError("model down")
+        return ask(system, user, schema)
+    return failing
+
+
+def test_unlinked_retry_keeps_the_old_map(reg):
+    cid = qcon(reg)
+    first = build.run(reg, cid, None, make_deps([raw(*t) for t in TALKS[:6]]))
+    deps = make_deps([raw(*t) for t in TALKS])
+    deps.ask = unlinked_ask([raw(*t) for t in TALKS])
+    again = build.run(reg, cid, None, deps)
+    assert (again["status"], again["graph"]) == (first["status"], first["graph"])
+    assert again["reason"] == "The retry couldn't link talks to concepts, so the earlier map was kept."
+    assert set(built_graphs()) == {PREFIX + first["graph"], PREFIX + first["graph"] + "_public"}
+
+
+def test_unlinked_first_build_is_partial(reg):
+    cid = qcon(reg)
+    deps = make_deps([raw(*t) for t in TALKS])
+    deps.ask = unlinked_ask([raw(*t) for t in TALKS])
+    entry = build.run(reg, cid, None, deps)
+    assert entry["status"] == "partial" and entry["graph"]
+    assert entry["counts"]["no_links"] == 7
+
+
+def test_blog_in_is_not_a_login_wall(reg):
+    cid = qcon(reg)
+    blog = Page(SCHEDULE, "", "Schedule. Read our blog in full. Live Resharding Without Regret 10:35AM PST", [])
+    entry = build.run(reg, cid, SCHEDULE, make_deps([raw(*TALKS[0])], fetch=lambda url: blog))
+    assert entry["status"] == "not_found"
+    assert entry["reason"] == f"{SCHEDULE} doesn't list any talks yet."
+
+
+def test_restart_gives_back_maps_and_fails_first_builds(reg):
+    retried = qcon(reg)
+    registry.set_status(reg, retried, status="building", graph=f"throughline_c_{retried}_v1", counts={"kept": 6})
+    first = registry.upsert_found(reg, {"name": "AI Engineer Code Summit 2026", "url": AIE,
+                                        "start_date": "2026-11-10", "end_date": "2026-11-12"})["id"]
+    registry.set_status(reg, first, status="building")
+    assert build.recover_interrupted(reg) == 2
+    entry = registry.get(reg, retried)
+    assert (entry["status"], entry["reason"]) == ("ready", "A retry was interrupted; the earlier map was kept.")
+    entry = registry.get(reg, first)
+    assert (entry["status"], entry["reason"]) == ("failed", "The build was interrupted")
