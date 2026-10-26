@@ -49,7 +49,10 @@ NOT_LINKED = "The retry couldn't link talks to concepts, so the earlier map was 
 RETRY_INTERRUPTED = "A retry was interrupted; the earlier map was kept."
 UNSAFE = "That link can't be fetched safely."
 NEEDS_LOGIN = "The schedule page needs a login."
-LOGIN_WORDS = re.compile(r"\b(sign|log) in\b", re.I)  # not "blog in" or "catalog in"
+LOGIN_WORDS = re.compile(r"\b(sign|log) ?in\b", re.I)  # not "blog in" or "catalog in"
+PASSWORD_FIELD = re.compile(r"<input\b[^>]*\btype\s*=\s*[\"']?password\b", re.I)
+LOGIN_FORM = re.compile(r"<form\b[^>]*\b(?:action|id|name|class)\s*=\s*[\"']?[^\"'>]*(?:log[-_ ]?in|sign[-_ ]?in)", re.I)
+DIFFERENT_EVENT = "The schedule we found is for a different event"
 GRAPH_PREFIX = "throughline_c_"
 CLOCK_TIME = "08:30"
 
@@ -163,6 +166,8 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
         registry.set_status(reg, conf_id, step=STEPS[key].format(**numbers))
 
     def finish(status: str, reason: str = "", **fields) -> dict:
+        if schedule_url and refuses_link(reason):  # "Try again" starts from the website instead
+            fields["schedule_url"] = ""
         if old and status not in BUILT:  # a failed retry leaves the earlier map open
             status, reason = old["status"], f"{reason} The earlier map was kept."
         return registry.set_status(reg, conf_id, status=status, step="", reason=reason, **fields)
@@ -217,6 +222,7 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
             talks=len(talks), **{k: conf[k] for k in ("clock_start", "start_date", "end_date", "dates")})
         new_name = ""  # the registry points at it now: never clean it up
         if old:
+            forget_without_account(reg, g)  # a "Forget me" that reached only the old map while this was built
             _drop(deps, old["graph"])
     except Exception as e:
         log.exception("the build of %s stopped", conf_id)
@@ -232,12 +238,28 @@ def run(reg: Graph, conf_id: str, schedule_url: str | None = None, deps: Deps | 
     return final
 
 
+def refuses_link(reason: str) -> bool:
+    """The link itself was refused (unsafe, didn't load, another event's schedule): trying it again can't help."""
+    return reason == UNSAFE or reason.startswith(("We couldn't load ", DIFFERENT_EVENT))
+
+
+def forget_without_account(reg: Graph, g: Graph) -> int:
+    """Delete the attendees in this map whose account is gone; returns how many."""
+    gone = [code for (code,) in g.query("MATCH (a:Attendee) RETURN a.code").result_set
+            if not registry.account_exists(reg, code)]
+    for code in gone:
+        g.query("MATCH (a:Attendee {code: $code}) DETACH DELETE a", {"code": code})
+    return len(gone)
+
+
 def _find_schedule(start_url: str, deps: Deps) -> tuple[importer.Page | None, str]:
     """The schedule page, or None and the reason in plain words."""
     if not start_url:
         return None, "We couldn't find a schedule page."
     try:
         first = deps.fetch(start_url)
+    except importer.Unresolvable:  # a typo or a dead site, not a hostile link
+        return None, f"We couldn't load {start_url}."
     except importer.UnsafeURL:
         return None, UNSAFE
     except Exception:
@@ -245,18 +267,44 @@ def _find_schedule(start_url: str, deps: Deps) -> tuple[importer.Page | None, st
     fetch = lambda url: first if url == start_url else deps.fetch(url)  # noqa: E731
     try:
         page, _ = importer.find_schedule(start_url, fetch=fetch, ask=deps.ask)
+    except importer.Unresolvable:  # one of its links leads nowhere
+        page = None
     except importer.UnsafeURL:
         return None, UNSAFE
     return page, "" if page else f"We couldn't find a schedule page on {start_url}."
 
 
+def needs_login(page: importer.Page) -> bool:
+    """A password field or a login form, or a nearly empty page that asks to sign in. Menu text alone
+    ("Log in" on QCon's own schedule) is not a login wall."""
+    if PASSWORD_FIELD.search(page.html or "") or LOGIN_FORM.search(page.html or ""):
+        return True
+    return len(page.text) < importer.MIN_TEXT and bool(LOGIN_WORDS.search(page.text))
+
+
+def _dated(talks: list[dict]) -> list[dict]:
+    """The talks whose date is a real YYYY-MM-DD (finish_times drops the others later)."""
+    out = []
+    for t in talks:
+        try:
+            datetime.strptime(t.get("date") or "", "%Y-%m-%d")
+        except ValueError:
+            continue
+        out.append(t)
+    return out
+
+
 def _read_talks(page: importer.Page, entry: dict, deps: Deps, step) -> tuple[list[dict], Counter, str]:
     """The talks the page vouches for, what was left out, and the not-found reason if too few remain."""
     raw = importer.read_listing(page, ask=deps.ask)
-    if len(raw) < MIN_TALKS and LOGIN_WORDS.search(page.text):
+    if len(raw) < MIN_TALKS and needs_login(page):
         return [], Counter(), NEEDS_LOGIN
     kept, dropped = importer.verify_listing(page, raw)
     if len(kept) >= MIN_TALKS:
+        # Another event's schedule is refused before any of its talk pages is read.
+        _, reason = importer.check_event(_dated(kept), entry["start_date"], entry["end_date"])
+        if reason:
+            return [], dropped, reason
         step("details", done=0, total=sum(1 for t in kept if t.get("detail_url")))
         dropped += importer.enrich(kept, fetch=deps.fetch, ask=deps.ask,
                                    progress=lambda done, total: step("details", done=done, total=total))

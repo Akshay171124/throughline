@@ -204,3 +204,16 @@ def test_nearby_lists_universe_with_its_talk_count(world, monkeypatch, tmp_path)
     out = world.client.get("/api/conferences/nearby", params={"place": "San Francisco, CA"}).json()
     universe = next(c for c in out["conferences"] if c["id"] == registry.UNIVERSE_ID)
     assert universe["snippet"] == "1 talk loaded"
+
+
+def test_startup_survives_an_unreachable_falkordb(monkeypatch, caplog):
+    def down():
+        raise ConnectionError("Error 61 connecting to localhost:6379. Connection refused.")
+
+    monkeypatch.setattr(api, "registry", down)
+    monkeypatch.setattr(api, "_graph", None)
+    with caplog.at_level("WARNING", logger="throughline"), TestClient(api.app) as client:
+        assert client.get("/").status_code == 200  # the static pages still load
+        health = client.get("/api/health")
+        assert health.status_code == 503 and "FalkorDB unavailable" in health.json()["detail"]
+    assert any("FalkorDB" in r.getMessage() for r in caplog.records if r.levelname == "WARNING")

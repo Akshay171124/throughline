@@ -161,13 +161,24 @@ def test_aie_fixture_is_not_found(reg):
     assert built_graphs() == []
 
 
+LOGIN_HTML = ('<form action="/users/sign_in" method="post"><input type="email" name="email">'
+              '<input type="password" name="password"><button>Log in</button></form>')
+
+
 def test_login_wall_and_unsafe_links_are_not_found(reg):
     cid = qcon(reg)
+    # QCon's own schedule has "Log in" in its menu: too few talks there is not a login wall.
     entry = build.run(reg, cid, None, make_deps([raw(*t) for t in TALKS[:2]]))
+    assert (entry["status"], entry["reason"]) == ("not_found", f"{SCHEDULE} doesn't list any talks yet.")
+    wall = parse_page(SCHEDULE, LOGIN_HTML + "<p>" + "Agenda for members. " * 100 + "</p>")
+    entry = build.run(reg, cid, SCHEDULE, make_deps([], fetch=lambda url: wall))
+    assert (entry["status"], entry["reason"]) == ("not_found", "The schedule page needs a login.")
+    short = Page(SCHEDULE, "<p>Please sign in to see the agenda.</p>", "Please sign in to see the agenda.", [])
+    entry = build.run(reg, cid, SCHEDULE, make_deps([], fetch=lambda url: short))
     assert (entry["status"], entry["reason"]) == ("not_found", "The schedule page needs a login.")
     entry = build.run(reg, cid, "http://127.0.0.1/schedule", make_deps([], fetch=build.importer.fetch_page))
     assert (entry["status"], entry["reason"]) == ("not_found", "That link can't be fetched safely.")
-    assert entry["schedule_url"] == "http://127.0.0.1/schedule"
+    assert entry["schedule_url"] == ""  # a refused link is not tried again by "Try again"
 
     def dead(url):
         raise ConnectionError("down")
@@ -232,6 +243,7 @@ def test_better_retry_carries_attendee_marks(reg):
     old = graph(first["graph"])
     talk_code = old.query("MATCH (t:Talk {title: $t}) RETURN t.code", {"t": TALKS[1][0]}).result_set[0][0]
     code = planner.new_attendee(old)
+    registry.create_account(reg, code)
     planner.mark_known(old, code, "oauth2")
     planner.mark_attended(old, code, talk_code)
     planner.add_target(old, code, talk_code)
@@ -379,3 +391,67 @@ def test_other_model_calls_have_a_hard_deadline(monkeypatch):
 def test_merged_duplicates_do_not_make_a_map_partial():
     assert build.status_for({"kept": 10, "duplicate": 2}) == "ready"
     assert build.status_for({"kept": 10, "duplicate": 2, "no_time": 1}) == "partial"
+
+
+def test_unresolvable_links_could_not_be_loaded(reg):
+    cid = qcon(reg)
+
+    def nowhere(url):
+        raise build.importer.Unresolvable("cannot resolve qconsf.example")
+
+    entry = build.run(reg, cid, "https://qconsf.example/schedule", make_deps([], fetch=nowhere))
+    assert (entry["status"], entry["reason"]) == ("not_found", "We couldn't load https://qconsf.example/schedule.")
+    entry = build.run(reg, cid, None, make_deps([], fetch=nowhere))
+    assert entry["reason"] == f"We couldn't load {HOME}."
+
+
+def test_refused_links_are_forgotten_and_other_outcomes_keep_them(reg):
+    cid = qcon(reg)
+
+    def dead(url):
+        raise ConnectionError("down")
+
+    entry = build.run(reg, cid, "https://qconsf.com/old-schedule", make_deps([], fetch=dead))
+    assert entry["reason"] == "We couldn't load https://qconsf.com/old-schedule." and entry["schedule_url"] == ""
+    # A link that loads but lists no talks yet may list them later: "Try again" uses it again.
+    entry = build.run(reg, cid, SCHEDULE, make_deps([]))
+    assert entry["reason"] == f"{SCHEDULE} doesn't list any talks yet." and entry["schedule_url"] == SCHEDULE
+
+
+def test_wrong_event_is_refused_before_any_talk_page_is_read(reg):
+    # The registry entry is next year's QCon; the page is this year's. No talk page may be fetched.
+    cid = registry.upsert_found(reg, {**QCON, "name": "QCon San Francisco 2027", "dates": "Nov 15–19, 2027",
+                                      "start_date": "2027-11-15", "end_date": "2027-11-19"})["id"]
+    by_url, talk = pages()
+    fetched = []
+
+    def fetch(url):
+        fetched.append(url)
+        return by_url.get(url) or talk
+
+    entry = build.run(reg, cid, SCHEDULE, make_deps([raw(*t) for t in TALKS], fetch=fetch))
+    assert entry["status"] == "not_found"
+    assert entry["reason"] == "The schedule we found is for a different event (dates Nov 16, 2026)"
+    assert [u for u in fetched if u.startswith(DETAIL)] == []
+    assert entry["schedule_url"] == ""
+
+
+def test_forget_me_during_a_rebuild_does_not_survive_the_swap(reg, monkeypatch):
+    cid = qcon(reg)
+    first = build.run(reg, cid, None, make_deps([raw(*t) for t in TALKS[:6]]))
+    old = graph(first["graph"])
+    stays, leaves = planner.new_attendee(old), planner.new_attendee(old)
+    registry.create_account(reg, stays)
+    registry.create_account(reg, leaves)
+    copy = build.carry_over
+
+    def carry_then_forget(old_g, new_g):  # "Forget me" lands after the attendees were copied
+        n = copy(old_g, new_g)
+        planner.forget_attendee(old_g, leaves)
+        registry.delete_account(reg, leaves)
+        return n
+
+    monkeypatch.setattr(build, "carry_over", carry_then_forget)
+    again = build.run(reg, cid, None, make_deps([raw(*t) for t in TALKS]))
+    codes = {r[0] for r in graph(again["graph"]).query("MATCH (a:Attendee) RETURN a.code").result_set}
+    assert codes == {stays}

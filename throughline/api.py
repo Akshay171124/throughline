@@ -34,10 +34,14 @@ if not _log.handlers:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    reg = registry()
-    registry_db.ensure_universe(reg)
-    build.recover_interrupted(reg)
-    migrate_accounts(reg, graph())
+    try:
+        reg = registry()
+        registry_db.ensure_universe(reg)
+        build.recover_interrupted(reg)
+        migrate_accounts(reg, graph())
+    except Exception as e:  # keep serving: the pages load, and /api/health says what's wrong
+        _log.warning("FalkorDB is unreachable at startup (%s: %s); the API will answer 503 until it is back. "
+                     "Interrupted builds are recovered at the next start.", type(e).__name__, e)
     yield
 
 
@@ -134,9 +138,12 @@ def _returning(fields: list[str]) -> str:
 
 
 @app.get("/api/health")
-def health(c: Ctx = Depends(ctx)):
+def health(conf: str | None = Query(None), x_conference: str | None = Header(None)):
     try:
+        c = ctx(conf, x_conference)  # the registry itself may be what's down
         talks = c.g.query("MATCH (t:Talk) RETURN count(t)").result_set[0][0]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(503, f"FalkorDB unavailable: {e}")
     return {"ok": True, "graph": c.conf["graph"], "backend": backend(), "talks": talks}
