@@ -86,7 +86,7 @@ These come from the nearby search results checked on Oct 25, 2026:
   - Creating an attendee creates the `Account`; the per-conference `Attendee` node is created on first use in that conference.
   - "Forget me" deletes the `Account` and every per-conference `Attendee` node with that code.
   - The registry graph is never exposed to `run_cypher`.
-  - The planner and flow read experience from the `Account`. Tests that set the profile on a single graph (`tests/test_memory.py`) are updated to match; changing tests for this is fine.
+  - The `Account` is the source of truth for the profile. It is copied onto the conference's own `Attendee` node when that node is created and whenever the profile is newer than the copy, so the planner and flow keep reading it from the conference graph unchanged (and `tests/test_memory.py` keeps passing).
   - On startup, every existing Universe `Attendee` that has a profile but no `Account` gets one, copied from its profile. Codes already saved in browsers keep working.
 - **Conference clock.** For a new conference it starts at 08:30 on its first talk day, or 30 minutes before its first talk if that is earlier. It is stored on the registry node. Universe keeps `CLOCK_START`.
 - **Conference id.** A slug from the name plus the year, for example `qcon-san-francisco-2026`. Two search results are the same conference when their websites share a domain and their dates overlap. For example, "AI Engineer Conference" at ai.engineer/ and "AI Engineer Code Summit 2026" at ai.engineer/code/2026, both Nov 10–12, are one conference. When one has no dates, fall back to a name match. The same conference found twice never builds twice.
