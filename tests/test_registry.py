@@ -43,6 +43,18 @@ def test_upsert_found_merges_duplicates(reg):
     assert len(registry.list_conferences(reg)) == 2  # Universe + AI Engineer
 
 
+def test_new_entries_have_no_graph_until_built(reg):
+    c = registry.upsert_found(reg, AIE)
+    assert c["graph"] == "" and c["status"] == "none"
+
+
+def test_upsert_found_matches_universe_without_a_url(reg):
+    registry.ensure_universe(reg)
+    found = {"name": "GitHub Universe 2026", "url": "https://githubuniverse.com/", "start_date": "2026-10-28", "end_date": "2026-10-29"}
+    assert registry.upsert_found(reg, found)["id"] == "universe26"
+    assert len(registry.list_conferences(reg)) == 1
+
+
 def test_ensure_universe(reg):
     u = registry.ensure_universe(reg)
     assert u["id"] == registry.UNIVERSE_ID and u["status"] == "ready" and u["graph"] == "throughline" and u["clock_start"]

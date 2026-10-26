@@ -50,11 +50,11 @@ def _domain(url: str) -> str:
 
 
 def same_conference(a: dict, b: dict) -> bool:
-    """Same website and overlapping dates; without dates, similar names."""
-    if not a.get("start_date") or not b.get("start_date"):
-        return _names_match(a.get("name", ""), b.get("name", ""))
+    """Same website and overlapping dates; without dates or a website on either side, similar names."""
     da, db = _domain(a.get("url", "")), _domain(b.get("url", ""))
-    if not da or da != db:
+    if not a.get("start_date") or not b.get("start_date") or not da or not db:
+        return _names_match(a.get("name", ""), b.get("name", ""))
+    if da != db:
         return False
     a_end, b_end = a.get("end_date") or a["start_date"], b.get("end_date") or b["start_date"]
     return a["start_date"] <= b_end and b["start_date"] <= a_end
@@ -114,7 +114,7 @@ def upsert_found(reg: Graph, found: dict) -> dict:
         """,
         {"id": cid, "name": found["name"], "dates": found.get("dates", ""), "start": found.get("start_date", ""),
          "end": found.get("end_date", ""), "location": found.get("location", ""), "url": found.get("url", ""),
-         "graph": "throughline_" + cid.replace("-", "_")},
+         "graph": ""},  # a build assigns the graph name
     )
     return get(reg, cid)
 
