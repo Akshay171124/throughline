@@ -1288,10 +1288,11 @@ function hasMap(c) {
   return c.status === "building" && (Number(c.talks) > 0 || Number((c.counts || {}).kept) > 0);
 }
 
-// The earlier map's own status, while it's being rebuilt.
+// The earlier map's own status, while it's being rebuilt (as the server's status_for: a merged
+// duplicate is the same talk again, not something left out).
 function mapStatus(c) {
   if (!c || c.status !== "building") return c && c.status;
-  return Object.entries(c.counts || {}).some(([k, n]) => k !== "kept" && Number(n)) ? "partial" : "ready";
+  return Object.entries(c.counts || {}).some(([k, n]) => k !== "kept" && k !== "duplicate" && Number(n)) ? "partial" : "ready";
 }
 
 function loadedList() {
@@ -1333,7 +1334,10 @@ function cardStatus(c) {
   const retry = `<button type="button" class="primary" data-build="${id}">Try again</button>`;
   switch (c.status) {
     case "ready": return { pill: `<span class="pill ok">✓ Map ready</span>`, button: open };
-    case "partial": return { pill: `<span class="pill star">Partial map</span>`, button: open };
+    case "partial": return {
+      pill: `<span class="pill star">Partial map</span>`,
+      button: `${open}<button type="button" class="linkbtn pk-retry" data-build="${id}">Try again</button>`,
+    };
     case "building": if (hasMap(c)) {
       const old = cardStatus({ ...c, status: mapStatus(c) });
       return { pill: old.pill, button: `${open}<button type="button" class="linkbtn pk-rebuild" data-watch="${id}"><span class="spinner"></span>Rebuilding…</button>` };
@@ -1371,6 +1375,7 @@ function confCard(c, detailIndex = null) {
     ${facts ? `<p class="pk-facts">${escapeHtml(facts)}</p>` : ""}
     ${c.snippet ? `<p class="pk-snippet">${escapeHtml(c.snippet)}</p>` : ""}
     ${status === "failed" && c.reason ? `<p class="pk-reason">${escapeHtml(c.reason)}</p>` : ""}
+    ${BUILT.includes(status) && c.reason ? `<p class="pk-outcome">${escapeHtml(c.reason)}</p>` : ""}
     <div class="pk-card-foot">
       ${s.button}
       ${href !== "#" ? `<a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Website ↗</a>` : ""}
@@ -1517,7 +1522,8 @@ function scheduleForm(id, open) {
     </details>`;
 }
 
-// Start (or retry) a build, then watch it. A retry sends the schedule link stored from last time.
+// Start (or retry) a build, then watch it. A retry sends the schedule link stored from last time;
+// the server clears a link it refused (unsafe, didn't load, another event), so that retry starts from the website.
 async function startBuild(id, scheduleUrl) {
   let url = scheduleUrl;
   if (url === undefined) {
@@ -1539,7 +1545,7 @@ async function buildFromCard(btn) {
   } catch (err) {
     btn.disabled = false;
     btn.textContent = "Try again";
-    const host = btn.closest(".pk-card, .pk-detail-card");
+    const host = btn.closest(".pk-card, .pk-detail-card, .lp-partial");
     let note = host && host.querySelector(".pk-reason");
     if (host && !note) {
       note = document.createElement("p");
@@ -1610,6 +1616,8 @@ async function pollBuild() {
     if (turn !== builder.turn || view !== "build" || !builder.conf || builder.conf.id !== conf.id) return;
     stopBuildPoll();
     mapStarted = null; // a rebuilt map replaces any drawn before
+    // The map opens with how the build ended: a retry that found less (or whose link was refused)
+    // says so in the label above the map (renderPartial reads the entry's reason).
     return chooseConference(conf.id, true);
   }
   renderBuild(s);
@@ -1656,6 +1664,7 @@ function partialText(counts) {
   if (n("no_time")) parts.push(`${n("no_time")} listed without times were left out`);
   const unchecked = n("title_not_on_page") + n("time_not_on_page");
   if (unchecked) parts.push(`${unchecked} couldn't be checked against the page`);
+  if (n("date_not_on_page")) parts.push(`${n("date_not_on_page")} couldn't be matched to a day on the page`);
   if (n("detail_failed")) parts.push(`${plural(n("detail_failed"), "talk page", "talk pages")} couldn't be read`);
   if (n("outside_dates")) parts.push(`${n("outside_dates")} outside the conference dates were left out`);
   if (n("extract_failed")) parts.push(`${plural(n("extract_failed"), "talk", "talks")} couldn't be linked to concepts`);
@@ -1663,12 +1672,27 @@ function partialText(counts) {
   return parts;
 }
 
+// How the last build ended, when it didn't simply make this map: "The retry found fewer talks, so
+// the earlier map was kept.", a refused schedule link, an interrupted retry.
+function outcomeNote(conf) {
+  if (!conf || !conf.reason || conf.status === "building") return "";
+  const ago = conf.checked_at ? timeAgo(conf.checked_at) : "";
+  return `<p class="lp-outcome">${escapeHtml(conf.reason)}${ago ? ` <span class="muted">(${escapeHtml(ago)})</span>` : ""}</p>`;
+}
+
 function renderPartial(conf) {
   const box = document.getElementById("flow-partial");
-  if (!conf || mapStatus(conf) !== "partial") { box.hidden = true; box.innerHTML = ""; return; }
+  const status = conf && mapStatus(conf);
+  const note = outcomeNote(conf);
+  box.classList.toggle("notice", status === "ready");
+  if (status === "ready" && note) { box.innerHTML = note; box.hidden = false; return; }
+  if (status !== "partial") { box.hidden = true; box.innerHTML = ""; return; }
   const [first, ...rest] = partialText(conf.counts);
+  const retry = conf.status === "building" ? ""
+    : `<button type="button" class="linkbtn lp-retry" data-build="${escapeHtml(conf.id)}">Try again</button>`;
   box.innerHTML = `<p><strong>${escapeHtml(first)}</strong>${rest.map((x) => ` · ${escapeHtml(x)}`).join("")}</p>
-    ${scheduleForm(conf.id, false)}`;
+    ${note}
+    <div class="lp-partial-actions">${retry}${scheduleForm(conf.id, false)}</div>`;
   box.hidden = false;
 }
 
@@ -1881,6 +1905,11 @@ function wireConferences() {
       history.pushState({ detail }, "", "/");
       showDetail(detail);
     }
+  });
+  // A partial map's "Try again" sits in its label, outside the picker.
+  document.getElementById("flow-partial").addEventListener("click", (e) => {
+    const build = e.target.closest("[data-build]");
+    if (build && !build.disabled) buildFromCard(build);
   });
   // The schedule-link form lives on the build screen and under a partial map's label.
   document.addEventListener("submit", (e) => {
