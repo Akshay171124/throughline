@@ -5,6 +5,7 @@ summary of the result) so the screen can show how each answer was reached.
 `run_cypher` lets the agent query the graph directly, read-only (GraphRAG).
 """
 
+import copy
 import json
 import re
 
@@ -29,15 +30,27 @@ STOPWORDS = {
     "workshops", "sessions", "thing", "something", "called", "named", "some", "us",
 }
 
-SCHEMA_NOTE = """Graph schema for run_cypher (FalkorDB, Cypher). It holds conference knowledge only, no attendee data:
+_SCHEMA_NOTE = """Graph schema for run_cypher (FalkorDB, Cypher). It holds conference knowledge only, no attendee data:
 (:Talk {code, title, type, level, level_num, day, date, start, end, start_min, end_min, room, speakers, topics, abstract, url})
 (:TimeSlot {key, date, start, end}), (:Conference {id, name}), (:Concept {id, name, aliases, definition}), (:Resource {url, title, minutes})
 (Talk)-[:IN_SLOT]->(TimeSlot), (Talk)-[:PART_OF]->(Conference)
 (Talk)-[:REQUIRES {evidence, confidence, status}]->(Concept), (Talk)-[:TEACHES {evidence, confidence, status}]->(Concept)
 (Concept)-[:DEPENDS_ON {support, via, evidence}]->(Concept), (Resource)-[:EXPLAINS]->(Concept)
-Times: start_min/end_min are minutes. Day 1 is Wednesday 2026-10-28, day 2 Thursday 2026-10-29.
+@@TIMES@@
 In patterns that look for a different talk, add WHERE a <> b.
 The attendee's own memory is only available through get_attendee."""
+
+
+def schema_note(conf: dict) -> str:
+    """The schema text for run_cypher, with this conference's days spelled out."""
+    times = "Times: start_min/end_min are minutes."
+    days = conf.get("days") or []
+    if days:
+        parts = [f"{'Day' if i == 1 else 'day'} {i}{' is' if i == 1 else ''} {d['day']} {d['date']}"
+                 for i, d in enumerate(days, 1)]
+        times += " " + ", ".join(parts) + "."
+    return _SCHEMA_NOTE.replace("@@TIMES@@", times)
+
 
 # Attendee memory never goes through free-form Cypher (it also runs on a copy without attendees).
 PRIVATE_TERMS = re.compile(r"\b(attendee|knows|attended|targets|clock_min)\b", re.IGNORECASE)
@@ -47,7 +60,10 @@ def conference_of(g: Graph) -> dict:
     rows = g.query("MATCH (c:Conference) RETURN c.name, c.dates, c.location LIMIT 1").result_set
     row = rows[0] if rows else (None, None, None)
     defaults = (settings.conference_name, settings.conference_dates, settings.conference_location)
-    return dict(zip(("name", "dates", "location"), (v or d for v, d in zip(row, defaults))))
+    conf = dict(zip(("name", "dates", "location"), (v or d for v, d in zip(row, defaults))))
+    days = g.query("MATCH (t:Talk) RETURN DISTINCT t.date, t.day ORDER BY t.date").result_set
+    conf["days"] = [{"date": date, "day": day} for date, day in days]
+    return conf
 
 
 def system_prompt(conf: dict) -> str:
@@ -68,7 +84,7 @@ Rules:
 - Use run_cypher only for questions the other tools don't cover. It is read-only.
 - Other attendees' codes and memory are private and not in your tools. If asked for them, say so plainly. Never call talk codes attendee codes.
 
-{SCHEMA_NOTE}"""
+{schema_note(conf)}"""
 
 
 # On the conference map the attendee describes a goal rather than naming a talk.
@@ -94,7 +110,7 @@ def _fn(name: str, description: str, properties: dict, required: list[str]) -> d
 
 
 TALK = {"talk": {"type": "string", "description": "Talk code, e.g. BLD1428W"}}
-TOOLS = [
+_TOOLS = [
     _fn("get_attendee", "The attendee's current conference time, known concepts and attended talks.", {}, []),
     _fn("search_talks", "Find talks by words in the title, abstract, speakers or topics.",
         {"query": {"type": "string"}, "day": {"type": "string", "enum": ["Wednesday", "Thursday", "any"]}}, ["query", "day"]),
@@ -121,6 +137,14 @@ TOOLS = [
     _fn("run_cypher", "Run a read-only Cypher query against the graph for questions other tools don't answer. Use LIMIT.",
         {"cypher": {"type": "string"}}, ["cypher"]),
 ]
+
+
+def tools_for(conf: dict) -> list[dict]:
+    """The tool list, with search_talks limited to this conference's day names."""
+    tools = copy.deepcopy(_TOOLS)
+    search = next(t for t in tools if t["function"]["name"] == "search_talks")
+    search["function"]["parameters"]["properties"]["day"]["enum"] = [d["day"] for d in conf["days"]] + ["any"]
+    return tools
 
 
 def _trim(value, depth: int = 0):
@@ -390,7 +414,8 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
               public: Graph | None = None, page: str = "talk") -> dict:
     """One agent turn. History is earlier user/assistant text only; tool calls live in this turn's trace."""
     tools, trace = Tools(g, attendee, public), []
-    system = system_prompt(conference_of(g)) + (LANDING_PROMPT if page == "landing" else "")
+    conf = conference_of(g)
+    system = system_prompt(conf) + (LANDING_PROMPT if page == "landing" else "")
     messages = [{"role": "system", "content": system}, *(history or [])[-10:], {"role": "user", "content": message}]
     # Fail fast if OpenAI is slow: the page then offers "Plan without AI" instead of a stuck spinner.
     client = OpenAI(timeout=25, max_retries=1)
@@ -400,7 +425,7 @@ def run_agent(g: Graph, attendee: str, message: str, history: list[dict] | None 
                 "highlight": tools.highlight, "suggestions": tools.suggestions}
 
     for _ in range(MAX_TOOL_ROUNDS):
-        response = client.chat.completions.create(model=settings.agent_model, messages=messages, tools=TOOLS)
+        response = client.chat.completions.create(model=settings.agent_model, messages=messages, tools=tools_for(conf))
         reply = response.choices[0].message
         if not reply.tool_calls:
             return done(reply.content)
