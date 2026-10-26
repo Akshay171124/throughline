@@ -3,6 +3,7 @@
 Every request is about one conference: `?conf=<id>`, else the `X-Conference` header, else GitHub Universe.
 Attendee accounts (code and profile) live in the registry graph, so one code works at every conference."""
 
+import socket
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -12,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from falkordb import Graph
 from pydantic import BaseModel
 
-from . import briefing, build, flow, nearby, planner
+from . import briefing, build, flow, importer, nearby, planner
 from . import registry as registry_db
 from .agent import Tools, run_agent
 from .config import ROOT, settings
@@ -347,6 +348,11 @@ def list_conferences():
             "all": entries}
 
 
+def _resolver():
+    """Name resolution for the pre-check (tests replace this)."""
+    return socket.getaddrinfo
+
+
 class BuildRequest(BaseModel):
     schedule_url: str | None = None
 
@@ -367,6 +373,13 @@ def build_conference(conf_id: str, body: BuildRequest | None = None):
     url = (body.schedule_url if body else None) or None
     if url and (urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc):
         raise HTTPException(422, "The schedule link must start with http:// or https://")
+    if url:
+        try:
+            importer.check_url(url, resolve=_resolver())
+        except importer.Unresolvable:
+            pass  # the build reports a host that doesn't resolve
+        except importer.UnsafeURL:
+            raise HTTPException(422, "That link can't be fetched safely.")
     return build.start(registry(), conf_id, url)
 
 

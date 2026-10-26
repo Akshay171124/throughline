@@ -42,6 +42,10 @@ class UnsafeURL(ValueError):
     """The URL is not a public http(s) address, so it is never fetched."""
 
 
+class Unresolvable(UnsafeURL):
+    """The host did not resolve. Still never fetched, but not a sign of a hostile link (check_url's callers can tell)."""
+
+
 @dataclass
 class Page:
     url: str
@@ -106,7 +110,7 @@ def parse_page(url: str, html: str) -> Page:
     return Page(url, html, " ".join("".join(reader.chunks).split()), links)
 
 
-def _check_url(url: str, resolve) -> None:
+def check_url(url: str, resolve=socket.getaddrinfo) -> None:
     """Refuse anything but http(s) to a public address (blocks loopback, private, link-local...)."""
     parts = urlparse(url)
     if parts.scheme not in ("http", "https") or not parts.hostname:
@@ -118,10 +122,10 @@ def _check_url(url: str, resolve) -> None:
         try:
             infos = resolve(host, None)
         except OSError as e:
-            raise UnsafeURL(f"cannot resolve {host}") from e
+            raise Unresolvable(f"cannot resolve {host}") from e
         addrs = [ipaddress.ip_address(info[4][0].split("%")[0]) for info in infos]
     if not addrs:
-        raise UnsafeURL(f"cannot resolve {host}")
+        raise Unresolvable(f"cannot resolve {host}")
     for addr in addrs:
         for a in (addr, getattr(addr, "ipv4_mapped", None)):
             if a and (a.is_loopback or a.is_private or a.is_link_local or a.is_reserved
@@ -132,7 +136,7 @@ def _check_url(url: str, resolve) -> None:
 def _get(url: str, http, resolve):
     """GET with every hop (the URL and each redirect) checked; raises UnsafeURL on a bad one."""
     for _ in range(MAX_HOPS + 1):
-        _check_url(url, resolve)
+        check_url(url, resolve)
         resp = http(url, timeout=20, headers={"User-Agent": USER_AGENT}, follow_redirects=False)
         location = resp.headers.get("location") if 300 <= resp.status_code < 400 else None
         if not location:

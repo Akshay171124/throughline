@@ -1,5 +1,6 @@
 """The build endpoints, nearby results with registry status, Google redirect links, readings on first open."""
 
+import socket
 import threading
 from datetime import date
 
@@ -137,3 +138,51 @@ def test_briefing_failure_returns_to_missing(world, monkeypatch):
     for t in list(briefing._running.values()):
         t.join(5)
     assert c.get(f"/api/talks/QCON1/briefing?conf={world.qcon}").json()["status"] == "building"  # a later open retries
+
+
+def test_build_refuses_unsafe_schedule_links(world, monkeypatch):
+    calls = []
+    monkeypatch.setattr(build, "start", lambda reg, cid, url=None, deps=None: calls.append(url) or registry.get(reg, cid))
+    hosts = {"internal.example": "10.0.0.9", "public.example": "93.184.216.34"}
+
+    def resolve(host, port):
+        if host not in hosts:
+            raise socket.gaierror("nope")
+        return [(0, 0, 0, "", (hosts[host], 0))]
+
+    monkeypatch.setattr(api, "_resolver", lambda: resolve)
+    post = lambda url: world.client.post(f"/api/conferences/{world.qcon}/build", json={"schedule_url": url})
+    for bad in ("http://127.0.0.1/x", "http://10.0.0.5/", "http://internal.example/s"):
+        r = post(bad)
+        assert r.status_code == 422 and r.json()["detail"] == "That link can't be fetched safely."
+    assert calls == []
+    assert post("https://public.example/schedule").status_code == 200
+    assert post("https://unresolvable.example/").status_code == 200  # the build reports a host that doesn't resolve
+    assert calls == ["https://public.example/schedule", "https://unresolvable.example/"]
+
+
+def test_google_redirects_relative_and_other_domains():
+    assert nearby._unwrap("/url?q=https%3A%2F%2Fqconsf.com%2F") == "https://qconsf.com/"
+    assert nearby._unwrap("/goto?url=CAES") is None
+    assert nearby._unwrap("https://www.google.co.uk/url?q=https://x.org/") == "https://x.org/"
+    assert nearby._unwrap("https://www.google.de/search?q=x") is None
+    assert nearby._unwrap("https://notgoogle.com/url?q=https://x.org/") == "https://notgoogle.com/url?q=https://x.org/"
+
+
+def test_extract_lists_a_site_reached_twice_once(monkeypatch):
+    seen = {}
+
+    class Fake:
+        def __init__(self, **kw):
+            self.chat = self
+            self.completions = self
+
+        def create(self, **kw):
+            seen["prompt"] = kw["messages"][1]["content"]
+            return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": '{"conferences": []}'})()})()]})()
+
+    monkeypatch.setattr(nearby, "OpenAI", Fake)
+    nearby._extract("SF", date(2026, 10, 24), [
+        {"title": "A", "url": "https://qconsf.com/", "snippet": ""},
+        {"title": "B", "url": "https://www.google.com/url?q=https%3A%2F%2Fqconsf.com%2F", "snippet": ""}])
+    assert seen["prompt"].count("URL: https://qconsf.com/") == 1

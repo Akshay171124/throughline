@@ -101,12 +101,17 @@ def _loaded(graph_conferences: list[dict], name: str) -> dict | None:
     return next((c for c in graph_conferences if registry._names_match(name, c["name"])), None)
 
 
+_GOOGLE_HOST = re.compile(r"(^|\.)google\.(com?\.)?[a-z]{2,3}$")
+
+
 def _unwrap(url: str) -> str | None:
-    """The real link behind a Google redirect (google.com/url?q=, ?url=, goto?url=); other google.com pages
-    and redirects we can't decode give None. Any other URL is returned unchanged."""
+    """The real link behind a Google redirect (/url?q=, /url?url=, /goto?url=; absolute or relative, on any
+    google domain); other Google pages and redirects we can't decode give None. Any other URL is unchanged."""
     parts = urlparse(url)
     host = (parts.hostname or "").lower()
-    if host != "google.com" and not host.endswith(".google.com"):
+    if host and not _GOOGLE_HOST.search(host):
+        return url
+    if not host and not url.startswith("/"):
         return url
     if parts.path in ("/url", "/goto"):
         query = parse_qs(parts.query)
@@ -141,7 +146,13 @@ def _search(place: str, today: date) -> list[dict]:
 
 
 def _extract(place: str, today: date, results: list[dict]) -> list[dict]:
-    results = [{**r, "url": u} for r in results if (u := _unwrap(r["url"]))]  # a Google redirect hides the real site
+    unwrapped, seen = [], set()  # a Google redirect hides the real site; the same site twice is listed once
+    for r in results:
+        u = _unwrap(r["url"])
+        if u and u not in seen:
+            seen.add(u)
+            unwrapped.append({**r, "url": u})
+    results = unwrapped
     if not results:
         return []
     end = today + timedelta(days=WINDOW_DAYS)
