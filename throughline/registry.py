@@ -53,17 +53,44 @@ def _domain(url: str) -> str:
     return host.removeprefix("www.")
 
 
+# Sites that list many unrelated events: sharing one of them says nothing about being the same event.
+SHARED_HOSTS = ("lu.ma", "meetup.com", "sessionize.com", "sched.com", "linkedin.com", "facebook.com", "hopin.com")
+_EVENTBRITE = re.compile(r"(^|\.)eventbrite(\.[a-z]{2,3}){1,2}$")
+
+
+def _shared_host(domain: str) -> bool:
+    return bool(_EVENTBRITE.search(domain)) or any(domain == h or domain.endswith("." + h) for h in SHARED_HOSTS)
+
+
+def _section(url: str) -> str:
+    """The first path segment: "code" for https://ai.engineer/code/2026, "" for the home page."""
+    return next((p for p in urlparse(url or "").path.lower().split("/") if p), "")
+
+
+def _name_words(name: str) -> set[str]:
+    return {w for w in _words(name) if not re.fullmatch(r"(19|20)\d\d", w)}
+
+
 def same_conference(a: dict, b: dict) -> bool:
-    """With dates on both sides: overlapping dates, and the same website (or similar names if a website is missing).
-    Without dates on a side: similar names."""
+    """Without dates on a side: similar names. With dates on both sides, the dates must overlap, and:
+    - on two websites: never the same; with a website missing: similar names;
+    - on one website: the same section of it (first path segment) or a shared name word (not a year);
+    - on a site that lists many events (Eventbrite, Luma, Meetup...): similar names, never the domain alone."""
     names = _names_match(a.get("name", ""), b.get("name", ""))
     if not a.get("start_date") or not b.get("start_date"):
         return names
-    da, db = _domain(a.get("url", "")), _domain(b.get("url", ""))
-    if not (da == db if da and db else names):
-        return False
     a_end, b_end = a.get("end_date") or a["start_date"], b.get("end_date") or b["start_date"]
-    return a["start_date"] <= b_end and b["start_date"] <= a_end
+    if not (a["start_date"] <= b_end and b["start_date"] <= a_end):
+        return False
+    da, db = _domain(a.get("url", "")), _domain(b.get("url", ""))
+    if not (da and db):
+        return names
+    if da != db:
+        return False
+    if _shared_host(da):
+        return names
+    return (_section(a.get("url", "")) == _section(b.get("url", ""))
+            or bool(_name_words(a.get("name", "")) & _name_words(b.get("name", ""))))
 
 
 MONTH_NAMES = ("january", "february", "march", "april", "may", "june", "july", "august", "september",
@@ -143,9 +170,9 @@ def ensure_universe(reg: Graph) -> dict:
         """
         MERGE (c:Conference {id: $id})
         SET c.name = $name, c.dates = $dates, c.start_date = $start, c.end_date = $end, c.location = $location,
-            c.graph = 'throughline', c.status = 'ready', c.clock_start = $clock
+            c.graph = $graph, c.status = 'ready', c.clock_start = $clock
         """,
-        {"id": settings.conference_id, "name": settings.conference_name, "dates": settings.conference_dates,
+        {"id": settings.conference_id, "graph": settings.graph_name, "name": settings.conference_name, "dates": settings.conference_dates,
          "start": settings.conference_start, "end": settings.conference_end, "location": settings.conference_location,
          "clock": settings.clock_start},
     )

@@ -141,3 +141,36 @@ def test_a_short_name_without_dates_matches_itself(reg):
     first, second = registry.upsert_found(reg, found), registry.upsert_found(reg, found)
     assert first["id"] == second["id"] == "ai-dev-26-x-sf"
     assert not registry.same_conference(found, {**found, "name": "AI Dev 25 x NYC"})
+
+
+def test_shared_hosts_never_merge_events_by_domain_alone():
+    # Ruling R24: two different events on Eventbrite with overlapping dates are two conferences.
+    boston = {"name": "Boston AI Summit", "url": "https://www.eventbrite.com/e/boston-ai-summit-123",
+              "start_date": "2026-11-10", "end_date": "2026-11-11"}
+    health = {"name": "New England Healthcare Data Conference", "url": "https://www.eventbrite.com/e/ne-health-456",
+              "start_date": "2026-11-11", "end_date": "2026-11-12"}
+    assert not registry.same_conference(boston, health)
+    assert not registry.same_conference({**boston, "url": "https://www.eventbrite.co.uk/e/1"},
+                                        {**health, "url": "https://www.eventbrite.co.uk/e/2"})
+    assert not registry.same_conference({**boston, "url": "https://lu.ma/boston-ai"}, {**health, "url": "https://lu.ma/ne-health"})
+    # The same event listed twice on a shared host still merges: its name matches and the dates overlap.
+    assert registry.same_conference(boston, {**boston, "name": "Boston AI Summit 2026", "url": "https://www.eventbrite.com/e/9"})
+
+
+def test_one_site_merges_only_the_same_event():
+    conf = {"name": "AI Engineer Conference", "url": "https://ai.engineer/", "start_date": "2026-11-10", "end_date": "2026-11-12"}
+    code = {"name": "AI Engineer Code Summit 2026", "url": "https://ai.engineer/code/2026", "start_date": "2026-11-10", "end_date": "2026-11-12"}
+    assert registry.same_conference(conf, code)
+    # Two unrelated events of a venue's site: different sections, no shared name word.
+    a = {"name": "Robotics Expo", "url": "https://venue.example/robotics", "start_date": "2026-11-10"}
+    b = {"name": "Quantum Forum", "url": "https://venue.example/quantum", "start_date": "2026-11-10"}
+    assert not registry.same_conference(a, b)
+    assert registry.same_conference(a, {**b, "url": "https://venue.example/robotics/agenda"})  # the same section
+    # A year alone is not a shared name word.
+    assert not registry.same_conference({**a, "name": "Robotics 2026"}, {**b, "name": "Quantum 2026"})
+
+
+def test_ensure_universe_uses_the_configured_graph(reg, monkeypatch):
+    from dataclasses import replace
+    monkeypatch.setattr(registry, "settings", replace(registry.settings, graph_name="throughline_custom"))
+    assert registry.ensure_universe(reg)["graph"] == "throughline_custom"

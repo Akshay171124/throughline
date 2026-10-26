@@ -43,17 +43,32 @@ def public_name(graph_name: str | None = None) -> str:
     return (graph_name or settings.graph_name) + PUBLIC_SUFFIX
 
 
+STAGING_SUFFIX = "_next"
+
+
+def _delete_graph(g: Graph, name: str) -> None:
+    try:
+        g.execute_command("GRAPH.DELETE", name)
+    except Exception:  # it doesn't exist
+        pass
+
+
 def publish_public_view(g: Graph) -> Graph:
     """Copy the graph without any attendee data. Free-form (GraphRAG) Cypher only ever runs here,
-    so no query, however it's written, can read another attendee's code or memory."""
+    so no query, however it's written, can read another attendee's code or memory.
+
+    The view is rebuilt while a map is live, so attendees are removed in a staging copy first: the
+    public name only ever holds a copy without them (it is briefly missing while it is replaced)."""
     target = g.name + PUBLIC_SUFFIX
+    staging = target + STAGING_SUFFIX
+    _delete_graph(g, staging)  # left by an interrupted publish
+    stage = g.copy(staging)
     try:
-        g.execute_command("GRAPH.DELETE", target)
-    except Exception:  # no previous view
-        pass
-    view = g.copy(target)
-    view.query("MATCH (a:Attendee) DETACH DELETE a")
-    return view
+        stage.query("MATCH (a:Attendee) DETACH DELETE a")
+        _delete_graph(g, target)
+        return stage.copy(target)
+    finally:
+        _delete_graph(g, staging)
 
 
 def ensure_schema(g: Graph) -> None:
