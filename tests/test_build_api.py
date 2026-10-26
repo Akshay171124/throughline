@@ -194,3 +194,13 @@ def test_extract_lists_a_site_reached_twice_once(monkeypatch):
         {"title": "A", "url": "https://qconsf.com/", "snippet": ""},
         {"title": "B", "url": "https://www.google.com/url?q=https%3A%2F%2Fqconsf.com%2F", "snippet": ""}])
     assert seen["prompt"].count("URL: https://qconsf.com/") == 1
+
+
+def test_nearby_lists_universe_with_its_talk_count(world, monkeypatch, tmp_path):
+    # Universe's registry entry is made from settings (talks 0); its graph has the count.
+    monkeypatch.setattr(nearby, "CACHE_FILE", tmp_path / "nearby.json")
+    monkeypatch.setattr(nearby, "_search", lambda place, today: [])
+    monkeypatch.setattr(nearby, "_extract", lambda place, today, results: [])
+    out = world.client.get("/api/conferences/nearby", params={"place": "San Francisco, CA"}).json()
+    universe = next(c for c in out["conferences"] if c["id"] == registry.UNIVERSE_ID)
+    assert universe["snippet"] == "1 talks loaded"

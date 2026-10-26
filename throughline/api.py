@@ -349,13 +349,20 @@ def _summary(entry: dict) -> dict:
     return {k: entry[k] for k in keys}
 
 
+def _entries(reg: Graph) -> list[dict]:
+    """The registry's conferences. Universe's entry is made from settings (talks 0); its graph has the count."""
+    entries = registry_db.list_conferences(reg)
+    for e in entries:
+        if e["id"] == registry_db.UNIVERSE_ID and not e["talks"]:
+            e["talks"] = graph().query("MATCH (t:Talk) RETURN count(t)").result_set[0][0]
+    return entries
+
+
 @app.get("/api/conferences")
 def list_conferences():
     """Every conference the registry knows; `loaded` are the ones with a map. The app never hard-codes a conference."""
-    entries = registry_db.list_conferences(registry())
+    entries = _entries(registry())
     current = next((e for e in entries if e["id"] == registry_db.UNIVERSE_ID), None)
-    if current and not current["talks"]:  # Universe's entry is made from settings; its graph has the count
-        current["talks"] = graph().query("MATCH (t:Talk) RETURN count(t)").result_set[0][0]
     return {"current": current and _summary(current), "loaded": [_summary(e) for e in entries if e["status"] in BUILT],
             "all": entries}
 
@@ -407,7 +414,7 @@ def conferences_nearby(place: str = "", lat: float | None = None, lon: float | N
     if lat is not None and not (-90 <= lat <= 90 and -180 <= (lon or 0) <= 180):
         raise HTTPException(422, "Invalid coordinates")
     reg = registry()
-    built = [e for e in registry_db.list_conferences(reg) if e["status"] in BUILT]
+    built = [e for e in _entries(reg) if e["status"] in BUILT]
     return nearby.nearby(lambda found: registry_db.upsert_found(reg, found), place=place, lat=lat, lon=lon, built=built)
 
 
