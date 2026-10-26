@@ -9,6 +9,14 @@ LOADED = [{"id": "universe26", "name": "GitHub Universe 2026", "dates": "Oct 28â
            "start_date": "2026-10-28", "location": "San Francisco, CA", "talks": 125}]
 
 
+def upsert(found):
+    """Stands in for registry.upsert_found: a loaded conference is its own entry, anything else is new."""
+    match = nearby._loaded(LOADED, found["name"])
+    if match:
+        return {**match, "status": "ready", "reason": "", "checked_at": None, "counts": {}}
+    return {"id": found["name"].lower().replace(" ", "-"), "status": "none", "reason": "", "checked_at": None, "counts": {}}
+
+
 def test_date_window_drops_past_and_far_future_events():
     assert not nearby._in_window("2026-06-24", TODAY, END)  # past (the model let this through once)
     assert nearby._in_window("2026-11-10", TODAY, END)
@@ -33,11 +41,11 @@ def test_cached_results_are_merged_and_loaded_ones_listed_first(monkeypatch, tmp
     ])
     monkeypatch.setattr(nearby, "_search", lambda place, today: ["results"])
     monkeypatch.setattr(nearby, "_extract", lambda place, today, results: next(runs))
-    first = nearby.nearby(LOADED, place="San Francisco, CA")
+    first = nearby.nearby(upsert, place="San Francisco, CA", built=LOADED)
     cache = nearby._read_cache()
     cache["san francisco, ca"]["ts"] = 0  # expire, so the next call searches again
     nearby._write_cache(cache)
-    second = nearby.nearby(LOADED, place="San Francisco, CA")
+    second = nearby.nearby(upsert, place="San Francisco, CA", built=LOADED)
     names = [c["name"] for c in second["conferences"]]
     assert names[0] == "GitHub Universe 2026" and second["conferences"][0]["loaded"]
     assert {"QCon San Francisco 2026", "AI Engineer Conference"} <= set(names)  # thin second run didn't wipe the first
@@ -48,9 +56,9 @@ def test_an_empty_search_is_not_cached(monkeypatch, tmp_path):
     monkeypatch.setattr(nearby, "CACHE_FILE", tmp_path / "nearby.json")
     monkeypatch.setattr(nearby, "_search", lambda place, today: [])
     monkeypatch.setattr(nearby, "_extract", lambda place, today, results: [])
-    nearby.nearby(LOADED, place="Nowhere")
+    nearby.nearby(upsert, place="Nowhere")
     assert "nowhere" not in nearby._read_cache()  # the next visit searches again
 
 
 def test_no_place_is_a_clear_error():
-    assert nearby.nearby(LOADED)["error"]
+    assert nearby.nearby(upsert)["error"]

@@ -5,6 +5,7 @@ Attendee accounts (code and profile) live in the registry graph, so one code wor
 
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
@@ -136,9 +137,16 @@ def list_talks(c: Ctx = Depends(ctx)):
 def talk_briefing(code: str, c: Ctx = Depends(ctx)):
     """'About this talk': AI summary of the abstract, its concepts, and outside links to read first."""
     try:
-        return briefing.briefing(c.g, code)
+        b = briefing.briefing(c.g, code)
     except ValueError:
         raise HTTPException(404, f"No talk with code {code}")
+    if b["status"] == "missing":  # the first open builds it in the background; the page asks again
+        abstract = c.g.query("MATCH (t:Talk {code: $c}) RETURN t.abstract", {"c": code}).result_set[0][0]
+        if (abstract or "").strip():
+            briefing.start(c.g, code)
+            return {**b, "status": "building"}
+        return {**b, "status": "none"}
+    return b
 
 
 @app.get("/api/talks/{code}")
@@ -213,14 +221,14 @@ def get_attendee(code: str, c: Ctx = Depends(ctx)):
 
 @app.delete("/api/attendees/{code}")
 def delete_attendee(code: str):
-    """Forget me: the account, and the attendee's node in every built conference."""
+    """Forget me: the attendee's node in every conference graph (any status), then the account."""
     reg = registry()
-    registry_db.delete_account(reg, code)
     universe = graph()
     graphs = {universe.name: universe} | {conf["graph"]: _handle(conf["graph"]) for conf in registry_db.list_conferences(reg)
-                                          if conf["status"] in BUILT and conf["graph"]}
-    for g in graphs.values():
+                                          if conf["graph"] and conf["graph"] != universe.name}
+    for g in graphs.values():  # the nodes first, the account last: a failure part-way can be retried
         planner.forget_attendee(g, code)
+    registry_db.delete_account(reg, code)
     return {"deleted": code}
 
 
@@ -323,20 +331,59 @@ def talk_graph(talk: str, attendee: str | None = None, c: Ctx = Depends(ctx)):
         raise HTTPException(404, f"No talk with code {talk}")
 
 
+def _summary(entry: dict) -> dict:
+    keys = ("id", "name", "dates", "start_date", "end_date", "location", "talks", "status", "counts")
+    return {k: entry[k] for k in keys}
+
+
 @app.get("/api/conferences")
-def list_conferences(c: Ctx = Depends(ctx)):
-    """Conferences whose schedules are loaded. The app never hard-codes a conference."""
-    loaded = conferences(c.g)
-    current = next((x for x in loaded if x["id"] == c.conf["id"]), loaded[0] if loaded else None)
-    return {"current": current, "loaded": loaded}
+def list_conferences():
+    """Every conference the registry knows; `loaded` are the ones with a map. The app never hard-codes a conference."""
+    entries = registry_db.list_conferences(registry())
+    current = next((e for e in entries if e["id"] == registry_db.UNIVERSE_ID), None)
+    if current and not current["talks"]:  # Universe's entry is made from settings; its graph has the count
+        current["talks"] = graph().query("MATCH (t:Talk) RETURN count(t)").result_set[0][0]
+    return {"current": current and _summary(current), "loaded": [_summary(e) for e in entries if e["status"] in BUILT],
+            "all": entries}
+
+
+class BuildRequest(BaseModel):
+    schedule_url: str | None = None
+
+
+def _known(conf_id: str) -> dict:
+    entry = registry_db.get(registry(), conf_id)
+    if entry is None:
+        raise HTTPException(404, "Unknown conference")
+    return entry
+
+
+@app.post("/api/conferences/{conf_id}/build")
+def build_conference(conf_id: str, body: BuildRequest | None = None):
+    """Start (or retry) the map for a conference; the build itself runs in the background."""
+    _known(conf_id)
+    if conf_id == registry_db.UNIVERSE_ID:
+        raise HTTPException(409, "This conference's map is maintained separately.")
+    url = (body.schedule_url if body else None) or None
+    if url and (urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc):
+        raise HTTPException(422, "The schedule link must start with http:// or https://")
+    return build.start(registry(), conf_id, url)
+
+
+@app.get("/api/conferences/{conf_id}/build")
+def build_status(conf_id: str):
+    entry = _known(conf_id)
+    return {k: entry[k] for k in ("status", "step", "counts", "reason", "checked_at", "talks")}
 
 
 @app.get("/api/conferences/nearby")
-def conferences_nearby(place: str = "", lat: float | None = None, lon: float | None = None, c: Ctx = Depends(ctx)):
+def conferences_nearby(place: str = "", lat: float | None = None, lon: float | None = None):
     """Conferences happening near a place (typed, or from the browser's location), found by live web search."""
     if lat is not None and not (-90 <= lat <= 90 and -180 <= (lon or 0) <= 180):
         raise HTTPException(422, "Invalid coordinates")
-    return nearby.nearby(conferences(c.g), place=place, lat=lat, lon=lon)
+    reg = registry()
+    built = [e for e in registry_db.list_conferences(reg) if e["status"] in BUILT]
+    return nearby.nearby(lambda found: registry_db.upsert_found(reg, found), place=place, lat=lat, lon=lon, built=built)
 
 
 @app.get("/api/flow")

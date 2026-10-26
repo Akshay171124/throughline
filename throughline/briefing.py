@@ -12,7 +12,9 @@ the panel opens instantly and works offline.
 
 import argparse
 import json
+import logging
 import sys
+from threading import Lock, Thread, current_thread
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from urllib.parse import urlparse
@@ -194,6 +196,34 @@ def briefing(g: Graph, code: str) -> dict:
     ]
     return {"code": code, "status": "ready" if row[0] else "missing", "summary": row[0] or "",
             "summary_source": row[1] or SUMMARY_SOURCE, "concepts": concepts, "readings": readings, "fetched_at": row[2]}
+
+
+_running: dict[tuple[str, str], Thread] = {}
+_lock = Lock()
+
+
+def start(g: Graph, code: str) -> None:
+    """Build and store one talk's briefing in a background thread; one per (graph, talk), joined if running.
+    A failure is logged and dropped: the talk stays without a briefing, so the next open tries again."""
+    key = (g.name, code)
+    with _lock:
+        running = _running.get(key)
+        if running and running.is_alive():
+            return
+        thread = Thread(target=_build_then_forget, args=(g, code, key), name=f"briefing-{code}", daemon=True)
+        _running[key] = thread
+        thread.start()
+
+
+def _build_then_forget(g: Graph, code: str, key: tuple[str, str]) -> None:
+    try:
+        store(g, build(OpenAI(timeout=60, max_retries=1), g, code))
+    except Exception:
+        logging.getLogger(__name__).exception("briefing for %s failed", code)
+    finally:
+        with _lock:
+            if _running.get(key) is current_thread():
+                del _running[key]
 
 
 def run(g: Graph, codes: list[str], workers: int = 6) -> dict:

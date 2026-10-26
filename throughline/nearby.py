@@ -11,8 +11,10 @@ per place for a few hours, so a repeat visit (or a flaky network on stage) is in
 import json
 import re
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 from openai import OpenAI
@@ -99,6 +101,22 @@ def _loaded(graph_conferences: list[dict], name: str) -> dict | None:
     return next((c for c in graph_conferences if registry._names_match(name, c["name"])), None)
 
 
+def _unwrap(url: str) -> str | None:
+    """The real link behind a Google redirect (google.com/url?q=, ?url=, goto?url=); other google.com pages
+    and redirects we can't decode give None. Any other URL is returned unchanged."""
+    parts = urlparse(url)
+    host = (parts.hostname or "").lower()
+    if host != "google.com" and not host.endswith(".google.com"):
+        return url
+    if parts.path in ("/url", "/goto"):
+        query = parse_qs(parts.query)
+        for key in ("q", "url"):
+            target = (query.get(key) or [""])[0]
+            if urlparse(target).scheme in ("http", "https") and urlparse(target).netloc:
+                return target
+    return None
+
+
 def _search(place: str, today: date) -> list[dict]:
     month = today.strftime("%B %Y")
     nxt = (today.replace(day=1) + timedelta(days=32)).strftime("%B %Y")
@@ -123,6 +141,7 @@ def _search(place: str, today: date) -> list[dict]:
 
 
 def _extract(place: str, today: date, results: list[dict]) -> list[dict]:
+    results = [{**r, "url": u} for r in results if (u := _unwrap(r["url"]))]  # a Google redirect hides the real site
     if not results:
         return []
     end = today + timedelta(days=WINDOW_DAYS)
@@ -151,7 +170,10 @@ def _in_window(start_date: str, today: date, end: date) -> bool:
     return today - timedelta(days=3) <= start <= end  # a few days back keeps events already under way
 
 
-def nearby(graph_conferences: list[dict], place: str = "", lat: float | None = None, lon: float | None = None) -> dict:
+def nearby(reg_upsert: Callable[[dict], dict], place: str = "", lat: float | None = None, lon: float | None = None,
+           built: list[dict] | None = None) -> dict:
+    """reg_upsert records a found conference in the registry and returns its entry (id and map status).
+    built: conferences with a map, listed first when they are in this place even if the search missed them."""
     if not place and lat is not None and lon is not None:
         place = place_from_coordinates(lat, lon)
     place = (place or "").strip()[:80]
@@ -182,17 +204,20 @@ def nearby(graph_conferences: list[dict], place: str = "", lat: float | None = N
             else:
                 return {"place": place, "searched_at": None, "source": None, "conferences": [], "error": f"Search failed: {type(e).__name__}"}
 
-    # Mark the ones whose schedule is in the graph, and always list loaded conferences in this place.
-    out, loaded_ids = [], set()
+    # Each result carries its registry entry's status; built maps are listed first, also those the search missed.
+    out, ids = [], set()
     for c in result["conferences"][:MAX_RESULTS]:
-        match = _loaded(graph_conferences, c["name"])
-        if match:
-            loaded_ids.add(match["id"])
-        out.append({**c, "loaded": bool(match), "id": match["id"] if match else None})
-    for gc in graph_conferences:
+        entry = reg_upsert(c)
+        ids.add(entry["id"])
+        out.append({**c, "id": entry["id"], "status": entry["status"], "reason": entry.get("reason", ""),
+                    "checked_at": entry.get("checked_at"), "counts": entry.get("counts", {}),
+                    "loaded": entry["status"] in ("ready", "partial")})
+    out.sort(key=lambda c: not c["loaded"])  # stable: the search's order within each group
+    for gc in reversed(built or []):
         city = gc["location"].split(",")[0].lower()
-        if gc["id"] not in loaded_ids and city and city in place.lower():
+        if gc["id"] not in ids and city and city in place.lower():
             out.insert(0, {"name": gc["name"], "dates": gc["dates"], "start_date": gc["start_date"],
                            "location": gc["location"], "url": "", "snippet": f"{gc['talks']} talks loaded",
-                           "loaded": True, "id": gc["id"]})
+                           "loaded": True, "id": gc["id"], "status": gc.get("status", "ready"),
+                           "reason": gc.get("reason", ""), "checked_at": gc.get("checked_at"), "counts": gc.get("counts", {})})
     return {**{k: v for k, v in result.items() if k != "conferences"}, "conferences": out}

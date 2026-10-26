@@ -122,8 +122,9 @@ def test_api_agent_uses_and_stores_the_server_side_history(g, attendee, monkeypa
     assert seen["page"] == "landing"
     client.post("/api/agent", json={"attendee": attendee, "message": "x", "page": "anything-else"})
     assert seen["page"] == "talk"  # unknown pages fall back to the talk page's behaviour
-    assert client.get("/api/conferences").json()["current"] is None  # nothing loaded in this test graph
+    assert client.get("/api/conferences").json()["current"] is None  # nothing registered in this test
     upsert_conference(g)
+    api.registry_db.ensure_universe(api.registry())  # the registry lists conferences now
     current = client.get("/api/conferences").json()["current"]
     assert current["name"] and current["dates"] and current["location"]
 
