@@ -157,3 +157,14 @@ def test_rerun_keeps_an_earlier_vetted_explainer(tmp_path, monkeypatch):
     r = out["results"]["mcp"]
     assert r["explainer"]["url"] == "https://modelcontextprotocol.io/intro" and r["reason"].startswith("kept ")
     assert explainers.read_cache()["mcp"]["explainer"]["url"] == "https://modelcontextprotocol.io/intro"
+
+
+def test_run_without_a_cache_reads_and_writes_no_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(explainers, "CACHE", tmp_path / "explainers.json")
+    first = lambda s, u, sc: {"verdicts": [{"concept_id": "mcp", "choice": 0, "minutes": 6, "reason": "official intro"}]}
+    none = lambda s, u, sc: {"verdicts": [{"concept_id": "mcp", "choice": -1, "minutes": 0, "reason": "nothing fits"}]}
+    run(FakeGraph(), fake_search, first)
+    before = (tmp_path / "explainers.json").read_text()
+    out = run(FakeGraph(), fake_search, none, cache=None)
+    assert out["results"]["mcp"]["explainer"] is None  # another conference never borrows Universe's picks
+    assert (tmp_path / "explainers.json").read_text() == before

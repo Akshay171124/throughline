@@ -19,6 +19,7 @@ import argparse
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
 
@@ -232,7 +233,14 @@ def store(g: Graph, concept_id: str, explainer: dict) -> None:
 
 # --- runs --------------------------------------------------------------------
 
-def run(g: Graph, search: Callable = serp_search, ask: Callable = ask_openai) -> dict:
+_SHARED_CACHE = object()  # stands for CACHE, looked up at call time so tests can point it elsewhere
+
+
+def run(g: Graph, search: Callable = serp_search, ask: Callable = ask_openai,
+        cache: Path | None = _SHARED_CACHE) -> dict:
+    """Search, vet and store explainers. `cache` is the file earlier picks are kept from and this run is
+    saved to (default CACHE); None reads and writes no file, for graphs other than Universe's."""
+    cache = CACHE if cache is _SHARED_CACHE else cache
     concepts = required_concepts(g)
     results: dict[str, dict] = {}
 
@@ -271,7 +279,7 @@ def run(g: Graph, search: Callable = serp_search, ask: Callable = ask_openai) ->
 
     # Search results vary run to run. A concept that finds nothing acceptable this time keeps
     # the explainer an earlier run vetted, so the graph and the cache never disagree.
-    previous = read_cache()
+    previous = read_cache(cache) if cache else {}
     for concept_id, r in results.items():
         old = previous.get(concept_id, {}).get("explainer")
         if not r["explainer"] and old:
@@ -279,15 +287,16 @@ def run(g: Graph, search: Callable = serp_search, ask: Callable = ask_openai) ->
             r["explainer"] = old
 
     stored = load_results(g, results)
-    CACHE.write_text(json.dumps(
-        {"generated_at": _now(), "model": settings.extract_model, "concepts": dict(sorted(results.items()))},
-        indent=2, ensure_ascii=False) + "\n")
+    if cache:
+        cache.write_text(json.dumps(
+            {"generated_at": _now(), "model": settings.extract_model, "concepts": dict(sorted(results.items()))},
+            indent=2, ensure_ascii=False) + "\n")
     return {"searched": len(concepts), "stored": stored, "results": results}
 
 
-def read_cache() -> dict[str, dict]:
+def read_cache(path: Path | None = None) -> dict[str, dict]:
     try:
-        return json.loads(CACHE.read_text())["concepts"]
+        return json.loads((path or CACHE).read_text())["concepts"]
     except (FileNotFoundError, KeyError, json.JSONDecodeError):
         return {}
 
