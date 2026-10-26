@@ -43,6 +43,12 @@ def test_upsert_found_merges_duplicates(reg):
     assert len(registry.list_conferences(reg)) == 2  # Universe + AI Engineer
 
 
+def test_same_conference_needs_overlapping_dates_even_by_name():
+    last_year = {"name": "GitHub Universe 2025", "url": "https://githubuniverse.com/", "start_date": "2025-10-28", "end_date": "2025-10-29"}
+    this_year = {"name": "GitHub Universe 2026", "url": "", "start_date": "2026-10-28", "end_date": "2026-10-29"}
+    assert not registry.same_conference(last_year, this_year)
+
+
 def test_new_entries_have_no_graph_until_built(reg):
     c = registry.upsert_found(reg, AIE)
     assert c["graph"] == "" and c["status"] == "none"

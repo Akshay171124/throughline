@@ -50,11 +50,13 @@ def _domain(url: str) -> str:
 
 
 def same_conference(a: dict, b: dict) -> bool:
-    """Same website and overlapping dates; without dates or a website on either side, similar names."""
+    """With dates on both sides: overlapping dates, and the same website (or similar names if a website is missing).
+    Without dates on a side: similar names."""
+    names = _names_match(a.get("name", ""), b.get("name", ""))
+    if not a.get("start_date") or not b.get("start_date"):
+        return names
     da, db = _domain(a.get("url", "")), _domain(b.get("url", ""))
-    if not a.get("start_date") or not b.get("start_date") or not da or not db:
-        return _names_match(a.get("name", ""), b.get("name", ""))
-    if da != db:
+    if not (da == db if da and db else names):
         return False
     a_end, b_end = a.get("end_date") or a["start_date"], b.get("end_date") or b["start_date"]
     return a["start_date"] <= b_end and b["start_date"] <= a_end
