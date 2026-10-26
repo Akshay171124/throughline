@@ -98,7 +98,14 @@ def test_talk_code_is_stable():
 def test_wrong_year_schedule_is_rejected():
     talks = [raw_talk(date="2025-11-20") for _ in range(10)]
     assert check_event(talks, "2026-11-10", "2026-11-12") == (
-        [], "The schedule we found is for a different event (dates Nov 2025)")
+        [], "The schedule we found is for a different event (dates Nov 20, 2025)")
+
+
+def test_wrong_event_in_the_same_month_names_its_days():
+    # QCon's schedule pasted for AI Engineer (Nov 10-12): "dates Nov 2026" would read like the same event.
+    talks = [raw_talk(date=d) for d in ["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-20"] * 3]
+    assert check_event(talks, "2026-11-10", "2026-11-12") == (
+        [], "The schedule we found is for a different event (dates Nov 16–20, 2026)")
 
 
 def test_right_event_keeps_talks_within_a_day():

@@ -273,16 +273,7 @@ def clock_start(talks: list[dict]) -> str:
     return clock.strftime("%Y-%m-%dT%H:%M")
 
 
-def dates_text(start: str, end: str) -> str:
-    """"Nov 16–20, 2026", "Oct 30–Nov 2, 2026" or "Nov 16, 2026"."""
-    a, b = datetime.fromisoformat(start), datetime.fromisoformat(end)
-    first = f"{importer.MONTHS[a.month - 1]} {a.day}"
-    if a == b:
-        return f"{first}, {a.year}"
-    if a.year != b.year:
-        return f"{first}, {a.year}–{importer.MONTHS[b.month - 1]} {b.day}, {b.year}"
-    last = str(b.day) if a.month == b.month else f"{importer.MONTHS[b.month - 1]} {b.day}"
-    return f"{first}–{last}, {a.year}"
+dates_text = importer.dates_text  # "Nov 16–20, 2026"
 
 
 def _conference(entry: dict, talks: list[dict]) -> dict:

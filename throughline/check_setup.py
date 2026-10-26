@@ -49,6 +49,15 @@ def _():
     return talks > 0, f"graph '{settings.graph_name}': {talks} talks, {slots} time slots, {edges} edges{hint}"
 
 
+@check("Registry graph")
+def _():
+    from .registry import REGISTRY, list_conferences, registry_graph
+    conferences = list_conferences(registry_graph())  # raises if the registry graph can't be reached
+    built = sum(1 for c in conferences if c["status"] in ("ready", "partial"))
+    hint = "" if conferences else " (empty: the app registers Universe when it starts)"
+    return True, f"graph '{REGISTRY}' reachable: {len(conferences)} conferences, {built} with a map{hint}"
+
+
 @check("Multi-hop path query")
 def _():
     # Two talks in the same time slot (a clash), returned as a path: Talk -> TimeSlot <- Talk.

@@ -15,6 +15,7 @@ import socket
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
+import datetime
 from html.parser import HTMLParser
 from typing import Callable
 from urllib.parse import urldefrag, urljoin, urlparse
@@ -546,8 +547,20 @@ def check_event(talks: list[dict], start_date: str | None, end_date: str | None)
     kept = [t for t in talks if low <= _day_number(t["date"]) <= high]
     if len(kept) >= 0.8 * len(talks):
         return kept, None
-    median = sorted(talks, key=lambda t: t["date"])[len(talks) // 2]["date"]
-    return [], f"The schedule we found is for a different event (dates {MONTHS[int(median[5:7]) - 1]} {median[:4]})"
+    days = sorted(t["date"] for t in talks)
+    return [], f"The schedule we found is for a different event (dates {dates_text(days[0], days[-1])})"
+
+
+def dates_text(start: str, end: str) -> str:
+    """"Nov 16–20, 2026", "Oct 30–Nov 2, 2026" or "Nov 16, 2026"."""
+    a, b = datetime.date.fromisoformat(start), datetime.date.fromisoformat(end)
+    first = f"{MONTHS[a.month - 1]} {a.day}"
+    if a == b:
+        return f"{first}, {a.year}"
+    if a.year != b.year:
+        return f"{first}, {a.year}–{MONTHS[b.month - 1]} {b.day}, {b.year}"
+    last = str(b.day) if a.month == b.month else f"{MONTHS[b.month - 1]} {b.day}"
+    return f"{first}–{last}, {a.year}"
 
 
 def to_talks(conf_id: str, raw: list[dict], page_url: str = "") -> list[dict]:
