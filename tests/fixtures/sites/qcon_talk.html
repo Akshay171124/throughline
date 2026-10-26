@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#">
+  <head>
+    <meta charset="utf-8" />
+<meta name="description" content="Most API design advice assumes a forgiving environment: retries are cheap, data has a single source of truth, and a slow response is only an inconvenience. Financial infrastructure assumes none of that. Card networks give you three seconds to auth or decline." />
+<meta name="keywords" content="software development conference" />
+<link rel="canonical" href="https://qconsf.com/presentation/nov2026/apis-cant-afford-be-wrong-lessons-moving-money" />
+<meta property="og:site_name" content="QCon San Francisco 2026" />
+<meta property="og:title" content="QCon San Francisco 2026 | APIs That Can&#039;t Afford to Be Wrong: Lessons from Moving Money" />
+<meta property="og:image" content="https://d1udkpklcxvaqz.cloudfront.net/sites/qcon_sf/files/og_images/apis_that_can_t_afford_to_be_wrong_lessons_from_moving_money.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="QCon San Francisco 2026 | APIs That Can&#039;t Afford to Be Wrong: Lessons from Moving Money" />
+<meta name="twitter:site" content="@QConSanFrancisco" />
+<meta name="twitter:creator:id" content="@QConSanFrancisco" />
+<meta name="twitter:image" content="https://d1udkpklcxvaqz.cloudfront.net/sites/qcon_sf/files/og_images/apis_that_can_t_afford_to_be_wrong_lessons_from_moving_money.png" />
+<noscript></noscript>
+<script type="text/javascript">window.qconMarketingConsent=function(){try{var name="civiccookiecontrol_cc_cookie";var parts=document.cookie?document.cookie.split(';'):[];for(var i=0;i<parts.length;i++){var part=parts[i].replace(/^\s+/,'');var eq=part.indexOf('=');if(eq<1||part.slice(0,eq)!==name){continue;}var data=JSON.parse(decodeURIComponent(part.slice(eq+1)));return !!(data&&data.optionalCookies&&data.optionalCookies.marketing==='accepted');}}catch(e){}return false;};</script>
+<meta name="facebook-domain-verification" content="br6wl3eblovl0bdb7rr6u8ab6snad1" />
+<script type="text/javascript">window.qconLoadFacebookPixel=function(){if(window.qconFacebookPixelLoaded){return;}window.qconFacebookPixelLoaded=true;(function(){try{var d=document,now=Date.now(),jar={},raw=d.cookie?d.cookie.split(';'):[];for(var i=0;i<raw.length;i++){var p=raw[i].replace(/^\s+/,''),e=p.indexOf('=');if(e>0){jar[p.slice(0,e)]=1;}}var h=location.hostname.split('.'),wide=h.length>2?'.'+h.slice(-2).join('.'):(h.length>1?'.'+h.join('.'):''),sec=location.protocol==='https:'?';secure':'',set=function(n,v){var tail=';path=/;max-age=7776000;samesite=Lax'+sec;if(wide){d.cookie=n+'='+v+';domain='+wide+tail;}if(('; '+d.cookie).indexOf('; '+n+'=')<0){d.cookie=n+'='+v+tail;}};if(!jar._fbp){set('_fbp','fb.1.'+now+'.'+Math.floor(1000000000+Math.random()*9000000000));}if(!jar._fbc){var m=/[?&]fbclid=([^&]+)/.exec(location.search);if(m){var id=decodeURIComponent(m[1]);if(/^[A-Za-z0-9_-]+$/.test(id)){set('_fbc','fb.1.'+now+'.'+id);}}}}catch(e){}})();!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', "377334364562666");fbq('track', 'PageView');if(typeof fbq==='function'){fbq('consent', 'grant');}};if(window.qconMarketingConsent()){window.qconLoadFacebookPixel();}</script>
+<script type="text/javascript">window.qconLoadLinkedIn=function(){if(window.qconLinkedInLoaded){return;}window.qconLinkedInLoaded=true;_linkedin_partner_id = "8550545";window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];window._linkedin_data_partner_ids.push(_linkedin_partner_id);(function(l){if (!l){window.lintrk = function(a,b){window.lintrk.q.push([a,b])};window.lintrk.q=[]}var s = document.getElementsByTagName("script")[0];var b = document.createElement("script");b.type = "text/javascript";b.async = true;b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";s.parentNode.insertBefore(b, s);})(window.lintrk);};if(window.qconMarketingConsent()){window.qconLoadLinkedIn();}</script>
+<noscript><img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=8550545&fmt=gif" /></noscript>
+<script type="text/javascript">window.qconLoadOpenAi=function(){if(window.qconOpenAiLoaded){return;}window.qconOpenAiLoaded=true;(function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};q.q=[];w.oaiq=q;var js=d.createElement(s);js.async=true;js.src=u;var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(js,f)})(window,document,'script','https://bzrcdn.openai.com/sdk/oaiq.min.js');oaiq('init',{pixelId:"S7amiXcgrpiuDkx1P81trX"});oaiq('measure','page_viewed',{type:'contents',contents:[{id:location.pathname,content_type:'page'}]});oaiq('consent', true);};if(window.qconMarketingConsent()){window.qconLoadOpenAi();}</script>
+<script async src="https://plausible.io/js/pa-DTvnLZEmsvemSVIlsUrET.js"></script>
+<script type="text/javascript">window.plausible = window.plausible || function() { (plausible.q = plausible.q || []).push(arguments) }, plausible.init = plausible.init || function(i) { plausible.o = i || {} }; plausible.init();</script>
+<meta name="Generator" content="Drupal 10 (https://www.drupal.org)" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script type="application/ld+json">{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Event",
+            "name": "QCon San Francisco Senior Software Engineering Conference",
+            "url": "https://qconsf.com",
+            "eventAttendanceMode": "MixedEventAttendanceMode",
+            "description": "What\u0027s next in AI. What\u0027s next in software. 60+ senior practitioners share what\u0027s working across AI, architecture, leadership, and culture. November 16-20, 2026, San Francisco.",
+            "eventStatus": "EventScheduled",
+            "startDate": "2026-11-16T09:00:00-07:00",
+            "endDate": "2026-11-20T18:00:00-07:00",
+            "@id": "https://qconsf.com",
+            "isAccessibleForFree": "False",
+            "location": {
+                "@type": "Place",
+                "name": "Hyatt Regency San Francisco",
+                "url": "http://sanfranciscoregency.hyatt.com/en/hotel/home.html",
+                "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": "5 Embarcadero Center",
+                    "addressLocality": "San Francisco",
+                    "addressRegion": "CA",
+                    "postalCode": "94111",
+                    "addressCountry": "USA"
+                }
+            }
+        }
+    ]
+}</script>
+<link href="https://fonts.googleapis.com" rel="preconnect" />
+<link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+<link href="//d1udkpklcxvaqz.cloudfront.net" rel="preconnect" />
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media=&#039;all&#039;" />
+<link href="/modules/custom/qcon_base/css/qcon_base.fonts.css" rel="stylesheet" media="print" onload="this.media=&#039;all&#039;" />
+<link rel="icon" href="//d1udkpklcxvaqz.cloudfront.net/sites/qcon_sf/files/favicon_0.ico" type="image/vnd.microsoft.icon" />
+
+    <title>QCon San Francisco 2026 | APIs That Can&#039;t Afford to Be Wrong: Lessons from Moving Money</title>
+    <link rel="stylesheet" media="all" href="/sites/qcon_sf/files/css/css_kf2C0MtipTcae0u58rPkxAGtIeiwlsnGrzgYLXZiE-4.css?delta=0&amp;language=en&amp;theme=qcontheme&amp;include=eJwdyVEOgCAIANALWRzJIaFZKCW05e3ber-PdDBs47lQVjzwDTdpj6StaQfzSueMmrOx21--c2MoogllMZ9Sewk2zblBQuMP-F8feQ" />
+<link rel="stylesheet" media="all" href="/sites/qcon_sf/files/css/css_eQUaZkSMU0em9HkDO00Y574cxZwH1P9fIqPa10YueKo.css?delta=1&amp;language=en&amp;theme=qcontheme&amp;include=eJwdyVEOgCAIANALWRzJIaFZKCW05e3ber-PdDBs47lQVjzwDTdpj6StaQfzSueMmrOx21--c2MoogllMZ9Sewk2zblBQuMP-F8feQ" />
+
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"","currentPath":"node\/661","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"en","civiccookiecontrol_path":"modules\/contrib\/civicccookiecontrol"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"gtag":{"tagId":"G-75NGF6L4QP","consentMode":true,"otherIds":[],"events":[],"additionalConfigInfo":[]},"ajaxPageState":{"libraries":"eJxtTksWwjAIvFA1a0-TR5FSbBI0YLW3N1U3tS7gMZ_HDMosiKqTEGrxqingjjoauUth6_baH_upY1VOFB04cFu_-AgXeHa3Zo-oOWsJ7TQqHr0CTi1pI44EZ6obqoKkOIhvSHPBaYk6DK2v_ZMqsZhTjT18_zEEhs95rbR2AJcGZqFH2DFvo4-UKXDSHtLBfElrX7tCblOC9sPdEJw6W1pUDj0YvQDuh441","theme":"qcontheme","theme_token":null},"ajaxTrustedUrl":[],"ga":{"user_data":null,"config":{"allow_enhanced_conversions":true,"google_ads_id":"AW-971534751"}},"civiccookiecontrol":"{\u0022apiKey\u0022:\u00228910ea974a96ffb6f927952b4ae9b9b0cc3e5973\u0022,\u0022product\u0022:\u0022PRO_MULTISITE\u0022,\u0022logConsent\u0022:false,\u0022consentCookieExpiry\u0022:90,\u0022encodeCookie\u0022:false,\u0022subDomains\u0022:true,\u0022notifyOnce\u0022:false,\u0022rejectButton\u0022:true,\u0022toggleType\u0022:\u0022slider\u0022,\u0022closeStyle\u0022:\u0022icon\u0022,\u0022settingsStyle\u0022:\u0022button\u0022,\u0022initialState\u0022:\u0022NOTIFY\u0022,\u0022layout\u0022:\u0022SLIDEOUT\u0022,\u0022position\u0022:\u0022LEFT\u0022,\u0022theme\u0022:\u0022LIGHT\u0022,\u0022necessaryCookies\u0022:[\u0022cookie_expire\u0022,\u0022discount_promo_closed\u0022,\u0022discount_promo_code\u0022,\u0022discount_promo_submitted\u0022,\u0022exit_survey_popup\u0022,\u0022referrer_popup\u0022,\u0022voting_popup_*\u0022],\u0022optionalCookies\u0022:[{\u0022name\u0022:\u0022google_analytics\u0022,\u0022label\u0022:\u0022Analytics\u0022,\u0022description\u0022:\u0022\u003Cp\u003EAnalytical cookies help us to improve our website by collecting and reporting information on its usage.\u003C\/p\u003E\u0022,\u0022cookies\u0022:[\u0022_ga\u0022,\u0022_ga*\u0022,\u0022_gid\u0022,\u0022_gat\u0022,\u0022__utma\u0022,\u0022__utmt\u0022,\u0022__utmb\u0022,\u0022__utmc\u0022,\u0022__utmz\u0022,\u0022__utmv\u0022],\u0022onAccept\u0022:\u0022function(){gtag(\u0027consent\u0027, \u0027update\u0027, {\u0027analytics_storage\u0027: \u0027granted\u0027});}\u0022,\u0022onRevoke\u0022:\u0022function(){gtag(\u0027consent\u0027, \u0027update\u0027, {\u0027analytics_storage\u0027: \u0027denied\u0027});}\u0022,\u0022recommendedState\u0022:false,\u0022lawfulBasis\u0022:\u0022consent\u0022},{\u0022name\u0022:\u0022marketing\u0022,\u0022label\u0022:\u0022Advertising\u0022,\u0022description\u0022:\u0022\u003Cp\u003EWe use advertising cookies to display advertisements to you for our products.\u003C\/p\u003E\u0022,\u0022cookies\u0022:[\u0022_ga\u0022],\u0022onAccept\u0022:\u0022function(){gtag(\u0027consent\u0027, \u0027update\u0027, {\u0027ad_storage\u0027: \u0027granted\u0027, \u0027ad_personalization\u0027: \u0027granted\u0027, \u0027ad_user_data\u0027: \u0027granted\u0027});if(typeof window.qconLoadFacebookPixel===\u0027function\u0027){window.qconLoadFacebookPixel();};if(typeof window.qconLoadLinkedIn===\u0027function\u0027){window.qconLoadLinkedIn();};if(typeof window.qconLoadOpenAi===\u0027function\u0027){window.qconLoadOpenAi();}}\u0022,\u0022onRevoke\u0022:\u0022function(){gtag(\u0027consent\u0027, \u0027update\u0027, {\u0027ad_storage\u0027: \u0027denied\u0027, \u0027ad_personalization\u0027: \u0027denied\u0027, \u0027ad_user_data\u0027: \u0027denied\u0027});if(typeof fbq===\u0027function\u0027){fbq(\u0027consent\u0027, \u0027revoke\u0027);};if(typeof oaiq===\u0027function\u0027){oaiq(\u0027consent\u0027, false);}}\u0022,\u0022recommendedState\u0022:false,\u0022lawfulBasis\u0022:\u0022consent\u0022}],\u0022excludedCountries\u0022:[\u0022US\u0022],\u0022debug\u0022:false,\u0022setInnerHTML\u0022:true,\u0022wrapInnerHTML\u0022:false,\u0022mode\u0022:\u0022GDPR\u0022,\u0022acceptBehaviour\u0022:\u0022all\u0022,\u0022closeOnGlobalChange\u0022:true,\u0022notifyDismissButton\u0022:true,\u0022sameSiteCookie\u0022:true,\u0022sameSiteValue\u0022:\u0022Strict\u0022,\u0022ccCookie\u0022:\u0022civiccookiecontrol_cc_cookie\u0022,\u0022secureCookie\u0022:false,\u0022iabCMP\u0022:false,\u0022statement\u0022:[],\u0022ccpaConfig\u0022:[],\u0022accessibility\u0022:{\u0022accessKey\u0022:\u0022C\u0022,\u0022overlay\u0022:true,\u0022outline\u0022:true,\u0022disableSiteScrolling\u0022:false},\u0022text\u0022:{\u0022title\u0022:\u0022Our use of cookies\u0022,\u0022intro\u0022:\u0022\u003Cp\u003EWe use necessary cookies to make our site work. Functional cookies help enhance the performance and functionality of the site. We\u0027d also like to set analytics cookies to help us improve your experience by measuring how you use the site. These will be set only if you accept.\u003C\/p\u003E\u003Cp\u003EFor more detailed information about the cookies we use, see our \u003Ca href=\\\u0022https:\/\/qconferences.com\/cookies\\\u0022\u003ECookie Policy\u003C\/a\u003E\u003C\/p\u003E\u0022,\u0022acceptRecommended\u0022:\u0022Accept Recommended Settings\u0022,\u0022acceptSettings\u0022:\u0022I ACCEPT\u0022,\u0022rejectSettings\u0022:\u0022I DO NOT ACCEPT\u0022,\u0022necessaryTitle\u0022:\u0022Necessary Cookies\u0022,\u0022necessaryDescription\u0022:\u0022\u003Cp\u003ENecessary cookies enable core functionality such as page navigation and access to secure areas. The website cannot function properly without these cookies, and can only be disabled by changing your browser preferences.\u003C\/p\u003E\u0022,\u0022thirdPartyTitle\u0022:\u0022Warning: Some cookies require your attention.\u0022,\u0022thirdPartyDescription\u0022:\u0022\u003Cp\u003EConsent for the following cookies could not be automatically revoked. Please follow the link(s) below to opt out manually.\u003C\/p\u003E\u0022,\u0022on\u0022:\u0022On\u0022,\u0022off\u0022:\u0022Off\u0022,\u0022notifyTitle\u0022:\u0022Your choice regarding cookies on this site\u0022,\u0022notifyDescription\u0022:\u0022\u003Cp\u003EWe use cookies to optimise site functionality and give you the best possible experience.\u003C\/p\u003E\u0022,\u0022accept\u0022:\u0022I Accept\u0022,\u0022reject\u0022:\u0022I Reject\u0022,\u0022settings\u0022:\u0022Cookie Preferences\u0022,\u0022closeLabel\u0022:\u0022Close\u0022,\u0022cornerButton\u0022:\u0022Set cookie preferences.\u0022,\u0022landmark\u0022:\u0022Cookie preferences.\u0022,\u0022showVendors\u0022:\u0022Show vendors within this category\u0022,\u0022thirdPartyCookies\u0022:\u0022This vendor may set third party cookies.\u0022,\u0022readMore\u0022:\u0022Read more\u0022},\u0022branding\u0022:{\u0022fontSizeTitle\u0022:\u0022em\u0022,\u0022fontSize\u0022:\u0022em\u0022,\u0022buttonIconWidth\u0022:\u0022px\u0022,\u0022buttonIconHeight\u0022:\u0022px\u0022,\u0022removeIcon\u0022:true,\u0022removeAbout\u0022:true,\u0022rejectText\u0022:\u0022\u0022,\u0022rejectBackground\u0022:\u0022\u0022,\u0022closeText\u0022:\u0022\u0022,\u0022closeBackground\u0022:\u0022\u0022,\u0022notifyFontColor\u0022:\u0022\u0022,\u0022notifyBackgroundColor \u0022:\u0022\u0022},\u0022locales\u0022:[]}","presentation_id":"661","theme":{"mode":"light"},"user":{"uid":0,"permissionsHash":"9f336b9f4f91edb90f866707c695f1bf1422d3e359d268b3efc6f153e9cfeed1"}}</script>
+<script src="/sites/qcon_sf/files/js/js_2t8UyWtrGDrBhmTY2ko9CR3uZ0smR0g6hCL27TXSzfU.js?scope=header&amp;delta=0&amp;language=en&amp;theme=qcontheme&amp;include=eJxtTksSwjAIvVCmWXuaDEWCmDbUgFVvbxzd1HYB834DD2UVRNUihFq96RRxJw1G7lLZwt47iJ8Cq_JEyYEj9_XPB7jCM9x6PKHOs9bYoVH15A2w9E8b80JwpraRGsiUsvhGNBcsr6Q59752ZDViMaeWRvjdY4gMX7g0-nQAl05WoUfcKcEWmPvUqGO-G4LTG2Wtf9M"></script>
+<script src="/modules/contrib/google_tag/js/gtag.js?tnek4r"></script>
+<script src="/modules/custom/qcon_ga/js/ga.js?tnek4r"></script>
+
+  </head>
+  <body class="qcon_sf San Francisco" id="once-body">
+        
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    
+      <header role="banner" class="sticky top-0 z-[101] w-full py-3 mx-auto border-b bg-skin-base border-skin-base wrap-nav">
+        <div id="block-qconheader">
+  
+    
+      	
+	<div  class="flex px-4 sm:px-6 md:px-8 md:pr-4 items-center header-inner">
+					<div  class="absolute top-0 left-0 celebrate-year">
+				<img src="//d1udkpklcxvaqz.cloudfront.net/sites/qcon_sf/files/global/Badge.svg" alt="QCon - 19 years of QCon" width="79" height="63" class="w-14 lg:w-[79px]">
+			</div>
+				<a href="/" title="Home" rel="home" class="inline-block pl-10 lg:pl-8 text-skin-base logo">
+			<svg width="132" height="52" viewBox="0 0 132 52" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-auto h-11">
+<g clip-path="url(#clip0_5556_21133)">
+<path d="M26.3826 32.0751C25.1539 32.7422 23.8011 33.234 22.3229 33.5853C20.8453 33.936 19.2779 34.0942 17.6221 34.0942C12.5483 34.0942 8.48863 32.549 5.44366 29.4565C2.39869 26.3662 0.867661 22.2382 0.867661 17.0731C0.867661 14.2458 1.33046 11.7327 2.2568 9.50338C3.18166 7.27183 4.57155 5.37532 6.42275 3.79452C7.89414 2.53025 9.60068 1.56893 11.4445 0.965718C13.3127 0.333547 15.3779 0.0170898 17.6213 0.0170898C22.6787 0.0170898 26.7377 1.56298 29.8005 4.67258C32.8633 7.78069 34.3765 11.9095 34.3765 17.0731C34.3765 19.2348 34.1276 21.1841 33.6113 22.9402C33.1161 24.6518 32.3136 26.259 31.2431 27.6833C32.1779 28.4906 33.2283 29.1534 34.3594 29.6497C35.4811 30.1422 36.6919 30.4408 37.9912 30.5812L35.516 36.3948C33.647 36.2195 31.9369 35.7634 30.4059 35.025C28.8835 34.3157 27.516 33.313 26.3818 32.0743L26.3826 32.0751ZM17.6221 27.2792C20.2577 27.2792 22.305 26.3833 23.7655 24.5908C25.243 22.8005 25.9733 20.3053 25.9733 17.0909C25.9733 13.8766 25.2252 11.365 23.7477 9.57321C22.2694 7.74578 20.2221 6.85063 17.6228 6.85063C15.0228 6.85063 12.9926 7.76435 11.4972 9.59178C10.0018 11.3999 9.25377 13.9122 9.25377 17.0909C9.25377 20.2703 10.0018 22.7641 11.4794 24.5737C12.9577 26.3833 15.005 27.2785 17.6228 27.2785V27.2792H17.6221Z" fill="#1E8D44"></path>
+<path d="M68.3145 25.838C66.73 28.6141 64.7354 30.6867 62.3672 32.0743C59.9812 33.4612 57.2214 34.1469 54.0524 34.1469C49.0664 34.1469 45.1144 32.6018 42.1935 29.5263C39.2555 26.4531 37.7779 22.308 37.7779 17.0909C37.7779 11.98 39.3097 7.85199 42.3717 4.7253C45.4331 1.59862 49.4578 0.0356445 54.4432 0.0356445C57.578 0.0356445 60.3021 0.736902 62.6168 2.14239C64.9316 3.54862 66.73 5.58553 68.0122 8.2561L61.6199 11.417C60.8711 9.85473 59.8928 8.67656 58.6633 7.86907C57.4354 7.06159 56.0113 6.65822 54.3904 6.65822C51.8625 6.65822 49.8679 7.58753 48.3904 9.43279C46.9121 11.2766 46.1826 13.8231 46.1826 17.0731C46.1826 20.3402 46.9113 22.8874 48.3718 24.697C49.8322 26.5059 51.8617 27.401 54.4966 27.401C56.1532 27.401 57.578 27.0147 58.7889 26.26C59.999 25.4874 61.0137 24.3449 61.8153 22.7998L68.3145 25.838ZM82.8968 34.0942C78.927 34.0942 75.7208 32.9175 73.2991 30.5634C70.8774 28.2092 69.668 25.1011 69.668 21.2182C69.668 17.3724 70.8781 14.2458 73.3177 11.8738C75.7565 9.50262 78.9441 8.32593 82.9154 8.32593C86.9209 8.32593 90.1434 9.50262 92.5651 11.8738C94.9868 14.2458 96.1977 17.3546 96.1977 21.219C96.1977 25.0833 94.969 28.1922 92.5294 30.5455C90.0906 32.9175 86.8852 34.0949 82.8968 34.0949V34.0942ZM77.2526 21.2182C77.2526 23.4319 77.7689 25.171 78.7829 26.471C79.8169 27.771 81.1868 28.421 82.8968 28.421C84.624 28.421 85.9953 27.7702 87.0278 26.471C88.0604 25.171 88.5767 23.4148 88.5767 21.219C88.5767 19.0231 88.0604 17.267 87.0457 15.9491C86.0131 14.6491 84.6418 13.9999 82.9154 13.9999C81.2053 13.9999 79.8518 14.667 78.8193 15.9848C77.7689 17.3019 77.2526 19.0587 77.2526 21.2182ZM99.4388 33.3045V9.11707H106.863V11.365C107.824 10.4156 108.893 9.71433 110.086 9.25673C111.279 8.80062 112.632 8.55473 114.127 8.55473C116.798 8.55473 118.792 9.3793 120.092 11.0485C121.392 12.717 122.051 15.2642 122.051 18.7074V33.3045H114.626V19.0587C114.626 17.4259 114.341 16.2314 113.754 15.4581C113.167 14.6855 112.24 14.3163 110.976 14.3163C109.48 14.3163 108.43 14.6684 107.789 15.3875C107.148 16.1081 106.846 17.3204 106.846 19.0595V33.3045H99.438H99.4388Z" fill="#2B6CAD"></path>
+<path d="M92.3461 50.8263C91.8862 50.8263 91.5007 50.6086 91.3038 50.235H91.2555V50.7698H90.6286V46.0571H91.2801V47.9187H91.3321C91.5066 47.5473 91.8944 47.3244 92.3461 47.3244C93.1818 47.3244 93.7092 47.996 93.7092 49.0739C93.7092 50.1473 93.1788 50.827 92.3468 50.827H92.3461V50.8263ZM92.1589 47.9247C91.6129 47.9247 91.2704 48.3667 91.2674 49.0768C91.2704 49.787 91.6106 50.2253 92.1589 50.2253C92.7101 50.2253 93.0399 49.793 93.0399 49.0739C93.0399 48.3607 92.7093 47.9247 92.1589 47.9247V47.9247ZM94.8183 52C95.4906 52 95.8026 51.7348 96.0841 50.911L97.3143 47.3794H96.6234L95.8003 50.0723H95.7483L94.9208 47.3794H94.2121L95.4051 50.7817L95.3569 50.9474C95.2454 51.2891 95.0694 51.4206 94.7603 51.4206C94.6895 51.421 94.6188 51.4166 94.5486 51.4072V51.9836C94.6088 51.9926 94.7641 51.9992 94.8183 51.9992V52Z" fill="#292952"></path>
+<path d="M103.06 51.0952H101.029V42.4937H103.06V51.0952ZM104.365 51.0952V44.7534H106.223V45.3425C106.451 45.1011 106.727 44.9131 107.032 44.7906C107.354 44.665 107.697 44.6024 108.043 44.6063C108.711 44.6063 109.21 44.8225 109.534 45.2601C109.86 45.6976 110.024 46.3654 110.024 47.2673V51.0945H108.167V47.3601C108.167 46.933 108.096 46.6195 107.95 46.4167C107.802 46.2139 107.571 46.1173 107.254 46.1173C106.882 46.1173 106.619 46.2094 106.458 46.3981C106.302 46.5875 106.222 46.9047 106.222 47.3601V51.0959H104.365V51.0952ZM111.396 51.0952V46.0274H110.46V44.8582H111.396C111.383 44.7274 111.378 44.6301 111.374 44.5744C111.374 44.5135 111.369 44.463 111.369 44.411C111.369 43.7335 111.528 43.2462 111.842 42.9446C112.155 42.6474 112.672 42.4937 113.387 42.4937C113.548 42.4937 113.709 42.5028 113.869 42.5211C114.032 42.5405 114.2 42.5731 114.377 42.6192V43.9563H114.068C113.728 43.9563 113.507 43.9987 113.396 44.0863C113.286 44.1755 113.233 44.3463 113.233 44.6108V44.8582H114.377V46.0274H113.237V51.0952H111.396ZM117.706 51.5476C116.707 51.5476 115.901 51.2304 115.291 50.5967C114.682 49.9616 114.377 49.1251 114.377 48.0785C114.377 47.0429 114.682 46.2013 115.296 45.5624C115.905 44.9273 116.712 44.6063 117.707 44.6063C118.716 44.6063 119.527 44.9235 120.136 45.5624C120.746 46.2013 121.051 47.0385 121.051 48.0792C121.051 49.1155 120.742 49.9527 120.127 50.5915C119.518 51.2304 118.712 51.5476 117.706 51.5476V51.5476ZM116.287 48.0792C116.287 48.675 116.417 49.1437 116.673 49.4936C116.933 49.8435 117.277 50.0188 117.708 50.0188C118.138 50.0188 118.488 49.8435 118.748 49.4936C119.008 49.1437 119.138 48.6705 119.138 48.0844C119.138 47.4879 119.008 47.0191 118.752 46.6641C118.492 46.3142 118.147 46.1396 117.712 46.1396C117.282 46.1396 116.941 46.3186 116.681 46.6745C116.417 47.0236 116.288 47.4968 116.288 48.0792H116.287Z" fill="#2B6CAD"></path>
+<path d="M128.308 50.8531C127.989 51.0331 127.648 51.1681 127.292 51.2542C126.908 51.3474 126.513 51.3925 126.117 51.3887C124.848 51.3887 123.832 50.9793 123.065 50.1585C122.305 49.3376 121.921 48.2419 121.921 46.8706C121.921 46.1203 122.037 45.4532 122.269 44.8604C122.493 44.2805 122.85 43.7614 123.311 43.345C123.675 43.0124 124.102 42.7572 124.567 42.5947C125.064 42.4221 125.587 42.3369 126.113 42.3429C127.378 42.3429 128.393 42.7529 129.159 43.5783C129.925 44.4043 130.304 45.5 130.304 46.8706C130.304 47.4441 130.241 47.9626 130.112 48.4284C129.99 48.8792 129.789 49.3051 129.52 49.6868C129.761 49.9067 130.019 50.079 130.299 50.209C130.587 50.3402 130.894 50.4237 131.208 50.4564L130.588 52C130.143 51.96 129.709 51.8365 129.31 51.636C128.927 51.4448 128.586 51.1786 128.308 50.8531V50.8531ZM126.113 49.5805C126.772 49.5805 127.283 49.3428 127.649 48.8659C128.018 48.3905 128.201 47.7279 128.201 46.8751C128.201 46.0223 128.014 45.3552 127.644 44.879C127.275 44.3991 126.762 44.1621 126.108 44.1621C125.457 44.1621 124.95 44.4036 124.576 44.8887C124.202 45.3737 124.019 46.0364 124.019 46.8795C124.019 47.7241 124.206 48.386 124.576 48.8659C124.95 49.3421 125.462 49.5805 126.112 49.5805H126.113Z" fill="#1E8D44"></path>
+<path d="M0.407059 48.7329H1.99974C2.07626 49.3844 2.75523 49.8116 3.63032 49.8116C4.51209 49.8116 5.1138 49.3896 5.1138 48.8095C5.1138 48.2954 4.73643 48.0109 3.78409 47.7969L2.75523 47.5726C1.29923 47.2606 0.582373 46.5222 0.582373 45.3671C0.582373 43.9111 1.84077 42.9476 3.60357 42.9476C5.44214 42.9476 6.59729 43.8947 6.62477 45.3232H5.07592C5.02095 44.6554 4.43483 44.2505 3.60877 44.2505C2.79312 44.2505 2.24563 44.6391 2.24563 45.2244C2.24563 45.7117 2.62894 45.9859 3.5382 46.1939L4.49574 46.3959C6.07729 46.7354 6.76666 47.4136 6.76666 48.6178C6.76666 50.1503 5.5246 51.119 3.56494 51.119C1.66546 51.119 0.456087 50.2164 0.407059 48.7329V48.7329ZM12.6211 50.9823L12.0194 49.0672H9.24409L8.64237 50.9823H6.94643L9.68832 43.0857H11.6316L14.3787 50.9831H12.6219L12.6211 50.9823ZM10.6124 44.5952L9.59992 47.8296H11.6636L10.6511 44.5952H10.6124ZM16.5999 50.9823H15.0176V43.0857H16.3971L20.0861 48.23H20.1299V43.0857H21.7115V50.9823H20.3431L16.6489 45.8105H16.5991V50.9823H16.5999ZM26.5638 50.9823H24.9109V43.0857H30.0835V44.4481H26.5645V46.5668H29.7774V47.8742H26.5645V50.9831L26.5638 50.9823ZM32.5453 44.3761V46.8944H33.9686C34.8006 46.8944 35.2872 46.4182 35.2872 45.6352C35.2872 44.8693 34.7731 44.3761 33.9523 44.3761H32.5453ZM32.5453 48.0926V50.9823H30.8924V43.0857H34.1268C35.9439 43.0857 36.9839 44.0433 36.9839 45.6033C36.9839 46.6158 36.4587 47.4916 35.5501 47.8467L37.2141 50.9831H35.3421L33.8698 48.0933H32.5453V48.0926ZM43.0745 50.9823L42.4728 49.0672H39.6983L39.0965 50.9823H37.3999L40.1417 43.0857H42.0851L44.8314 50.9823H43.0745ZM41.0659 44.5952L40.0533 47.8296H42.117L41.1045 44.5952H41.0659ZM47.0533 50.9823H45.471V43.0857H46.8505L50.5395 48.23H50.5834V43.0857H52.1649V50.9823H50.7966L47.1023 45.8105H47.0525V50.9823H47.0533ZM56.8048 51.119C54.5064 51.119 53.0667 49.5813 53.0667 47.0311C53.0667 44.486 54.5175 42.9476 56.8048 42.9476C58.7043 42.9476 60.1491 44.1517 60.2754 45.9197H58.6656C58.5126 44.9511 57.7683 44.3159 56.8048 44.3159C55.5568 44.3159 54.753 45.3619 54.753 47.0251C54.753 48.7114 55.5464 49.7514 56.8107 49.7514C57.7906 49.7514 58.497 49.1764 58.6716 48.2404H60.2806C60.0949 50.0025 58.7429 51.119 56.8048 51.119V51.119ZM62.7863 50.9823H61.1334V43.0857H62.7863V50.9823ZM63.6391 48.7329H65.2318C65.3083 49.3844 65.9872 49.8116 66.8631 49.8116C67.7441 49.8116 68.3458 49.3896 68.3458 48.8095C68.3458 48.2954 67.9684 48.0109 67.0161 47.7969L65.9872 47.5726C64.5312 47.2606 63.8144 46.5222 63.8144 45.3671C63.8144 43.9111 65.0735 42.9476 66.8356 42.9476C68.6742 42.9476 69.8293 43.8947 69.8568 45.3232H68.3079C68.253 44.6554 67.6676 44.2505 66.8408 44.2505C66.0259 44.2505 65.4784 44.6391 65.4784 45.2244C65.4784 45.7117 65.861 45.9859 66.7702 46.1939L67.7278 46.3959C69.31 46.7354 69.9987 47.4136 69.9987 48.6178C69.9987 50.1503 68.7566 51.119 66.797 51.119C64.8982 51.119 63.6881 50.2164 63.6398 48.7329H63.6391ZM74.3384 51.119C72.0393 51.119 70.6004 49.5813 70.6004 47.0311C70.6004 44.486 72.0504 42.9476 74.3384 42.9476C76.2372 42.9476 77.682 44.1517 77.8076 45.9197H76.1993C76.0463 44.9511 75.3019 44.3159 74.3384 44.3159C73.0904 44.3159 72.2859 45.3619 72.2859 47.0251C72.2859 48.7114 73.0793 49.7514 74.3436 49.7514C75.3235 49.7514 76.0299 49.1764 76.2045 48.2404H77.8135C77.6278 50.0025 76.2758 51.119 74.3384 51.119V51.119ZM82.2298 42.9476C84.5668 42.9476 86.0392 44.5187 86.0392 47.0363C86.0392 49.5486 84.5668 51.119 82.2298 51.119C79.8868 51.119 78.4204 49.5486 78.4204 47.0363C78.4204 44.5187 79.8868 42.9476 82.2298 42.9476ZM82.2298 44.3271C80.938 44.3271 80.106 45.3782 80.106 47.0363C80.106 48.6891 80.9328 49.7343 82.2298 49.7343C83.5216 49.7343 84.3477 48.6891 84.3477 47.0363C84.3477 45.3782 83.5216 44.3271 82.2298 44.3271Z" fill="#1E8D44"></path>
+</g>
+<defs>
+<clipPath id="clip0_5556_21133">
+<rect width="131.486" height="52" fill="white"></rect>
+</clipPath>
+</defs>
+</svg>
+		</a>
+		<div class="relative">
+        <span class="conference-date">
+            Conference:      Nov 16-18, 2026 <br/>
+            Training:      Nov 19-20, 2026 <br/>
+           Hyatt Regency, SF
+          </span>
+  </div>
+		<div class="flex-initial hidden w-[95%] lg:block !mb-0">
+			<div
+				class="relative flex items-center justify-end mb-0">
+				<!-- NAV URLs -->
+				<div  class="border-r flex items-center mr-3 border-gray-300 nav-links text-skin-base desktop-nav">
+					
+                        <a href="/schedule/nov2026" data-drupal-link-system-path="schedule/5">2026 Schedule</a>
+                    <a href="https://qconsf.com/#program">Tracks</a>
+                    <a href="/speakers/nov2026" data-drupal-link-system-path="speakers/5">Speakers</a>
+                    <a href="/training/nov2026" data-drupal-link-system-path="training/5">Training</a>
+                    <a href="/teams/nov2026" data-drupal-link-system-path="teams/5">Teams</a>
+                    <a href="/training/nov2026/infoq-certified-architect-program-qcon-san-francisco" data-drupal-link-system-path="node/638">Certification</a>
+                    <a href="/qcon-cares" data-drupal-link-system-path="qcon-cares">We Care</a>
+                    <a href="/venue" data-drupal-link-system-path="node/20">Venue &amp; Hotel</a>
+                    <a href="/faq" data-drupal-link-system-path="faq">FAQ</a>
+          
+
+
+				</div>
+				<!-- END NAV URLs -->
+					<div class="block mb-0 lg:h-[44px]">
+		<div class="inline relative">
+							<div class="block items-center lg:mb-0 lg:flex">
+																		<div class="block lg:inline-block lg:mb-0">
+								<a href="/user/login"  class="login-button items-center justify-center text-black flex px-3 py-1 mr-2 transition-colors border border-black border-solid rounded-md shadow-md login-button align-center hover:no-underline bg-white hover:bg-gray-100 h-[44px] flex align-center hover:text-skin-base"><img src="/modules/custom/qcon_common/images/misc/icon-user.png" class="h-6" alt="User icon"><span class="pl-2 text-base font-semibold font-display">Log in</span>
+								</a>
+							</div>
+											
+											
+							<div class="block lg:inline-block lg:mb-0">
+								<a  class="regnav-button text-center justify-center items-center px-6 py-2 mr-0 text-base font-semibold text-white transition-colors bg-red-600 border-red-600 border-solid rounded-md shadow-md hover:border-red-700 hover:bg-red-700 font-display hover:text-white hover:no-underline h-[44px] flex align-center" href="/registration/event/nov2026">Register</a>
+							</div>
+											
+
+									</div>
+					</div>
+	</div>
+
+			</div>
+		</div>
+
+		<!-- MOBILE NAVIGATION -->
+		<div class="flex-initial block mb-0 lg:hidden !flex-1">
+			<div class="flex justify-end">
+								<button id="js-mobile-nav-dropdown" aria-labelledby="js-mobile-nav-dropdown-open" class="relative z-10 block p-2 -my-1 mb-0 rounded-md focus:outline-none hover:cursor-pointer">
+					<svg viewbox='0 0 30 30' xmlns='http://www.w3.org/2000/svg' class="w-7 h-7 mb-0 text-skin-base" id="js-open-dropdown">
+						<path class="stroke-current" stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/>
+					</svg>
+					<svg width="30" height="30" viewbox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 hidden mb-0 text-skin-base" id="js-close-dropdown">
+						<path d="M7 23L23.9706 7" class="stroke-current" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M7 7L23.9706 23" class="stroke-current" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+
+				</button>
+			</div>
+			<div id="js-mobile-nav-dropdown-open" class="absolute left-0 right-0 hidden w-full px-4 py-2 mt-[2px] pb-4 bg-skin-base shadow-md nav-mobilelinks">
+				<hr class="mb-2"/>
+				
+                        <a href="/schedule/nov2026" data-drupal-link-system-path="schedule/5">2026 Schedule</a>
+                    <a href="https://qconsf.com/#program">Tracks</a>
+                    <a href="/speakers/nov2026" data-drupal-link-system-path="speakers/5">Speakers</a>
+                    <a href="/training/nov2026" data-drupal-link-system-path="training/5">Training</a>
+                    <a href="/teams/nov2026" data-drupal-link-system-path="teams/5">Teams</a>
+                    <a href="/training/nov2026/infoq-certified-architect-program-qcon-san-francisco" data-drupal-link-system-path="node/638">Certification</a>
+                    <a href="/qcon-cares" data-drupal-link-system-path="qcon-cares">We Care</a>
+                    <a href="/venue" data-drupal-link-system-path="node/20">Venue &amp; Hotel</a>
+                    <a href="/faq" data-drupal-link-system-path="faq">FAQ</a>
+          
+
+
+				<hr/>
+				<div class="block"></div>
+					<div class="block mb-0 lg:h-[44px]">
+		<div class="inline relative">
+							<div class="block items-center lg:mb-0 lg:flex">
+																		<div class="block lg:inline-block lg:mb-0">
+								<a href="/user/login"  class="login-button items-center justify-center text-black flex px-3 py-1 mr-2 transition-colors border border-black border-solid rounded-md shadow-md login-button align-center hover:no-underline bg-white hover:bg-gray-100 h-[44px] flex align-center hover:text-skin-base"><img src="/modules/custom/qcon_common/images/misc/icon-user.png" class="h-6" alt="User icon"><span class="pl-2 text-base font-semibold font-display">Log in</span>
+								</a>
+							</div>
+											
+											
+							<div class="block lg:inline-block lg:mb-0">
+								<a  class="regnav-button text-center justify-center items-center px-6 py-2 mr-0 text-base font-semibold text-white transition-colors bg-red-600 border-red-600 border-solid rounded-md shadow-md hover:border-red-700 hover:bg-red-700 font-display hover:text-white hover:no-underline h-[44px] flex align-center" href="/registration/event/nov2026">Register</a>
+							</div>
+											
+
+									</div>
+					</div>
+	</div>
+
+
+			</div>
+		</div>
+		<!-- END MOBILE NAVIGATION -->
+	</nav>
+	<!--END NEW NAVIGATION -->
+</div>
+<div class="justify-center pt-[10px] pb-0 mx-auto mt-3 text-center border-t bg-skin-base border-skin-base small-screen-nav">
+	<div class="flex items-center mr-3 nav-links text-skin-base">
+		
+                        <a href="/schedule/nov2026" data-drupal-link-system-path="schedule/5">2026 Schedule</a>
+                    <a href="https://qconsf.com/#program">Tracks</a>
+                    <a href="/speakers/nov2026" data-drupal-link-system-path="speakers/5">Speakers</a>
+                    <a href="/training/nov2026" data-drupal-link-system-path="training/5">Training</a>
+                    <a href="/teams/nov2026" data-drupal-link-system-path="teams/5">Teams</a>
+                    <a href="/training/nov2026/infoq-certified-architect-program-qcon-san-francisco" data-drupal-link-system-path="node/638">Certification</a>
+                    <a href="/qcon-cares" data-drupal-link-system-path="qcon-cares">We Care</a>
+                    <a href="/venue" data-drupal-link-system-path="node/20">Venue &amp; Hotel</a>
+                    <a href="/faq" data-drupal-link-system-path="faq">FAQ</a>
+          
+
+
+	</div>
+</div>
+  </div>
+
+
+    </header>
+  
+  
+    
+  
+
+  <main role="main" class="min-h-screen px-4 pb-20 mx-auto sm:px-6 md:px-8">
+        <div>
+    
+<div>
+  
+    
+      
+  <h1 class="text-3xl pt-8 pb-6 text-center mx-auto max-w-screen-xl md:text-5xl">APIs That Can&#039;t Afford to Be Wrong: Lessons from Moving Money</h1>
+
+
+    </div>
+<div data-drupal-messages-fallback class="hidden"></div>
+<div id="block-qcontheme-content">
+  
+    
+      
+
+
+
+
+					
+	
+
+	
+
+	
+	
+						<div id="session-field-photo" class="flex overflow-hidden relative items-end -mx-4 bg-zinc-950 sm:-mx-6 md:-mx-8">
+						<picture>
+				<source media="(min-width: 768px)" srcset="/modules/custom/qcon_presentation/images/session-field-sf-1024.webp 1024w, /modules/custom/qcon_presentation/images/session-field-sf-1440.webp 1440w, /modules/custom/qcon_presentation/images/session-field-sf-1920.webp 1920w, /modules/custom/qcon_presentation/images/session-field-sf-2560.webp 2560w" sizes="100vw">
+				<img src="/modules/custom/qcon_presentation/images/session-field-sf-mobile-780.webp" srcset="/modules/custom/qcon_presentation/images/session-field-sf-mobile-585.webp 585w, /modules/custom/qcon_presentation/images/session-field-sf-mobile-780.webp 780w, /modules/custom/qcon_presentation/images/session-field-sf-mobile-1170.webp 1170w" sizes="100vw" width="1170" height="1200" fetchpriority="high" alt="" class="object-cover absolute inset-0 w-full h-full max-w-none">
+			</picture>
+						<div class="absolute inset-0 bg-black/25" aria-hidden="true"></div>
+			<div class="absolute inset-0 bg-gradient-to-b from-[rgba(6,6,10,0.15)] via-[rgba(6,6,10,0.55)] to-[rgba(6,6,10,0.92)]" aria-hidden="true"></div>
+						<div class="relative px-4 pt-24 pb-6 mx-auto w-full max-w-screen-xl sm:px-6 md:px-8 md:pt-20">
+									<p class="mb-2 font-mono text-xs tracking-[0.1em] uppercase text-white/75">QCon San Francisco 2026</p>
+								<div class="flex flex-wrap gap-2 items-center mb-3">
+					<span class="px-2 py-1 text-xs font-semibold tracking-wider text-white uppercase bg-skin-accent-green rounded-md">Session</span>
+														</div>
+				<h1 id="session-title" class="mb-3 text-3xl font-bold leading-tight md:text-5xl !text-white">APIs That Can&#039;t Afford to Be Wrong: Lessons from Moving Money</h1>
+				<p class="mb-0 text-sm md:text-base text-white/90">Monday Nov 16 / 10:35AM PST (50 minutes), Pacific DEKJ at Hyatt Regency, San Francisco</p>
+
+									<div id="session-hero-register" class="flex gap-4 items-center mt-6">
+						<a href="/registration/event/nov2026" class="flex-shrink-0 tw-register-button !w-auto">Register</a>
+													<p class="mb-0 min-w-0 text-sm text-white/80">
+								<span class="font-semibold text-white">$2,995, Conference (3 days)</span><br>Current pricing ends November 10th
+							</p>
+											</div>
+						</div>
+	</div>
+
+		<div class="px-4 mx-auto mt-8 max-w-screen-xl sm:px-6 md:px-8">
+		
+		
+		
+	</div>
+
+	<article id="session-page"  data-history-node-id="661" class="node max-w-screen-xl pb-8 mx-auto lg:pb-12">
+
+		<div class="px-4 mt-8 sm:px-6 md:px-8 md:mt-10">
+									<div class="lg:grid lg:grid-cols-[1fr_330px] lg:gap-x-14 lg:gap-y-6 lg:items-start">
+
+								
+				
+								<div class="grid gap-6  lg:col-start-1 lg:row-start-1">
+
+					
+
+																<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+							<h2 class="mb-4 font-sans text-xs font-semibold tracking-[0.09em] uppercase text-zinc-500">Speaker</h2>
+														<div id="session-speaker" class="grid">
+																																																					<div class="speaker-entry ">
+												<div class="p-3 mb-8 rounded-md border bg-skin-base border-skin-base md:p-4">
+		<h4 class="mb-2 text-sm font-bold uppercase text-skin-accent-green">Speaker</h4>
+		<a href="/speakers/fawziyahalebiosu" class="flex text-skin-base group hover:no-underline">
+			<img class="object-cover flex-shrink-0 self-center mr-4 w-12 h-12 rounded-full group-hover:opacity-80" src="//d1udkpklcxvaqz.cloudfront.net/sites/qcon_sf/files/styles/medium/public/pictures/2026-07/fawziyah_headshot%20%281%29.JPG.webp?itok=GNY6egBU" alt="Fawziyah Alebiosu" loading="lazy">
+			<div>
+				<h3 class="text-base font-semibold md:text-lg hover:underline">Fawziyah Alebiosu</h3>
+				<p class="mb-0 text-xs md:text-sm text-skin-accent-green">Software Engineer @Imprint</p>
+			</div>
+		</a>
+	</div>
+
+																						<a href="/speakers/fawziyahalebiosu" class="flex gap-4 justify-between items-center mt-3 text-sm no-underline text-skin-base hover:no-underline group">
+												<span class="group-hover:underline">Full speaker profile</span><span aria-hidden="true" class="text-skin-muted">&#8250;</span>
+											</a>
+										</div>
+																																</div>
+						</div>
+					
+										
+										<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+						<h2 class="mb-4 font-sans text-xs font-semibold tracking-[0.09em] uppercase text-zinc-500">Abstract</h2>
+						<input type="checkbox" id="session-abstract-toggle" class="peer sr-only lg:hidden">
+						<div class="overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:6] peer-checked:[display:block] peer-checked:[-webkit-line-clamp:unset] lg:[display:block] lg:[-webkit-line-clamp:unset]">
+							<div class="prose max-w-none lg:prose-lg"><p dir="ltr"><span>Most API design advice assumes a forgiving environment: retries are cheap, data has a single source of truth, and a slow response is only an inconvenience. Financial infrastructure assumes none of that. Card networks give you three seconds to auth or decline. Settlement takes days but fees post immediately. And if your ledger is off by a few cents, you might not find out until it's a legal problem.</span></p><p dir="ltr"><span>During this talk, Fawziyah draws on her years building payments infrastructure to share four principles that make APIs more resilient under those conditions:</span></p><ol><li data-list-item-id="e0d3db40b9f81e4007daecb219667fe30"><span>Continuous reconciliation</span></li><li data-list-item-id="e6d336bf0334c35e67ac983eb7249ecdf"><span>Edge case first design</span></li><li data-list-item-id="ef01777c7aa0f068e58d9067ff241d735"><span>Latency under pressure</span></li><li data-list-item-id="e48eb2c736df23ffde81ef36e6128c3a2"><span>Idempotency at scale</span></li></ol><p dir="ltr"><span>All four will make your APIs better whether or not they're moving money.</span></p></div>
+						</div>
+						<label for="session-abstract-toggle" class="inline-flex gap-2 items-center mt-3 text-sm font-semibold rounded cursor-pointer text-blue-700 peer-focus:ring-2 peer-focus:ring-blue-500 peer-checked:hidden lg:hidden">
+							Show full abstract
+							<svg class="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						</label>
+						<label for="session-abstract-toggle" class="hidden gap-2 items-center mt-3 text-sm font-semibold rounded cursor-pointer text-blue-700 peer-focus:ring-2 peer-focus:ring-blue-500 peer-checked:inline-flex lg:peer-checked:hidden">
+							Show less
+							<svg class="w-3 h-3 rotate-180" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						</label>
+					</div>
+
+										
+										
+																			</div>
+
+								
+				<div class="grid gap-6 mt-6 lg:mt-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-32" data-rail>
+
+											<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+		<a href="/registration/event/nov2026" class="tw-register-button !w-full">Register</a>
+							<p class="mt-3 mb-0 text-sm text-center text-skin-muted">
+				<span class="font-semibold text-skin-base">$2,995</span>, Conference (3 days). Current pricing ends November 10th.
+				<a href="/registration/event/nov2026" class="font-semibold text-blue-700">All pass options.</a>
+			</p>
+			</div>
+
+										
+											<div class="grid grid-cols-3 gap-3">
+		<div class="flex flex-col p-3 text-center rounded-[14px] border bg-zinc-50 border-black/10">
+			<span class="text-xl font-bold">76%</span>
+			<span class="mt-1 text-xs leading-tight text-skin-muted">senior dev or higher</span>
+		</div>
+		<div class="flex flex-col p-3 text-center rounded-[14px] border bg-zinc-50 border-black/10">
+			<span class="text-xl font-bold">1:11</span>
+			<span class="mt-1 text-xs leading-tight text-skin-muted">speaker ratio</span>
+		</div>
+		<div class="flex flex-col p-3 text-center rounded-[14px] border bg-zinc-50 border-black/10">
+			<span class="text-xl font-bold">60+</span>
+			<span class="mt-1 text-xs leading-tight text-skin-muted">practitioners</span>
+		</div>
+	</div>
+
+											<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+		<p class="mb-0 text-sm leading-relaxed text-skin-muted">QCon San Francisco 2026 is a three day conference for senior software engineers, architects and team leads. An international program committee of working engineers selects every session. Patterns and practices, not products and pitches.</p>
+	</div>
+
+										
+										<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+	<h2 class="mb-4 font-sans text-xs font-semibold tracking-[0.09em] uppercase text-zinc-500">Share</h2>
+	<div class="flex gap-2">
+		<a class="flex flex-1 justify-center items-center px-4 py-2 text-sm font-semibold text-white no-underline rounded-lg bg-linkedin hover:text-white" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=https://qconsf.com/presentation/nov2026/apis-cant-afford-be-wrong-lessons-moving-money">LinkedIn</a>
+		<a class="flex flex-1 justify-center items-center px-4 py-2 text-sm font-semibold text-white no-underline rounded-lg bg-black hover:text-white" target="_blank" rel="noopener" href="https://x.com/intent/tweet?url=https://qconsf.com/presentation/nov2026/apis-cant-afford-be-wrong-lessons-moving-money&text=APIs%20That%20Can%27t%20Afford%20to%20Be%20Wrong%3A%20Lessons%20from%20Moving%20Money">X</a>
+	</div>
+</div>
+				</div>
+				
+								<div class="grid gap-6 mt-6 lg:mt-0 lg:col-start-1 lg:row-start-2">
+
+																<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+							<h2 class="mb-4 font-sans text-xs font-semibold tracking-[0.09em] uppercase text-zinc-500">Part of the track</h2>
+							<a href="/track/nov2026/modern-api-design-humans-and-agents" class="flex flex-col no-underline text-skin-base hover:no-underline group">
+								<span class="text-base font-semibold group-hover:underline">Modern API Design for Humans and Agents</span>
+																									<span class="mt-1 text-sm text-skin-muted">Hosted by Krys Flores</span>
+																													<span class="mt-1 text-xs md:text-sm text-skin-accent-green">Staff Software Engineer @Crunchyroll, Host of O&#039;Reilly&#039;s The Staff Engineer&#039;s Career Roadmap</span>
+																								</a>
+						</div>
+					
+																<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+							<h2 class="mb-4 font-sans text-xs font-semibold tracking-[0.09em] uppercase text-zinc-500">From the same track</h2>
+															<p class="mb-4 text-sm font-semibold text-skin-base">Monday 16 November</p>
+																						<a href="/presentation/nov2026/apis-cant-afford-be-wrong-lessons-moving-money" class="grid grid-cols-[4rem_1fr] gap-4 items-start py-4 no-underline text-skin-base hover:no-underline group ">
+									<span class="flex flex-col">
+										<span class="font-mono text-xs font-semibold leading-tight tabular-nums">10:35</span>
+																					<span class="mt-1.5 font-mono text-[10px] leading-snug text-zinc-500">Pacific DEKJ</span>
+																			</span>
+									<span class="flex flex-col">
+										<span class="flex flex-wrap gap-1.5 mb-2">
+											<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-black uppercase rounded-lg bg-red-400">Session</span>
+																					</span>
+										<span class="text-base font-semibold leading-snug group-hover:underline">APIs That Can&#039;t Afford to Be Wrong: Lessons from Moving Money</span>
+																					<span class="mt-1.5 text-sm font-semibold leading-snug">Fawziyah Alebiosu</span>
+																																									<span class="mt-0.5 text-xs leading-snug text-zinc-500">Software Engineer @Imprint</span>
+																															<span class="hidden mt-2.5 text-sm leading-relaxed text-zinc-700 lg:block">Most API design advice assumes a forgiving environment: retries are cheap, data has a single source of truth, and a slow response is only an inconvenience. Financial infrastructure assumes none of that. Card networks give you three seconds to auth or decline.</span>
+																			</span>
+								</a>
+															<a href="/presentation/nov2026/everything-i-knew-about-developer-experience-wrong-agents" class="grid grid-cols-[4rem_1fr] gap-4 items-start py-4 no-underline text-skin-base hover:no-underline group border-t border-black/10">
+									<span class="flex flex-col">
+										<span class="font-mono text-xs font-semibold leading-tight tabular-nums">11:45</span>
+																					<span class="mt-1.5 font-mono text-[10px] leading-snug text-zinc-500">Pacific DEKJ</span>
+																			</span>
+									<span class="flex flex-col">
+										<span class="flex flex-wrap gap-1.5 mb-2">
+											<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-black uppercase rounded-lg bg-red-400">Session</span>
+																					</span>
+										<span class="text-base font-semibold leading-snug group-hover:underline">Everything I Knew About Developer Experience Is Wrong for Agents</span>
+																					<span class="mt-1.5 text-sm font-semibold leading-snug">Emmanuel Paraskakis</span>
+																																									<span class="mt-0.5 text-xs leading-snug text-zinc-500">Founder &amp; CEO @Level 250</span>
+																															<span class="hidden mt-2.5 text-sm leading-relaxed text-zinc-700 lg:block">Most of what we know about developer experience we learned from humans. Agents are a different user, and some of our best practices quietly work against them.</span>
+																			</span>
+								</a>
+															<a href="/presentation/nov2026/schema-was-never-enough-world-protocols" class="grid grid-cols-[4rem_1fr] gap-4 items-start py-4 no-underline text-skin-base hover:no-underline group border-t border-black/10">
+									<span class="flex flex-col">
+										<span class="font-mono text-xs font-semibold leading-tight tabular-nums">13:35</span>
+																					<span class="mt-1.5 font-mono text-[10px] leading-snug text-zinc-500">Pacific DEKJ</span>
+																			</span>
+									<span class="flex flex-col">
+										<span class="flex flex-wrap gap-1.5 mb-2">
+											<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-black uppercase rounded-lg bg-red-400">Session</span>
+																							<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider uppercase rounded-lg border text-zinc-500 border-black/10">Developer Experience</span>
+																					</span>
+										<span class="text-base font-semibold leading-snug group-hover:underline">The Schema Was Never Enough: The World in Protocols</span>
+																					<span class="mt-1.5 text-sm font-semibold leading-snug">Ryan Scott Brown</span>
+																																									<span class="mt-0.5 text-xs leading-snug text-zinc-500">Building infrastructure @Render, Previously Principal @Crunchyroll, @Red Hat, and @Vendia</span>
+																															<span class="hidden mt-2.5 text-sm leading-relaxed text-zinc-700 lg:block">Every reliable process in the world is a protocol: auctions, double-entry bookkeeping, brokerage account transfers, or APIs. Protocols reduce ambiguity but the world remains messy.</span>
+																			</span>
+								</a>
+															<a href="/presentation/nov2026/no-new-backend-api-layer-behind-800-agent-built-apps-duolingo" class="grid grid-cols-[4rem_1fr] gap-4 items-start py-4 no-underline text-skin-base hover:no-underline group border-t border-black/10">
+									<span class="flex flex-col">
+										<span class="font-mono text-xs font-semibold leading-tight tabular-nums">14:45</span>
+																					<span class="mt-1.5 font-mono text-[10px] leading-snug text-zinc-500">Pacific DEKJ</span>
+																			</span>
+									<span class="flex flex-col">
+										<span class="flex flex-wrap gap-1.5 mb-2">
+											<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-black uppercase rounded-lg bg-red-400">Session</span>
+																					</span>
+										<span class="text-base font-semibold leading-snug group-hover:underline">No New Backend: The API Layer Behind 800+ Agent-Built Apps at Duolingo</span>
+																					<span class="mt-1.5 text-sm font-semibold leading-snug">Sarah Deitke</span>
+																																									<span class="mt-0.5 text-xs leading-snug text-zinc-500">Senior Software Engineer @Duolingo</span>
+																															<span class="hidden mt-2.5 text-sm leading-relaxed text-zinc-700 lg:block">At Duolingo, anyone (engineer or not) can describe an internal tool and get a working app back, deployed against real company systems. That&#039;s BuildingHub, and 350 Duolingo employees have created at least one app with it.</span>
+																			</span>
+								</a>
+															<a href="/presentation/nov2026/unconference-modern-api-design" class="grid grid-cols-[4rem_1fr] gap-4 items-start py-4 no-underline text-skin-base hover:no-underline group border-t border-black/10">
+									<span class="flex flex-col">
+										<span class="font-mono text-xs font-semibold leading-tight tabular-nums">15:55</span>
+																					<span class="mt-1.5 font-mono text-[10px] leading-snug text-zinc-500">Seacliff D</span>
+																			</span>
+									<span class="flex flex-col">
+										<span class="flex flex-wrap gap-1.5 mb-2">
+											<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-black uppercase rounded-lg bg-red-400">Unconference</span>
+																					</span>
+										<span class="text-base font-semibold leading-snug group-hover:underline">Unconference: Modern API Design</span>
+																																																	</span>
+								</a>
+															<a href="/presentation/nov2026/stop-fighting-remodel-api-design-models-outgrew-their-boundaries" class="grid grid-cols-[4rem_1fr] gap-4 items-start py-4 no-underline text-skin-base hover:no-underline group border-t border-black/10">
+									<span class="flex flex-col">
+										<span class="font-mono text-xs font-semibold leading-tight tabular-nums">17:05</span>
+																					<span class="mt-1.5 font-mono text-[10px] leading-snug text-zinc-500">Pacific DEKJ</span>
+																			</span>
+									<span class="flex flex-col">
+										<span class="flex flex-wrap gap-1.5 mb-2">
+											<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-black uppercase rounded-lg bg-red-400">Session</span>
+																							<span class="px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider uppercase rounded-lg border text-zinc-500 border-black/10">Modern APIs</span>
+																					</span>
+										<span class="text-base font-semibold leading-snug group-hover:underline">Stop Fighting the Remodel: API Design for Models That Outgrew Their Boundaries</span>
+																					<span class="mt-1.5 text-sm font-semibold leading-snug">Aarti Gupta</span>
+																																									<span class="mt-0.5 text-xs leading-snug text-zinc-500">Staff Engineer @Netflix</span>
+																															<span class="hidden mt-2.5 text-sm leading-relaxed text-zinc-700 lg:block">Every domain model has a breaking point. At Netflix, ours arrived all at once—Ads, Games, Live events, and entirely new kinds of content. Each pulled the core entities in different, sometimes contradictory directions.</span>
+																			</span>
+								</a>
+													</div>
+					
+																																																										<div class="p-5 rounded-[20px] border bg-zinc-50 border-black/10 md:p-6">
+							<h2 class="mb-4 font-sans text-xs font-semibold tracking-[0.09em] uppercase text-zinc-500">Helpful links</h2>
+																							<a href="/schedule/nov2026" class="flex justify-between items-center py-3 text-base no-underline text-skin-base hover:no-underline group "><span class="group-hover:underline">Full schedule</span><span aria-hidden="true" class="text-skin-muted">&#8250;</span></a>
+																							<a href="/" class="flex justify-between items-center py-3 text-base no-underline text-skin-base hover:no-underline group border-t border-black/10"><span class="group-hover:underline">Conference homepage</span><span aria-hidden="true" class="text-skin-muted">&#8250;</span></a>
+																							<a href="/llms/nov2026.md" class="flex justify-between items-center py-3 text-base no-underline text-skin-base hover:no-underline group border-t border-black/10"><span class="group-hover:underline">LLMs.md</span><span aria-hidden="true" class="text-skin-muted">&#8250;</span></a>
+													</div>
+									</div>
+			</div>
+		</div>
+	</article>
+
+	
+			<div id="session-register-bar" data-sticky-register-bar data-sticky-register-sentinel="#session-hero-register" class="flex fixed inset-x-3 bottom-3 z-50 gap-3 items-center p-3 pl-10 rounded-2xl border shadow-lg transition-all duration-300 opacity-0 translate-y-6 pointer-events-none bg-skin-base border-skin-base lg:hidden">
+					<p class="flex-1 mb-0 text-xs text-skin-muted">
+				<span class="text-sm font-semibold text-skin-base">Current pricing ends November 10th</span><br>$2,995, Conference (3 days)
+			</p>
+				<a href="/registration/event/nov2026" class="tw-register-button !w-auto !px-4 !py-2">Register</a>
+	</div>
+
+  </div>
+<div class="js-trigger-consent-tracker"></div>
+  </div>
+
+  </main>
+
+      <footer role="contentinfo" class="relative z-10 flex-shrink-0">
+        <div>
+    <div id="block-qconfooter">
+  
+    
+      	<!-- Footer section -->
+	<div class="pt-10 pb-8 border-t bg-skin-muted border-skin-base">
+		<div class="max-w-screen-xl px-4 mx-auto sm:px-6 md:px-4">
+						<div class="flex flex-col-reverse gap-8 lg:grid lg:grid-cols-12">
+				<div class="contents lg:block lg:col-span-2">
+											<a href="/" title="Home" rel="home" class="self-start inline-block text-skin-base">
+							<svg width="132" height="52" viewBox="0 0 132 52" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-auto h-11">
+<g clip-path="url(#footer-clip0_5556_21133)">
+<path d="M26.3826 32.0751C25.1539 32.7422 23.8011 33.234 22.3229 33.5853C20.8453 33.936 19.2779 34.0942 17.6221 34.0942C12.5483 34.0942 8.48863 32.549 5.44366 29.4565C2.39869 26.3662 0.867661 22.2382 0.867661 17.0731C0.867661 14.2458 1.33046 11.7327 2.2568 9.50338C3.18166 7.27183 4.57155 5.37532 6.42275 3.79452C7.89414 2.53025 9.60068 1.56893 11.4445 0.965718C13.3127 0.333547 15.3779 0.0170898 17.6213 0.0170898C22.6787 0.0170898 26.7377 1.56298 29.8005 4.67258C32.8633 7.78069 34.3765 11.9095 34.3765 17.0731C34.3765 19.2348 34.1276 21.1841 33.6113 22.9402C33.1161 24.6518 32.3136 26.259 31.2431 27.6833C32.1779 28.4906 33.2283 29.1534 34.3594 29.6497C35.4811 30.1422 36.6919 30.4408 37.9912 30.5812L35.516 36.3948C33.647 36.2195 31.9369 35.7634 30.4059 35.025C28.8835 34.3157 27.516 33.313 26.3818 32.0743L26.3826 32.0751ZM17.6221 27.2792C20.2577 27.2792 22.305 26.3833 23.7655 24.5908C25.243 22.8005 25.9733 20.3053 25.9733 17.0909C25.9733 13.8766 25.2252 11.365 23.7477 9.57321C22.2694 7.74578 20.2221 6.85063 17.6228 6.85063C15.0228 6.85063 12.9926 7.76435 11.4972 9.59178C10.0018 11.3999 9.25377 13.9122 9.25377 17.0909C9.25377 20.2703 10.0018 22.7641 11.4794 24.5737C12.9577 26.3833 15.005 27.2785 17.6228 27.2785V27.2792H17.6221Z" fill="#1E8D44"></path>
+<path d="M68.3145 25.838C66.73 28.6141 64.7354 30.6867 62.3672 32.0743C59.9812 33.4612 57.2214 34.1469 54.0524 34.1469C49.0664 34.1469 45.1144 32.6018 42.1935 29.5263C39.2555 26.4531 37.7779 22.308 37.7779 17.0909C37.7779 11.98 39.3097 7.85199 42.3717 4.7253C45.4331 1.59862 49.4578 0.0356445 54.4432 0.0356445C57.578 0.0356445 60.3021 0.736902 62.6168 2.14239C64.9316 3.54862 66.73 5.58553 68.0122 8.2561L61.6199 11.417C60.8711 9.85473 59.8928 8.67656 58.6633 7.86907C57.4354 7.06159 56.0113 6.65822 54.3904 6.65822C51.8625 6.65822 49.8679 7.58753 48.3904 9.43279C46.9121 11.2766 46.1826 13.8231 46.1826 17.0731C46.1826 20.3402 46.9113 22.8874 48.3718 24.697C49.8322 26.5059 51.8617 27.401 54.4966 27.401C56.1532 27.401 57.578 27.0147 58.7889 26.26C59.999 25.4874 61.0137 24.3449 61.8153 22.7998L68.3145 25.838ZM82.8968 34.0942C78.927 34.0942 75.7208 32.9175 73.2991 30.5634C70.8774 28.2092 69.668 25.1011 69.668 21.2182C69.668 17.3724 70.8781 14.2458 73.3177 11.8738C75.7565 9.50262 78.9441 8.32593 82.9154 8.32593C86.9209 8.32593 90.1434 9.50262 92.5651 11.8738C94.9868 14.2458 96.1977 17.3546 96.1977 21.219C96.1977 25.0833 94.969 28.1922 92.5294 30.5455C90.0906 32.9175 86.8852 34.0949 82.8968 34.0949V34.0942ZM77.2526 21.2182C77.2526 23.4319 77.7689 25.171 78.7829 26.471C79.8169 27.771 81.1868 28.421 82.8968 28.421C84.624 28.421 85.9953 27.7702 87.0278 26.471C88.0604 25.171 88.5767 23.4148 88.5767 21.219C88.5767 19.0231 88.0604 17.267 87.0457 15.9491C86.0131 14.6491 84.6418 13.9999 82.9154 13.9999C81.2053 13.9999 79.8518 14.667 78.8193 15.9848C77.7689 17.3019 77.2526 19.0587 77.2526 21.2182ZM99.4388 33.3045V9.11707H106.863V11.365C107.824 10.4156 108.893 9.71433 110.086 9.25673C111.279 8.80062 112.632 8.55473 114.127 8.55473C116.798 8.55473 118.792 9.3793 120.092 11.0485C121.392 12.717 122.051 15.2642 122.051 18.7074V33.3045H114.626V19.0587C114.626 17.4259 114.341 16.2314 113.754 15.4581C113.167 14.6855 112.24 14.3163 110.976 14.3163C109.48 14.3163 108.43 14.6684 107.789 15.3875C107.148 16.1081 106.846 17.3204 106.846 19.0595V33.3045H99.438H99.4388Z" fill="#2B6CAD"></path>
+<path d="M92.3461 50.8263C91.8862 50.8263 91.5007 50.6086 91.3038 50.235H91.2555V50.7698H90.6286V46.0571H91.2801V47.9187H91.3321C91.5066 47.5473 91.8944 47.3244 92.3461 47.3244C93.1818 47.3244 93.7092 47.996 93.7092 49.0739C93.7092 50.1473 93.1788 50.827 92.3468 50.827H92.3461V50.8263ZM92.1589 47.9247C91.6129 47.9247 91.2704 48.3667 91.2674 49.0768C91.2704 49.787 91.6106 50.2253 92.1589 50.2253C92.7101 50.2253 93.0399 49.793 93.0399 49.0739C93.0399 48.3607 92.7093 47.9247 92.1589 47.9247V47.9247ZM94.8183 52C95.4906 52 95.8026 51.7348 96.0841 50.911L97.3143 47.3794H96.6234L95.8003 50.0723H95.7483L94.9208 47.3794H94.2121L95.4051 50.7817L95.3569 50.9474C95.2454 51.2891 95.0694 51.4206 94.7603 51.4206C94.6895 51.421 94.6188 51.4166 94.5486 51.4072V51.9836C94.6088 51.9926 94.7641 51.9992 94.8183 51.9992V52Z" fill="#292952"></path>
+<path d="M103.06 51.0952H101.029V42.4937H103.06V51.0952ZM104.365 51.0952V44.7534H106.223V45.3425C106.451 45.1011 106.727 44.9131 107.032 44.7906C107.354 44.665 107.697 44.6024 108.043 44.6063C108.711 44.6063 109.21 44.8225 109.534 45.2601C109.86 45.6976 110.024 46.3654 110.024 47.2673V51.0945H108.167V47.3601C108.167 46.933 108.096 46.6195 107.95 46.4167C107.802 46.2139 107.571 46.1173 107.254 46.1173C106.882 46.1173 106.619 46.2094 106.458 46.3981C106.302 46.5875 106.222 46.9047 106.222 47.3601V51.0959H104.365V51.0952ZM111.396 51.0952V46.0274H110.46V44.8582H111.396C111.383 44.7274 111.378 44.6301 111.374 44.5744C111.374 44.5135 111.369 44.463 111.369 44.411C111.369 43.7335 111.528 43.2462 111.842 42.9446C112.155 42.6474 112.672 42.4937 113.387 42.4937C113.548 42.4937 113.709 42.5028 113.869 42.5211C114.032 42.5405 114.2 42.5731 114.377 42.6192V43.9563H114.068C113.728 43.9563 113.507 43.9987 113.396 44.0863C113.286 44.1755 113.233 44.3463 113.233 44.6108V44.8582H114.377V46.0274H113.237V51.0952H111.396ZM117.706 51.5476C116.707 51.5476 115.901 51.2304 115.291 50.5967C114.682 49.9616 114.377 49.1251 114.377 48.0785C114.377 47.0429 114.682 46.2013 115.296 45.5624C115.905 44.9273 116.712 44.6063 117.707 44.6063C118.716 44.6063 119.527 44.9235 120.136 45.5624C120.746 46.2013 121.051 47.0385 121.051 48.0792C121.051 49.1155 120.742 49.9527 120.127 50.5915C119.518 51.2304 118.712 51.5476 117.706 51.5476V51.5476ZM116.287 48.0792C116.287 48.675 116.417 49.1437 116.673 49.4936C116.933 49.8435 117.277 50.0188 117.708 50.0188C118.138 50.0188 118.488 49.8435 118.748 49.4936C119.008 49.1437 119.138 48.6705 119.138 48.0844C119.138 47.4879 119.008 47.0191 118.752 46.6641C118.492 46.3142 118.147 46.1396 117.712 46.1396C117.282 46.1396 116.941 46.3186 116.681 46.6745C116.417 47.0236 116.288 47.4968 116.288 48.0792H116.287Z" fill="#2B6CAD"></path>
+<path d="M128.308 50.8531C127.989 51.0331 127.648 51.1681 127.292 51.2542C126.908 51.3474 126.513 51.3925 126.117 51.3887C124.848 51.3887 123.832 50.9793 123.065 50.1585C122.305 49.3376 121.921 48.2419 121.921 46.8706C121.921 46.1203 122.037 45.4532 122.269 44.8604C122.493 44.2805 122.85 43.7614 123.311 43.345C123.675 43.0124 124.102 42.7572 124.567 42.5947C125.064 42.4221 125.587 42.3369 126.113 42.3429C127.378 42.3429 128.393 42.7529 129.159 43.5783C129.925 44.4043 130.304 45.5 130.304 46.8706C130.304 47.4441 130.241 47.9626 130.112 48.4284C129.99 48.8792 129.789 49.3051 129.52 49.6868C129.761 49.9067 130.019 50.079 130.299 50.209C130.587 50.3402 130.894 50.4237 131.208 50.4564L130.588 52C130.143 51.96 129.709 51.8365 129.31 51.636C128.927 51.4448 128.586 51.1786 128.308 50.8531V50.8531ZM126.113 49.5805C126.772 49.5805 127.283 49.3428 127.649 48.8659C128.018 48.3905 128.201 47.7279 128.201 46.8751C128.201 46.0223 128.014 45.3552 127.644 44.879C127.275 44.3991 126.762 44.1621 126.108 44.1621C125.457 44.1621 124.95 44.4036 124.576 44.8887C124.202 45.3737 124.019 46.0364 124.019 46.8795C124.019 47.7241 124.206 48.386 124.576 48.8659C124.95 49.3421 125.462 49.5805 126.112 49.5805H126.113Z" fill="#1E8D44"></path>
+<path d="M0.407059 48.7329H1.99974C2.07626 49.3844 2.75523 49.8116 3.63032 49.8116C4.51209 49.8116 5.1138 49.3896 5.1138 48.8095C5.1138 48.2954 4.73643 48.0109 3.78409 47.7969L2.75523 47.5726C1.29923 47.2606 0.582373 46.5222 0.582373 45.3671C0.582373 43.9111 1.84077 42.9476 3.60357 42.9476C5.44214 42.9476 6.59729 43.8947 6.62477 45.3232H5.07592C5.02095 44.6554 4.43483 44.2505 3.60877 44.2505C2.79312 44.2505 2.24563 44.6391 2.24563 45.2244C2.24563 45.7117 2.62894 45.9859 3.5382 46.1939L4.49574 46.3959C6.07729 46.7354 6.76666 47.4136 6.76666 48.6178C6.76666 50.1503 5.5246 51.119 3.56494 51.119C1.66546 51.119 0.456087 50.2164 0.407059 48.7329V48.7329ZM12.6211 50.9823L12.0194 49.0672H9.24409L8.64237 50.9823H6.94643L9.68832 43.0857H11.6316L14.3787 50.9831H12.6219L12.6211 50.9823ZM10.6124 44.5952L9.59992 47.8296H11.6636L10.6511 44.5952H10.6124ZM16.5999 50.9823H15.0176V43.0857H16.3971L20.0861 48.23H20.1299V43.0857H21.7115V50.9823H20.3431L16.6489 45.8105H16.5991V50.9823H16.5999ZM26.5638 50.9823H24.9109V43.0857H30.0835V44.4481H26.5645V46.5668H29.7774V47.8742H26.5645V50.9831L26.5638 50.9823ZM32.5453 44.3761V46.8944H33.9686C34.8006 46.8944 35.2872 46.4182 35.2872 45.6352C35.2872 44.8693 34.7731 44.3761 33.9523 44.3761H32.5453ZM32.5453 48.0926V50.9823H30.8924V43.0857H34.1268C35.9439 43.0857 36.9839 44.0433 36.9839 45.6033C36.9839 46.6158 36.4587 47.4916 35.5501 47.8467L37.2141 50.9831H35.3421L33.8698 48.0933H32.5453V48.0926ZM43.0745 50.9823L42.4728 49.0672H39.6983L39.0965 50.9823H37.3999L40.1417 43.0857H42.0851L44.8314 50.9823H43.0745ZM41.0659 44.5952L40.0533 47.8296H42.117L41.1045 44.5952H41.0659ZM47.0533 50.9823H45.471V43.0857H46.8505L50.5395 48.23H50.5834V43.0857H52.1649V50.9823H50.7966L47.1023 45.8105H47.0525V50.9823H47.0533ZM56.8048 51.119C54.5064 51.119 53.0667 49.5813 53.0667 47.0311C53.0667 44.486 54.5175 42.9476 56.8048 42.9476C58.7043 42.9476 60.1491 44.1517 60.2754 45.9197H58.6656C58.5126 44.9511 57.7683 44.3159 56.8048 44.3159C55.5568 44.3159 54.753 45.3619 54.753 47.0251C54.753 48.7114 55.5464 49.7514 56.8107 49.7514C57.7906 49.7514 58.497 49.1764 58.6716 48.2404H60.2806C60.0949 50.0025 58.7429 51.119 56.8048 51.119V51.119ZM62.7863 50.9823H61.1334V43.0857H62.7863V50.9823ZM63.6391 48.7329H65.2318C65.3083 49.3844 65.9872 49.8116 66.8631 49.8116C67.7441 49.8116 68.3458 49.3896 68.3458 48.8095C68.3458 48.2954 67.9684 48.0109 67.0161 47.7969L65.9872 47.5726C64.5312 47.2606 63.8144 46.5222 63.8144 45.3671C63.8144 43.9111 65.0735 42.9476 66.8356 42.9476C68.6742 42.9476 69.8293 43.8947 69.8568 45.3232H68.3079C68.253 44.6554 67.6676 44.2505 66.8408 44.2505C66.0259 44.2505 65.4784 44.6391 65.4784 45.2244C65.4784 45.7117 65.861 45.9859 66.7702 46.1939L67.7278 46.3959C69.31 46.7354 69.9987 47.4136 69.9987 48.6178C69.9987 50.1503 68.7566 51.119 66.797 51.119C64.8982 51.119 63.6881 50.2164 63.6398 48.7329H63.6391ZM74.3384 51.119C72.0393 51.119 70.6004 49.5813 70.6004 47.0311C70.6004 44.486 72.0504 42.9476 74.3384 42.9476C76.2372 42.9476 77.682 44.1517 77.8076 45.9197H76.1993C76.0463 44.9511 75.3019 44.3159 74.3384 44.3159C73.0904 44.3159 72.2859 45.3619 72.2859 47.0251C72.2859 48.7114 73.0793 49.7514 74.3436 49.7514C75.3235 49.7514 76.0299 49.1764 76.2045 48.2404H77.8135C77.6278 50.0025 76.2758 51.119 74.3384 51.119V51.119ZM82.2298 42.9476C84.5668 42.9476 86.0392 44.5187 86.0392 47.0363C86.0392 49.5486 84.5668 51.119 82.2298 51.119C79.8868 51.119 78.4204 49.5486 78.4204 47.0363C78.4204 44.5187 79.8868 42.9476 82.2298 42.9476ZM82.2298 44.3271C80.938 44.3271 80.106 45.3782 80.106 47.0363C80.106 48.6891 80.9328 49.7343 82.2298 49.7343C83.5216 49.7343 84.3477 48.6891 84.3477 47.0363C84.3477 45.3782 83.5216 44.3271 82.2298 44.3271Z" fill="#1E8D44"></path>
+</g>
+<defs>
+<clipPath id="footer-clip0_5556_21133">
+<rect width="131.486" height="52" fill="white"></rect>
+</clipPath>
+</defs>
+</svg>
+						</a>
+										<hr class="m-0 lg:hidden border-skin-base" />
+					<div class="lg:pt-8">
+						<h2 class="font-mono text-xs font-normal tracking-widest uppercase text-skin-muted">Contact</h2>
+						<ul class="mt-5">
+							<li class="pb-2 text-sm text-skin-base">
+								<span class="spamspan"><span class="u">info</span> [at] <span class="d">qconsf.com</span><span class="t"> (Contact us)</span></span>
+							</li>
+							<li class="pb-2 text-sm text-skin-base">
+								<span class="spamspan"><span class="u">sales</span> [at] <span class="d">qconsf.com</span><span class="t"> (Sponsorship Sales)</span></span>
+							</li>
+							<li class="pb-2 text-sm">
+								<a
+									href="https://docs.google.com/forms/d/e/1FAIpQLSeagtEnnQhXve5TbubBrFgpxSMJa_wosPutqEdQOkNN9TAanQ/viewform"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="text-skin-base hover:text-skin-muted">
+									Speaker inquiries
+								</a>
+							</li>
+							<li class="pb-2 text-sm">
+								<a
+									href="https://get.infoq.com/infoq-mediakit/"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="text-skin-base hover:text-skin-muted">
+									Media Kit
+								</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<div class="nav-footer lg:col-span-4">
+					<h2 class="font-mono text-xs font-normal tracking-widest uppercase text-skin-muted">Menu</h2>
+					
+          <ul class="grid grid-cols-2 mt-5 md:grid-cols-2 lg:grid-cols-2">
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/social/nov2026" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="social/5">Social events</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/venue" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="node/20">Venue</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/convince-your-manager" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="convince-your-manager">Convince your manager</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="http://qconferences.com/" class="text-skin-base hover:text-skin-muted" target="_blank">About QCon</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/video-only" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="video-only">Video-Only Pass</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/qcon-cares" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="qcon-cares">We care</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/volunteers" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="node/21">Volunteers</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://qconferences.com/code-conduct" class="text-skin-base hover:text-skin-muted" target="_blank">Code of Conduct</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/faq" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="faq">FAQ</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/terms-conditions" class="text-skin-base hover:text-skin-muted" target="_blank" data-drupal-link-system-path="terms-conditions">Terms</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://qconferences.com/privacy-notice" class="text-skin-base hover:text-skin-muted" target="_blank">Privacy notice</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://qconferences.com/cookies" class="text-skin-base hover:text-skin-muted" target="_blank">Cookies</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://get.infoq.com/infoq-mediakit/" class="text-skin-base hover:text-skin-muted" target="_blank">Media Kit</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://qconferences.com/alumni" class="text-skin-base hover:text-skin-muted" target="_blank">Alumni</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/sponsors/nov2026" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="sponsors">Sponsors</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="/past-events" class="text-skin-base hover:text-skin-muted" data-drupal-link-system-path="past-events">Past events</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://qconsf.com/conference-menus" class="text-skin-base hover:text-skin-muted">QCon SF Menus</a>
+            </li>
+                    <li class="pb-2 text-sm font-normal">
+                <a href="https://qconsf.com/llms/nov2026.md" class="text-skin-base hover:text-skin-muted" target="_blank">llms.md</a>
+            </li>
+              </ul>
+  
+
+
+				</div>
+				<hr class="m-0 lg:hidden border-skin-base" />
+								<div class="flex flex-col gap-8 md:grid md:grid-cols-2 lg:col-span-6">
+					<div>
+						<h2 class="font-mono text-xs font-normal tracking-widest uppercase text-skin-muted">Online certifications</h2>
+						<ul class="mt-5 space-y-3">
+							<li>
+								<a
+									href="https://certification.qconferences.com/ai-security-privacy?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_onlinecohortaisecurity26"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">InfoQ AI Security &amp; Privacy Engineering Certification</span>
+									<span class="text-xs text-skin-muted">Next cohort: Oct 26, 2026</span>
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://certification.qconferences.com/ai-engineering?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_onlinecohortaiengineering26"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">InfoQ AI Engineering Certification</span>
+									<span class="text-xs text-skin-muted">Next cohort: Nov 12, 2026</span>
+								</a>
+							</li>
+							<li class="hidden md:block">
+								<a
+									href="https://certification.qconferences.com/ai-engineering?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_onlinecohortaiengineering26"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">InfoQ AI Engineering Certification</span>
+									<span class="text-xs text-skin-muted">Next cohort: Nov 13, 2026</span>
+								</a>
+							</li>
+							<li class="hidden md:block">
+								<a
+									href="https://certification.qconferences.com/high-performing-teams?utm_source=qconsf&utm_medium=referral&utm_campaign=infoqevents_onlinecohortteams26"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">InfoQ High-Performing Teams Certification</span>
+									<span class="text-xs text-skin-muted">Next cohort: Nov 17, 2026</span>
+								</a>
+							</li>
+							<li class="hidden md:block">
+								<a
+									href="https://certification.qconferences.com/ai-engineering?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_onlinecohortaiengineering27"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">InfoQ AI Engineering Certification</span>
+									<span class="text-xs text-skin-muted">Next cohort: Jan 9, 2027</span>
+								</a>
+							</li>
+							<li class="hidden md:block">
+								<a
+									href="https://certification.qconferences.com/cohorts-topic/architecture?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_onlinecohortarchitecture27"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">InfoQ Architect Certification</span>
+									<span class="text-xs text-skin-muted">Next cohort: Jan 22, 2027</span>
+								</a>
+							</li>
+						</ul>
+					</div>
+					<div>
+						<h2 class="font-mono text-xs font-normal tracking-widest uppercase text-skin-muted">Conferences</h2>
+						<ul class="mt-5 space-y-3">
+							<li>
+								<a
+									href="https://qconsf.com/?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_qsf26"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">QCon San Francisco</span>
+									<span class="text-xs text-skin-muted">Nov 16&ndash;20, 2026 &middot; San Francisco</span>
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://newyork.qcon.ai/?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_qainy26"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">QCon AI New York</span>
+									<span class="text-xs text-skin-muted">Dec 15&ndash;16, 2026 &middot; New York</span>
+								</a>
+							</li>
+							<li class="hidden md:block">
+								<a
+									href="https://qconlondon.com/?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_qlondon27"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">QCon London</span>
+									<span class="text-xs text-skin-muted">Apr 13&ndash;16, 2027 &middot; London</span>
+								</a>
+							</li>
+							<li class="hidden md:block">
+								<a
+									href="https://boston.qcon.ai/?utm_source=qconsf&utm_medium=referral&utm_campaign=footer_qaiboston27"
+									target="_blank"
+									class="flex flex-col text-skin-base hover:text-skin-muted">
+									<span class="text-sm">QCon AI Boston</span>
+									<span class="text-xs text-skin-muted">Jul 8&ndash;9, 2027 &middot; Boston</span>
+								</a>
+							</li>
+						</ul>
+						<a
+							href="https://events.infoq.com?utm_source=qconsf&utm_medium=referral&utm_campaign=mobileapp_footercta_allevents"
+							target="_blank"
+							class="flex items-center justify-between w-full px-5 py-3 mt-8 text-base font-semibold border border-gray-400 rounded-lg lg:hidden text-skin-base hover:bg-white">
+							See all upcoming events
+							<span aria-hidden="true">&rarr;</span>
+						</a>
+						<a
+							href="https://events.infoq.com?utm_source=qconsf&utm_medium=referral&utm_campaign=mobileapp_footercta_allevents"
+							target="_blank"
+							class="items-center hidden gap-2 mt-6 text-sm lg:flex text-skin-base hover:text-skin-muted">
+							See all upcoming events
+							<span aria-hidden="true">&rarr;</span>
+						</a>
+					</div>
+				</div>
+			</div>
+			<hr class="hidden mt-10 mb-0 lg:block border-skin-base" />
+			<div class="mt-5">
+				<h2 class="sr-only">Follow QCon</h2>
+								<ul class="flex flex-wrap justify-between gap-2 md:justify-start lg:justify-center">
+					<li>
+						<a
+							href="https://twitter.com/QCon"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - X">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/x.svg"
+								alt="Check QCon - X"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://www.facebook.com/QCon/"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - facebook">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/facebook.svg"
+								alt="Check QCon - Facebook"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://www.instagram.com/qconconferences/"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - instagram">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/instagram.svg"
+								alt="Check QCon - Instagram"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://www.youtube.com/channel/UCkQX1tChV7Z7l1LFF4L9j_g"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - youtube">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/youtube.svg"
+								alt="Check QCon - Youtube"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://www.linkedin.com/company/qcon-conferences/"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - linkedin">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/linkedin.svg"
+								alt="Check QCon - Linkedin"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://www.flickr.com/photos/qconpictures/collections/"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - flickr">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/flickr.svg"
+								alt="Check QCon - Flickr"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://techhub.social/@qcon"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - Mastodon">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/masatadon.svg"
+								alt="Check QCon - Masatadon"
+								class="w-auto h-full" />
+						</a>
+					</li>
+					<li>
+						<a
+							href="https://bsky.app/profile/qconferences.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-center w-8 h-8 transition-opacity md:h-6 hover:opacity-80"
+							aria-label="Check QCon - Bluesky">
+							<img
+								loading="lazy"
+								typeof="foaf:Image"
+								src="/modules/custom/qcon_base/images/social-icons/bluesky.svg"
+								alt="Check QCon - Bluesky"
+								class="w-auto h-full" />
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<div class="text-xs text-center bg-neutral-800">
+		<div class="max-w-screen-xl px-2 pt-2 pb-2 text-white align-center">
+			This site is protected by reCAPTCHA and the Google
+			<a href="https://policies.google.com/privacy" class="text-white underline" target="_blank">Privacy Policy</a>
+			and
+			<a href="https://policies.google.com/terms" class="text-white underline" target="_blank">Terms of Service</a>
+			apply.
+			<span aria-hidden="true">&middot;</span>
+			<button type="button" class="text-white underline" onclick="window.CookieControl && CookieControl.open();">Cookie preferences</button>
+		</div>
+	</div>
+	<!-- End Footer section -->
+
+  </div>
+
+  </div>
+
+    </footer>
+  
+
+  </div>
+
+    
+    <script src="/sites/qcon_sf/files/js/js_3jabZLLAnmQN2ww-Eu4ROH4lDQUEf91luy24JFqUK2U.js?scope=footer&amp;delta=0&amp;language=en&amp;theme=qcontheme&amp;include=eJxtTksSwjAIvVCmWXuaDEWCmDbUgFVvbxzd1HYB834DD2UVRNUihFq96RRxJw1G7lLZwt47iJ8Cq_JEyYEj9_XPB7jCM9x6PKHOs9bYoVH15A2w9E8b80JwpraRGsiUsvhGNBcsr6Q59752ZDViMaeWRvjdY4gMX7g0-nQAl05WoUfcKcEWmPvUqGO-G4LTG2Wtf9M"></script>
+<script src="https://cc.cdn.civiccomputing.com/9/cookieControl-9.x.min.js"></script>
+<script src="/sites/qcon_sf/files/js/js_3cP8bJ1UU42tHb1HU1x6ZJVTgdix2glZbOVI-mbKbUU.js?scope=footer&amp;delta=2&amp;language=en&amp;theme=qcontheme&amp;include=eJxtTksSwjAIvVCmWXuaDEWCmDbUgFVvbxzd1HYB834DD2UVRNUihFq96RRxJw1G7lLZwt47iJ8Cq_JEyYEj9_XPB7jCM9x6PKHOs9bYoVH15A2w9E8b80JwpraRGsiUsvhGNBcsr6Q59752ZDViMaeWRvjdY4gMX7g0-nQAl05WoUfcKcEWmPvUqGO-G4LTG2Wtf9M"></script>
+
+  </body>
+</html>

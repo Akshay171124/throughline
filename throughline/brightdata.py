@@ -103,6 +103,24 @@ def fetch_catalog(min_ratio: float = 0.8) -> dict:
     return {"ok": True, "scraped": len(talks), "previous": previous, "raw": str(raw_path)}
 
 
+async def _render(url: str, timeout_ms: int) -> str:
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as pw:
+        browser = await pw.chromium.connect_over_cdp(_env("BRIGHTDATA_BROWSER_WS"))
+        try:
+            page = await browser.new_page()
+            await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+            return await page.content()
+        finally:
+            await browser.close()
+
+
+def render_page(url: str, timeout_ms: int = 90_000) -> str:
+    """Load any page in Bright Data's Browser API and return its rendered HTML."""
+    return asyncio.run(_render(url, timeout_ms))
+
+
 # --- outside explainers -----------------------------------------------------
 
 def serp_search(query: str, num: int = 10) -> list[dict]:
