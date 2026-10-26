@@ -79,6 +79,16 @@ def test_unbuilt_conference_is_409(world):
     assert r.status_code == 409 and r.json()["detail"] == "This conference's map isn't built yet"
 
 
+def test_map_stays_open_while_it_rebuilds(world):
+    registry.set_status(world.reg, world.qcon, status="building", step="Reading the talks")  # a retry: graph B stays
+    r = world.client.get(f"/api/talks?conf={world.qcon}")
+    assert r.status_code == 200 and [t["code"] for t in r.json()] == ["QCON1"]
+    first = registry.upsert_found(world.reg, {"name": "AI Engineer Summit", "url": "https://ai.engineer/", "start_date": "2026-11-10"})
+    registry.set_status(world.reg, first["id"], status="building", step="Finding the schedule")  # a first build: no graph
+    r = world.client.get(f"/api/talks?conf={first['id']}")
+    assert r.status_code == 409 and r.json()["detail"] == "This conference's map isn't built yet"
+
+
 def test_unknown_conference_is_404(world):
     r = world.client.get("/api/talks?conf=no-such-conference")
     assert r.status_code == 404 and r.json()["detail"] == "Unknown conference"

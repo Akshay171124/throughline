@@ -84,7 +84,8 @@ def _conference(conf_id: str) -> Ctx:
         conf = registry_db.ensure_universe(reg)
     if conf is None:
         raise HTTPException(404, "Unknown conference")
-    if conf["status"] not in BUILT:
+    # A retry of an existing map keeps that map open while it builds; a first build has no graph yet.
+    if conf["status"] not in BUILT and not (conf["status"] == "building" and conf["graph"]):
         raise HTTPException(409, "This conference's map isn't built yet")
     return Ctx(conf, _handle(conf["graph"]), _handle(public_name(conf["graph"])))
 

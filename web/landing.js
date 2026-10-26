@@ -760,11 +760,19 @@ function layoutDay(talks) {
   return out;
 }
 
+// "Your day", "Your two days", "Your N days": the conference's distinct talk dates.
+function setCalendarTitle() {
+  const n = new Set((Array.isArray(allTalks) ? allTalks : []).map((t) => t && t.date).filter(Boolean)).size;
+  if (!n) return;
+  document.getElementById("cal-title").textContent = n === 1 ? "Your day" : n === 2 ? "Your two days" : `Your ${n} days`;
+}
+
 async function renderCalendar() {
   const body = document.getElementById("cal-body");
   const sub = document.getElementById("cal-sub");
   try {
     if (!allTalks) allTalks = await api("/api/talks");
+    setCalendarTitle();
     if (attendee) await loadAttendee().catch(() => {});
   } catch (err) {
     body.innerHTML = `<div class="lp-cards-state error">Couldn't load the schedule: ${escapeHtml(err.message)}</div>`;
@@ -1272,8 +1280,24 @@ function confLine(c) {
   return [c && c.name, c && c.dates, c && c.location].filter(Boolean).join(" · ");
 }
 
+// A conference with a map to open: built, or being rebuilt (a retry keeps the earlier map; only a
+// finished build writes talks and counts, so they mark an existing map).
+function hasMap(c) {
+  if (!c) return false;
+  if (BUILT.includes(c.status)) return true;
+  return c.status === "building" && (Number(c.talks) > 0 || Number((c.counts || {}).kept) > 0);
+}
+
+// The earlier map's own status, while it's being rebuilt.
+function mapStatus(c) {
+  if (!c || c.status !== "building") return c && c.status;
+  return Object.entries(c.counts || {}).some(([k, n]) => k !== "kept" && Number(n)) ? "partial" : "ready";
+}
+
 function loadedList() {
-  return conferences && Array.isArray(conferences.loaded) ? conferences.loaded.filter((c) => c && c.id) : [];
+  const list = conferences && Array.isArray(conferences.all) ? conferences.all
+    : conferences && Array.isArray(conferences.loaded) ? conferences.loaded : [];
+  return list.filter((c) => c && c.id && hasMap(c));
 }
 
 function findLoaded(id) {
@@ -1310,7 +1334,11 @@ function cardStatus(c) {
   switch (c.status) {
     case "ready": return { pill: `<span class="pill ok">✓ Map ready</span>`, button: open };
     case "partial": return { pill: `<span class="pill star">Partial map</span>`, button: open };
-    case "building": return {
+    case "building": if (hasMap(c)) {
+      const old = cardStatus({ ...c, status: mapStatus(c) });
+      return { pill: old.pill, button: `${open}<button type="button" class="linkbtn pk-rebuild" data-watch="${id}"><span class="spinner"></span>Rebuilding…</button>` };
+    }
+    return {
       pill: `<span class="pill">Map building</span>`,
       button: `<button type="button" class="lp-btn ghost pk-more" data-watch="${id}"><span class="spinner"></span>Building…</button>`,
     };
@@ -1332,10 +1360,12 @@ function confCard(c, detailIndex = null) {
   const s = cardStatus({ ...c, status });
   const href = safeUrl(c.url);
   const facts = [c.dates, c.location].filter(Boolean).join(" · ");
-  const attr = BUILT.includes(status) ? `data-open="${escapeHtml(c.id)}"`
+  const open = hasMap({ ...c, status });
+  const shown = open ? mapStatus({ ...c, status }) : status;
+  const attr = open ? `data-open="${escapeHtml(c.id)}"`
     : status === "building" ? `data-watch="${escapeHtml(c.id)}"`
       : detailIndex !== null ? `data-detail="${escapeHtml(String(detailIndex))}"` : "";
-  return `<article class="pk-card${BUILT.includes(status) ? " ready" : ""}${status === "partial" ? " partial" : ""}" ${attr}>
+  return `<article class="pk-card${open ? " ready" : ""}${shown === "partial" ? " partial" : ""}" ${attr}>
     <div class="pk-card-top">${s.pill}</div>
     <h3>${escapeHtml(c.name || c.id || "Conference")}</h3>
     ${facts ? `<p class="pk-facts">${escapeHtml(facts)}</p>` : ""}
@@ -1411,14 +1441,14 @@ async function searchNearby(query, label) {
 function withFreshStatus(c) {
   const e = findEntry(c.id);
   if (!e || !e.checked_at || (c.checked_at && c.checked_at >= e.checked_at)) return c;
-  return { ...c, status: e.status, reason: e.reason, checked_at: e.checked_at, counts: e.counts, loaded: BUILT.includes(e.status) };
+  return { ...c, status: e.status, reason: e.reason, checked_at: e.checked_at, counts: e.counts, talks: e.talks, loaded: BUILT.includes(e.status) };
 }
 
 function renderNearby(data, typed) {
   lastNearby = { data, typed };
   const raw = (Array.isArray(data.conferences) ? data.conferences : []).filter((c) => c && c.name).slice(0, 20).map(withFreshStatus);
   // Conferences with a map come first; otherwise keep the search's order.
-  nearbyList = raw.map((c, i) => ({ c, i, ready: Boolean(c.loaded) }))
+  nearbyList = raw.map((c, i) => ({ c, i, ready: Boolean(c.loaded) || hasMap(c) }))
     .sort((a, b) => (b.ready - a.ready) || (a.i - b.i));
   const place = data.place ? String(data.place) : "";
   // Only a typed city is remembered; a place worked out from your location is not.
@@ -1574,8 +1604,11 @@ async function pollBuild() {
   }
   if (turn !== builder.turn) return;
   if (BUILT.includes(s.status)) {
-    stopBuildPoll();
+    clearInterval(builder.tick);
     await loadConferences();
+    // The visitor may have left (or opened another build) while the list loaded.
+    if (turn !== builder.turn || view !== "build" || !builder.conf || builder.conf.id !== conf.id) return;
+    stopBuildPoll();
     mapStarted = null; // a rebuilt map replaces any drawn before
     return chooseConference(conf.id, true);
   }
@@ -1611,20 +1644,20 @@ function renderBuild(s) {
 // A partial map says what it's missing, and offers a better schedule link.
 function partialText(counts) {
   const n = (k) => Number(counts && counts[k]) || 0;
-  const parts = [`Partial schedule: ${n("kept")} talks found`];
+  const parts = [`Partial schedule: ${plural(n("kept"), "talk", "talks")} found`];
   if (n("no_time")) parts.push(`${n("no_time")} listed without times were left out`);
   const unchecked = n("title_not_on_page") + n("time_not_on_page");
   if (unchecked) parts.push(`${unchecked} couldn't be checked against the page`);
-  if (n("detail_failed")) parts.push(`${n("detail_failed")} talk pages couldn't be read`);
+  if (n("detail_failed")) parts.push(`${plural(n("detail_failed"), "talk page", "talk pages")} couldn't be read`);
   if (n("outside_dates")) parts.push(`${n("outside_dates")} outside the conference dates were left out`);
-  if (n("extract_failed")) parts.push(`${n("extract_failed")} talks couldn't be linked to concepts`);
+  if (n("extract_failed")) parts.push(`${plural(n("extract_failed"), "talk", "talks")} couldn't be linked to concepts`);
   if (n("no_links")) parts.push("talks aren't linked to concepts yet");
   return parts;
 }
 
 function renderPartial(conf) {
   const box = document.getElementById("flow-partial");
-  if (!conf || conf.status !== "partial") { box.hidden = true; box.innerHTML = ""; return; }
+  if (!conf || mapStatus(conf) !== "partial") { box.hidden = true; box.innerHTML = ""; return; }
   const [first, ...rest] = partialText(conf.counts);
   box.innerHTML = `<p><strong>${escapeHtml(first)}</strong>${rest.map((x) => ` · ${escapeHtml(x)}`).join("")}</p>
     ${scheduleForm(conf.id, false)}`;
@@ -1695,6 +1728,7 @@ function showDetail(c) {
 }
 
 let chatIntroHtml = "";   // the chat's greeting, restored when another conference opens
+const GENERIC_GOAL = "I'm new to this topic and want the basics";
 let healthTurn = 0;
 
 // Forget the map drawn for another conference; the next showMap loads this one's.
@@ -1716,6 +1750,12 @@ function resetMap(id) {
   setFlowState(`<span class="spinner"></span> Building the talk flow from the graph…`);
   document.getElementById("featured").innerHTML = `<div class="lp-cards-state"><span class="spinner"></span> Picking the talks you shouldn't miss…</div>`;
   if (chatIntroHtml) chatLog().innerHTML = chatIntroHtml;
+  // The example goals in the page are about the default conference (Universe); elsewhere, one generic goal.
+  const home = conferences && conferences.current && conferences.current.id;
+  if (home && id !== home) {
+    document.getElementById("chat-examples").innerHTML = `<button type="button" class="chip" data-goal="${escapeHtml(GENERIC_GOAL)}">${escapeHtml(GENERIC_GOAL)}</button>`;
+  }
+  document.getElementById("cal-title").textContent = "Your schedule"; // the day count comes with the talks
   document.getElementById("plan-link").href = talkPage();
   const turn = ++healthTurn;
   clockReady = api("/api/clock").then((c) => {
@@ -1737,7 +1777,7 @@ function showMap(conf) {
   if (!mapStarted) {
     const id = conf.id;
     mapStarted = (async () => {
-      if (!talksReady) talksReady = api("/api/talks").then((t) => { if (confId === id) allTalks = t; }).catch(() => {});
+      if (!talksReady) talksReady = api("/api/talks").then((t) => { if (confId === id) { allTalks = t; setCalendarTitle(); } }).catch(() => {});
       await sessionReady;
       // Saved talks and ✓ marks are per conference: load this one's (and make the attendee known here).
       if (attendee && me.conf !== id) await loadAttendee().catch(() => {});
@@ -1804,14 +1844,15 @@ function wireConferences() {
     if (e.target.closest("a, summary, input, .sch-form")) return; // links open in a new tab; the form handles itself
     const build = e.target.closest("[data-build]");
     if (build) { if (!build.disabled) buildFromCard(build); return; }
-    const open = e.target.closest("[data-open]");
-    if (open) return chooseConference(open.dataset.open);
+    // Before data-open: a map being rebuilt has a "Rebuilding…" button inside its openable card.
     const watch = e.target.closest("[data-watch]");
     if (watch) {
       const info = confInfo(watch.dataset.watch);
       history.pushState({ build: info }, "", "/");
       return showBuild(info);
     }
+    const open = e.target.closest("[data-open]");
+    if (open) return chooseConference(open.dataset.open);
     const det = e.target.closest("[data-detail]");
     if (det) {
       const x = nearbyList[Number(det.dataset.detail)];
