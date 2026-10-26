@@ -65,15 +65,23 @@ def ensure_schema(g: Graph) -> None:
                 raise
 
 
-def upsert_conference(g: Graph) -> None:
-    """The conference's own details live in the graph, so the app never hard-codes them."""
+def upsert_conference(g: Graph, conf: dict | None = None) -> None:
+    """The conference's own details live in the graph, so the app never hard-codes them.
+    None means GitHub Universe, from settings."""
+    conf = conf or {
+        "id": settings.conference_id, "name": settings.conference_name, "dates": settings.conference_dates,
+        "start_date": settings.conference_start, "end_date": settings.conference_end,
+        "location": settings.conference_location, "clock_start": settings.clock_start, "url": "",
+    }
     g.query(
         """
         MERGE (c:Conference {id: $id})
-        SET c.name = $name, c.dates = $dates, c.start_date = $start, c.end_date = $end, c.location = $location
+        SET c.name = $name, c.dates = $dates, c.start_date = $start, c.end_date = $end, c.location = $location,
+            c.clock_start = $clock, c.url = $url
         """,
-        {"id": settings.conference_id, "name": settings.conference_name, "dates": settings.conference_dates,
-         "start": settings.conference_start, "end": settings.conference_end, "location": settings.conference_location},
+        {"id": conf["id"], "name": conf["name"], "dates": conf.get("dates", ""), "start": conf.get("start_date", ""),
+         "end": conf.get("end_date", ""), "location": conf.get("location", ""),
+         "clock": conf.get("clock_start", ""), "url": conf.get("url", "")},
     )
 
 
@@ -90,7 +98,7 @@ def conferences(g: Graph) -> list[dict]:
     return [dict(zip(keys, r)) for r in rows]
 
 
-def load_talks(g: Graph, talks: list[dict], source: str = "snapshot") -> int:
+def load_talks(g: Graph, talks: list[dict], source: str = "snapshot", conf: dict | None = None) -> int:
     """Upsert talks and their time slots. Safe to run again after a fresh scrape."""
     fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows = [
@@ -105,7 +113,7 @@ def load_talks(g: Graph, talks: list[dict], source: str = "snapshot") -> int:
         }
         for t in talks
     ]
-    upsert_conference(g)
+    upsert_conference(g, conf)
     # A re-scrape can move a talk, so drop old slot links before relinking.
     g.query(
         "MATCH (t:Talk)-[r:IN_SLOT]->() WHERE t.code IN $codes DELETE r",
@@ -128,7 +136,7 @@ def load_talks(g: Graph, talks: list[dict], source: str = "snapshot") -> int:
         MERGE (t)-[:IN_SLOT]->(s)
         MERGE (t)-[:PART_OF]->(c)
         """,
-        {"rows": rows, "conf": settings.conference_id, "source": source, "fetched_at": fetched_at},
+        {"rows": rows, "conf": conf["id"] if conf else settings.conference_id, "source": source, "fetched_at": fetched_at},
     )
     return len(rows)
 

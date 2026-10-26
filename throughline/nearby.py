@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 import httpx
 from openai import OpenAI
 
-from . import brightdata
+from . import brightdata, registry
 from .config import ROOT, settings
 
 CACHE_FILE = ROOT / "data" / "cache" / "nearby.json"
@@ -96,12 +96,7 @@ def place_from_coordinates(lat: float, lon: float) -> str:
 
 
 def _loaded(graph_conferences: list[dict], name: str) -> dict | None:
-    words = {w for w in re.findall(r"[a-z0-9]+", name.lower()) if len(w) > 3}
-    for c in graph_conferences:
-        cw = {w for w in re.findall(r"[a-z0-9]+", c["name"].lower()) if len(w) > 3}
-        if words and cw and len(words & cw) >= min(2, len(cw)):
-            return c
-    return None
+    return next((c for c in graph_conferences if registry._names_match(name, c["name"])), None)
 
 
 def _search(place: str, today: date) -> list[dict]:
