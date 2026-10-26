@@ -1630,9 +1630,17 @@ function renderBuild(s) {
       <p class="muted small">Throughline reads the schedule, checks each talk against the page, and links the talks to what they teach. This usually takes a few minutes; the map opens by itself when it's ready.</p>`;
     return;
   }
-  const head = s.status === "not_found" ? "No schedule yet" : s.status === "failed" ? "Build failed" : "Schedule not loaded";
+  body.innerHTML = `${name}${outcomeHtml(conf, s)}`;
+}
+
+// How a build ended without a map (not found, failed), with "Try again", the site and the schedule-link form.
+// The build screen shows it when a build ends; the detail card shows the saved result at once.
+function outcomeHtml(conf, s) {
+  const ago = s.checked_at ? timeAgo(s.checked_at) : "";
+  const head = (s.status === "not_found" ? "No schedule yet" : s.status === "failed" ? "Build failed" : "Schedule not loaded")
+    + (ago ? ` (checked ${ago})` : "");
   const href = safeUrl(conf.url);
-  body.innerHTML = `${name}
+  return `
     <div class="pk-note">${escapeHtml(head)}${s.reason ? `: ${escapeHtml(s.reason)}` : ""}</div>
     <div class="bd-actions">
       <button type="button" class="primary" data-build="${escapeHtml(conf.id)}">Try again</button>
@@ -1716,14 +1724,18 @@ function showDetail(c) {
   setView("detail");
   const href = safeUrl(c && c.url);
   const facts = [c && c.dates, c && c.location].filter(Boolean).map(escapeHtml);
+  // A saved "nothing found" or failed build shows at once, instead of offering a fresh build.
+  const saved = c && c.id ? findEntry(c.id) : null;
+  const ended = saved && ["not_found", "failed"].includes(saved.status);
   document.getElementById("dt-body").innerHTML = `
     <span class="label">Conference</span>
     <h1 id="dt-title">${escapeHtml((c && c.name) || "Conference")}</h1>
     ${facts.length ? `<p class="pk-facts">${facts.join(" · ")}</p>` : ""}
     ${c && c.snippet ? `<p class="pk-snippet">${escapeHtml(c.snippet)}</p>` : ""}
+    ${ended ? outcomeHtml({ id: c.id, url: c.url || saved.url }, saved) : `
     ${href !== "#" ? `<p><a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Conference website ↗</a></p>` : ""}
     <div class="pk-note">Throughline hasn't loaded this conference's schedule yet, so there's no readiness map for it.</div>
-    ${c && c.id ? `<div class="bd-actions"><button type="button" class="primary" data-build="${escapeHtml(c.id)}">Build the map</button></div>` : ""}`;
+    ${c && c.id ? `<div class="bd-actions"><button type="button" class="primary" data-build="${escapeHtml(c.id)}">Build the map</button></div>` : ""}`}`;
   document.title = `Throughline · ${(c && c.name) || "Conference"}`;
 }
 
