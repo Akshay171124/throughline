@@ -112,7 +112,8 @@ def _featured_codes(talks: dict, prepares: dict) -> list[tuple[str, str]]:
         key=lambda c: (-len(prepares[c]), talks[c]["start_min"]),
     )
     for c in unlockers[:UNLOCKER_PICKS]:
-        reason = f"Prepares you for {len(prepares[c])} talks"
+        n = len(prepares[c])
+        reason = f"Prepares you for {n} {'talk' if n == 1 else 'talks'}"
         if talks[c]["type"] == "Main Stage":
             reason = f"Main stage · {reason[0].lower()}{reason[1:]}"
         picks.append((c, reason))

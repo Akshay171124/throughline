@@ -11,13 +11,15 @@ per place for a few hours, so a repeat visit (or a flaky network on stage) is in
 import json
 import re
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 from openai import OpenAI
 
-from . import brightdata
+from . import brightdata, registry
 from .config import ROOT, settings
 
 CACHE_FILE = ROOT / "data" / "cache" / "nearby.json"
@@ -96,11 +98,27 @@ def place_from_coordinates(lat: float, lon: float) -> str:
 
 
 def _loaded(graph_conferences: list[dict], name: str) -> dict | None:
-    words = {w for w in re.findall(r"[a-z0-9]+", name.lower()) if len(w) > 3}
-    for c in graph_conferences:
-        cw = {w for w in re.findall(r"[a-z0-9]+", c["name"].lower()) if len(w) > 3}
-        if words and cw and len(words & cw) >= min(2, len(cw)):
-            return c
+    return next((c for c in graph_conferences if registry._names_match(name, c["name"])), None)
+
+
+_GOOGLE_HOST = re.compile(r"(^|\.)google\.(com?\.)?[a-z]{2,3}$")
+
+
+def _unwrap(url: str) -> str | None:
+    """The real link behind a Google redirect (/url?q=, /url?url=, /goto?url=; absolute or relative, on any
+    google domain); other Google pages and redirects we can't decode give None. Any other URL is unchanged."""
+    parts = urlparse(url)
+    host = (parts.hostname or "").lower()
+    if host and not _GOOGLE_HOST.search(host):
+        return url
+    if not host and not url.startswith("/"):
+        return url
+    if parts.path in ("/url", "/goto"):
+        query = parse_qs(parts.query)
+        for key in ("q", "url"):
+            target = (query.get(key) or [""])[0]
+            if urlparse(target).scheme in ("http", "https") and urlparse(target).netloc:
+                return target
     return None
 
 
@@ -128,6 +146,13 @@ def _search(place: str, today: date) -> list[dict]:
 
 
 def _extract(place: str, today: date, results: list[dict]) -> list[dict]:
+    unwrapped, seen = [], set()  # a Google redirect hides the real site; the same site twice is listed once
+    for r in results:
+        u = _unwrap(r["url"])
+        if u and u not in seen:
+            seen.add(u)
+            unwrapped.append({**r, "url": u})
+    results = unwrapped
     if not results:
         return []
     end = today + timedelta(days=WINDOW_DAYS)
@@ -156,7 +181,10 @@ def _in_window(start_date: str, today: date, end: date) -> bool:
     return today - timedelta(days=3) <= start <= end  # a few days back keeps events already under way
 
 
-def nearby(graph_conferences: list[dict], place: str = "", lat: float | None = None, lon: float | None = None) -> dict:
+def nearby(reg_upsert: Callable[[dict], dict], place: str = "", lat: float | None = None, lon: float | None = None,
+           built: list[dict] | None = None) -> dict:
+    """reg_upsert records a found conference in the registry and returns its entry (id and map status).
+    built: conferences with a map, listed first when they are in this place even if the search missed them."""
     if not place and lat is not None and lon is not None:
         place = place_from_coordinates(lat, lon)
     place = (place or "").strip()[:80]
@@ -187,17 +215,20 @@ def nearby(graph_conferences: list[dict], place: str = "", lat: float | None = N
             else:
                 return {"place": place, "searched_at": None, "source": None, "conferences": [], "error": f"Search failed: {type(e).__name__}"}
 
-    # Mark the ones whose schedule is in the graph, and always list loaded conferences in this place.
-    out, loaded_ids = [], set()
+    # Each result carries its registry entry's status; built maps are listed first, also those the search missed.
+    out, ids = [], set()
     for c in result["conferences"][:MAX_RESULTS]:
-        match = _loaded(graph_conferences, c["name"])
-        if match:
-            loaded_ids.add(match["id"])
-        out.append({**c, "loaded": bool(match), "id": match["id"] if match else None})
-    for gc in graph_conferences:
+        entry = reg_upsert(c)
+        ids.add(entry["id"])
+        out.append({**c, "id": entry["id"], "status": entry["status"], "reason": entry.get("reason", ""),
+                    "checked_at": entry.get("checked_at"), "counts": entry.get("counts", {}),
+                    "loaded": entry["status"] in ("ready", "partial")})
+    out.sort(key=lambda c: not c["loaded"])  # stable: the search's order within each group
+    for gc in reversed(built or []):
         city = gc["location"].split(",")[0].lower()
-        if gc["id"] not in loaded_ids and city and city in place.lower():
+        if gc["id"] not in ids and city and city in place.lower():
             out.insert(0, {"name": gc["name"], "dates": gc["dates"], "start_date": gc["start_date"],
-                           "location": gc["location"], "url": "", "snippet": f"{gc['talks']} talks loaded",
-                           "loaded": True, "id": gc["id"]})
+                           "location": gc["location"], "url": "", "snippet": f"{gc['talks']} {'talk' if gc['talks'] == 1 else 'talks'} loaded",
+                           "loaded": True, "id": gc["id"], "status": gc.get("status", "ready"),
+                           "reason": gc.get("reason", ""), "checked_at": gc.get("checked_at"), "counts": gc.get("counts", {})})
     return {**{k: v for k, v in result.items() if k != "conferences"}, "conferences": out}

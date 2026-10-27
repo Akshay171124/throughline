@@ -64,12 +64,18 @@ def new_code() -> str:
     return "-".join(chars[i:i + 4] for i in range(0, 12, 4))
 
 
+def default_clock(g: Graph) -> int:
+    """Minutes at which this graph's conference starts; settings cover graphs without one."""
+    rows = g.query("MATCH (c:Conference) RETURN c.clock_start LIMIT 1").result_set
+    date, time = ((rows[0][0] if rows else None) or settings.clock_start).split("T")
+    return to_minutes(date, time)
+
+
 def new_attendee(g: Graph) -> str:
     code = new_code()
-    date, time = settings.clock_start.split("T")
     g.query(
         "CREATE (:Attendee {code: $code, clock_min: $clock})",
-        {"code": code, "clock": to_minutes(date, time)},
+        {"code": code, "clock": default_clock(g)},
     )
     return code
 
@@ -312,8 +318,7 @@ def plan_day(g: Graph, talk: str, attendee: str | None = None) -> dict:
     deadline, target_title = target[0]
     clock = attendee_clock(g, attendee) if attendee else None
     if clock is None:
-        date, time = settings.clock_start.split("T")
-        clock = to_minutes(date, time)
+        clock = default_clock(g)
 
     planned, plan, ready_at = [], [], {}
     for step in path["steps"]:

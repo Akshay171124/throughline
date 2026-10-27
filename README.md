@@ -58,6 +58,47 @@ uv run python -m throughline.evaluate           # day plans compared with the 15
 uv run pytest                                   # graph tests need FalkorDB and use a separate throughline_test graph
 ```
 
+## Any conference
+
+Universe was built by hand once. Every other conference the "Near you" search finds can be turned into a map from its own schedule page, by clicking it. Nothing is built ahead of time.
+
+**What happens when you click "Build the map"** (a few minutes; the screen shows each step and the time so far):
+
+1. **Finding the schedule.** It loads the conference website (or a schedule link you pasted) and, if that page isn't the schedule, follows the page's own "Schedule" / "Agenda" link, at most twice. Pages that need JavaScript are loaded through the Bright Data Browser API.
+2. **Reading the talks.** The model lists the talks on the page. Then code checks each one against the page: the title and the time must be written there, and a talk's link must be one of the page's links. Anything else is dropped and counted.
+3. **Reading talk pages.** Each talk's own page gives the full abstract and the length, such as "10:35AM PST (50 minutes)". The end time is a stated end time or start + stated length, never guessed from the next slot. A talk with no end time is dropped and counted.
+4. **Right event.** At least 80% of the talks must fall within the conference's dates (plus or minus a day). A site that links to last year's schedule is refused as "a different event".
+5. **Linking concepts.** The same two steps as Universe: a concept list, then what each talk requires and teaches, each with the talk's own words as evidence, checked in code.
+6. **Map open.** Each conference gets its own graph (`throughline_c_<id>_v<n>`, plus its `_public` copy), so talks, paths and chat answers never mix. Outside explainers are found after the map opens; a talk's "About this talk" readings are found the first time someone opens that talk.
+
+The first real runs, on QCon San Francisco 2026 (Oct 26, 2026): the map that is open now took about 8½ minutes from click to map (3 minutes reading the listing, 2½ reading 107 talk pages, 1 making the concept list, 2 linking talks). It ended `partial`: 101 talks kept; the 6 Unconference slots were left out because their shared page states no time. 77 concepts and 274 checked links. Outside explainers arrived about 1½ minutes after the map opened; a talk's readings take 15–30 seconds the first time it is opened. AI Engineer Code Summit (Nov 10–12), whose site says "full agenda soon", ends `not_found` in about 10 seconds; pasting QCon's schedule link there is refused as "a different event (dates Nov 16–20, 2026)".
+
+Every model call in a build has a wall-clock limit (10 minutes for the concept list, with one more try; 7 for the others). A stuck call while finding the schedule, reading the listing or making the concept list stops the build with "the model took too long to answer" instead of leaving it on one step. A stuck talk-page read only means that talk keeps the listing's values, and a stuck link step for one talk counts that talk as not linked.
+
+**Statuses** (on each card and the build screen):
+
+| Status | What it means |
+|---|---|
+| `none` | Found by the search, no map yet. The card says "Build the map". |
+| `building` | A build is running. Clicking again joins it. |
+| `ready` | The map is open; nothing was left out. |
+| `partial` | The map is open, with a label saying what was left out, for example "Partial schedule: 101 talks found · 6 listed without times were left out". |
+| `not_found` | No map could be made from what was found: no schedule page, a page that couldn't be loaded or can't be fetched safely, a schedule for a different event, a page that needs a login, or fewer than 5 talks that check out. The screen says which ("couldn't find a schedule page", "couldn't load …", "can't be fetched safely", "a different event", "needs a login", "doesn't list any talks yet") and offers "Open the conference site" and "I have the schedule link". The result is saved: the next visit shows "No schedule yet (checked 2 hours ago)" at once. |
+| `failed` | The build stopped (the app restarted mid-build, or the model took too long to answer). "Try again" starts over; a map that was already open stays open. |
+
+"Try again" on a partial map builds a fresh graph and swaps it in only if it kept more talks; attended, saved and "I know this" marks carry over. A pasted schedule link goes through the same right-event check.
+
+A list of every conference and its status lives in a small registry graph, `throughline_registry` (attendee accounts are there too, so one code works at every conference). `check_setup` reports whether it is reachable.
+
+**Running it locally.** Builds need the local Docker FalkorDB (or any FalkorDB) plus the OpenAI and Bright Data keys in `.env`:
+
+```sh
+FALKORDB_URL= uv run uvicorn throughline.api:app --port 8000   # empty FALKORDB_URL = local Docker FalkorDB
+FALKORDB_URL= uv run python -m throughline.check_setup          # FalkorDB, Universe graph, registry, keys
+```
+
+Then open http://localhost:8000, search a city, and click a conference. Built maps are kept in FalkorDB and open instantly next time.
+
 ## Pages
 
 | Page | What it is |
@@ -84,6 +125,9 @@ uv run pytest                                   # graph tests need FalkorDB and 
 | `throughline/explainers.py` | Vetted outside explainers for required concepts |
 | `throughline/briefing.py` | "About this talk": AI summary and vetted readings |
 | `throughline/nearby.py` | Conferences near you: 3 parallel SERP searches, OpenAI extraction, date-window check, merge and cache |
+| `throughline/registry.py` | The registry graph: every conference, its build status and counts, and attendee accounts |
+| `throughline/importer.py` | Any conference's schedule: fetch the page, find the schedule link, read the talks, check them against the page |
+| `throughline/build.py` | The build job: schedule page to its own map, in the background, with partial, not-found and safe retries |
 | `throughline/offline.py` | Copy the lab graph to local FalkorDB and check it |
 | `throughline/quality.py` | The measured quality report |
 | `throughline/evaluate.py` | Comparison with the hand-checked baseline |

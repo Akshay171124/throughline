@@ -2,6 +2,7 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const CODE_KEY = "throughline.attendee";
 const TALK_KEY = "throughline.talk";
+const CONF_KEY = "throughline.conference"; // the conference picked on the landing page
 const AUTO_ALTS_MAX_NODES = 12; // show faded alternatives by default only on small graphs
 
 let allTalks = [];
@@ -92,8 +93,21 @@ function storageSet(key, value) {
   try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch { /* private mode */ }
 }
 
+// The conference this page is about: ?conference= (the landing page links here that way), else the
+// one picked on the landing page, else none (the server then uses its default).
+function pageConference() {
+  try {
+    const id = (new URLSearchParams(window.location.search).get("conference") || "").trim();
+    if (id) return id;
+  } catch { /* old browsers */ }
+  return storageGet(CONF_KEY) || null;
+}
+const confId = pageConference();
+
 async function api(path, options = {}) {
-  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const headers = { "Content-Type": "application/json" };
+  if (confId) headers["X-Conference"] = confId;
+  const res = await fetch(path, { headers, ...options });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   return res.json();
 }
@@ -832,7 +846,7 @@ async function ask(message) {
     pending.innerHTML = `<p>${formatReply(turn.reply || "")}</p>`;
   } catch (err) {
     pending.classList.remove("pending");
-    const why = err.name === "AbortError" ? "it took too long" : err.message;
+    const why = err.name === "AbortError" ? "it took too long" : String(err.message).replace(/\.$/, "");
     pending.innerHTML = `<p class="error">The agent failed: ${escapeHtml(why)}. Use “Plan without AI” on the talk instead.</p>`;
   } finally {
     clearInterval(tick);
@@ -1445,6 +1459,7 @@ function renderDayPlan() {
 // Collapsed by default; "1" here means the attendee opened it (new key, so earlier choices don't carry over).
 const ABOUT_KEY = "throughline.about-open";
 const MAX_READINGS = 3;
+const ABOUT_POLLS = 20; // every 3 s: a minute
 const READING_KINDS = ["docs", "video", "article", "repo", "paper"];
 // code: the talk shown; data: briefing; abstract: from /api/talks; state: loading|ready|hidden
 // state: loading | ready | pending (server still building it; retried quietly) | hidden
@@ -1490,12 +1505,13 @@ async function loadAbout(code) {
     && (briefing.summary || (briefing.concepts || []).length || (briefing.readings || []).length);
   about.data = ok ? briefing : null;
   about.abstract = (talk && talk.abstract) || "";
-  about.state = ok ? "ready" : briefing && briefing.status === "missing" ? "pending" : "hidden";
+  about.state = ok ? "ready" : briefing && briefing.status === "building" ? "pending" : "hidden";
+  // Being built on the server (the first open starts it): look again every 3 s for up to a minute, then stay quiet.
+  if (about.state === "pending" && about.retries >= ABOUT_POLLS) about.state = "hidden";
   renderAbout();
-  // Still being built on the server: look again in a minute, a few times, then stay quiet.
-  if (about.state === "pending" && about.retries < 6) {
+  if (about.state === "pending") {
     about.retries++;
-    about.timer = setTimeout(() => { if (about.code === code && about.state === "pending") loadAbout(code).catch(() => {}); }, 60000);
+    about.timer = setTimeout(() => { if (about.code === code && about.state === "pending") loadAbout(code).catch(() => {}); }, 3000);
   }
 }
 
@@ -1562,9 +1578,9 @@ function renderAbout() {
   toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
   body.hidden = collapsed;
   if (about.state === "loading" || about.state === "pending") {
-    peek.textContent = about.state === "pending" ? "Preparing…" : "";
+    peek.textContent = about.state === "pending" ? "Finding readings…" : "";
     body.innerHTML = about.state === "pending"
-      ? `<p class="about-pending muted"><span class="spinner" aria-hidden="true"></span> Preparing the summary and reading list for this talk…</p>`
+      ? `<p class="about-pending muted"><span class="spinner" aria-hidden="true"></span> Finding readings…</p>`
       : aboutSkeleton();
     return;
   }
@@ -1800,8 +1816,13 @@ async function onDialogAction(act) {
 async function init() {
   const [clock, talks, health] = await Promise.all([api("/api/clock"), api("/api/talks"), api("/api/health")]);
   document.getElementById("conference").textContent = clock.conference;
+  if (confId) {
+    // Back to this conference's map, not whichever the landing page remembers.
+    for (const a of document.querySelectorAll('a[href="/"]')) a.href = `/?conference=${encodeURIComponent(confId)}`;
+  }
   api("/api/conferences").then((c) => {
-    const cur = c && c.current;
+    const all = c && Array.isArray(c.all) ? c.all : [];
+    const cur = (confId && all.find((x) => x && x.id === confId)) || (c && c.current);
     if (cur && cur.name) document.getElementById("conference").textContent = [cur.name, cur.dates, cur.location].filter(Boolean).join(" · ");
   }).catch(() => {});
   document.getElementById("clock").textContent = formatClock(clock.now);

@@ -25,6 +25,8 @@ let conferences = null;   // GET /api/conferences
 let activeHighlight = null; // talk codes the chat picked, lit up on the flow graph
 const PLACE_KEY = "throughline.place";
 const CONF_KEY = "throughline.conference"; // the conference this visitor picked
+let confId = null;        // the open conference: sent as X-Conference on every request
+const BUILT = ["ready", "partial"];
 
 // ---- helpers (copied from app.js) ---------------------------------------------
 
@@ -89,8 +91,29 @@ function plural(n, one, many) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+function confParam() {
+  return confId ? `conference=${encodeURIComponent(confId)}` : "";
+}
+
 function talkHref(code) {
-  return `/talk.html?code=${encodeURIComponent(code)}`;
+  return `/talk.html?code=${encodeURIComponent(code)}${confId ? `&${confParam()}` : ""}`;
+}
+
+// The attendee page with no talk open, for the open conference.
+function talkPage() {
+  return `/talk.html${confId ? `?${confParam()}` : ""}`;
+}
+
+// "2026-10-25T13:40:12+00:00" -> "2 hours ago".
+function timeAgo(iso) {
+  const t = Date.parse(iso || "");
+  if (!Number.isFinite(t)) return "";
+  const min = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (min < 1) return "just now";
+  if (min < 60) return `${plural(min, "minute", "minutes")} ago`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${plural(h, "hour", "hours")} ago`;
+  return `${plural(Math.round(h / 24), "day", "days")} ago`;
 }
 
 function storageGet(key) {
@@ -101,7 +124,9 @@ function storageSet(key, value) {
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const headers = { "Content-Type": "application/json" };
+  if (confId) headers["X-Conference"] = confId;
+  const res = await fetch(path, { headers, ...options });
   if (!res.ok) {
     const err = new Error((await res.json().catch(() => ({}))).detail || res.statusText);
     err.status = res.status;
@@ -122,7 +147,9 @@ function attendeeQuery() {
 // ---- attendee + profile -----------------------------------------------------------
 
 async function loadAttendee() {
+  const conf = confId;
   const state = await api(`/api/attendees/${encodeURIComponent(attendee)}`);
+  me.conf = conf; // saved talks are per conference
   me.profile = state.profile && typeof state.profile === "object" ? state.profile : {};
   me.targets = Array.isArray(state.targets) ? state.targets : [];
   renderProfileButton();
@@ -185,7 +212,7 @@ function openProfile() {
         <button class="primary" type="submit">Save profile</button>
         <span id="pf-status" class="muted" role="status"></span>
       </div>
-      <p class="muted small">Saved talks and the concepts you already know live on the <a href="/talk.html">attendee page</a>.</p>
+      <p class="muted small">Saved talks and the concepts you already know live on the <a href="${escapeHtml(talkPage())}">attendee page</a>.</p>
     </form>`;
   renderTags();
   if (!dlg.open) {
@@ -277,12 +304,16 @@ function setFlowState(html, isError = false) {
 }
 
 async function loadFlow() {
+  const conf = confId;
   try {
     // include= asks the server to keep the chat's picks on the map even when they aren't among the most connected.
     const include = activeHighlight && activeHighlight.length
       ? `${attendee ? "&" : "?"}include=${encodeURIComponent(activeHighlight.join(","))}` : "";
-    flowData = await api(`/api/flow${attendeeQuery()}${include}`);
+    const data = await api(`/api/flow${attendeeQuery()}${include}`);
+    if (conf !== confId) return; // another conference opened meanwhile
+    flowData = data;
   } catch (err) {
+    if (conf !== confId) return;
     if (!cy) {
       setFlowState(err.status === 404
         ? "The talk flow isn't available yet. Try again in a moment."
@@ -519,6 +550,9 @@ function drawFlow(data) {
   fitWidth(false);
   document.getElementById("flow-zoom").hidden = false;
   document.getElementById("legend-ready").hidden = !data.nodes.some((n) => n.ready);
+  // A schedule without levels (100/200/300) shows no level colours in the legend.
+  const levels = data.nodes.some((n) => Number(n.level_num) > 0);
+  document.querySelectorAll("#flow-legend .lv").forEach((i) => { i.parentElement.hidden = !levels; });
   const stats = document.getElementById("flow-stats");
   const shown = (data.edges || []).length;
   stats.textContent = Number(data.links_total) > shown && Number(data.talks_total) > 0
@@ -622,10 +656,13 @@ function wireFlow() {
 
 async function loadFeatured() {
   const box = document.getElementById("featured");
+  const conf = confId;
   let list;
   try {
     list = await api(`/api/featured${attendeeQuery()}`);
+    if (conf !== confId) return;
   } catch (err) {
+    if (conf !== confId) return;
     box.innerHTML = `<div class="lp-cards-state error">${err.status === 404
       ? "The highlights aren't available yet. Try again in a moment."
       : `Couldn't load the highlights: ${escapeHtml(err.message)}`}</div>`;
@@ -634,7 +671,7 @@ async function loadFeatured() {
   }
   list = Array.isArray(list) ? list.filter((t) => t && t.code).slice(0, 8) : [];
   if (!list.length) {
-    box.innerHTML = `<div class="lp-cards-state">Nothing to highlight yet. Browse every talk on the <a href="/talk.html">attendee page</a>.</div>`;
+    box.innerHTML = `<div class="lp-cards-state">Nothing to highlight yet. Browse every talk on the <a href="${escapeHtml(talkPage())}">attendee page</a>.</div>`;
     return;
   }
   box.innerHTML = list.map((t) => `
@@ -723,11 +760,19 @@ function layoutDay(talks) {
   return out;
 }
 
+// "Your day", "Your two days", "Your N days": the conference's distinct talk dates.
+function setCalendarTitle() {
+  const n = new Set((Array.isArray(allTalks) ? allTalks : []).map((t) => t && t.date).filter(Boolean)).size;
+  if (!n) return;
+  document.getElementById("cal-title").textContent = n === 1 ? "Your day" : n === 2 ? "Your two days" : `Your ${n} days`;
+}
+
 async function renderCalendar() {
   const body = document.getElementById("cal-body");
   const sub = document.getElementById("cal-sub");
   try {
     if (!allTalks) allTalks = await api("/api/talks");
+    setCalendarTitle();
     if (attendee) await loadAttendee().catch(() => {});
   } catch (err) {
     body.innerHTML = `<div class="lp-cards-state error">Couldn't load the schedule: ${escapeHtml(err.message)}</div>`;
@@ -1178,9 +1223,9 @@ async function sendGoal(raw) {
     const box = document.getElementById("chat-input");
     if (box && !box.value) box.value = message; // keep what they typed, so they can just press Enter again
     pending.className = "msg agent error";
-    pending.innerHTML = `<p>${err.status === 404
+    pending.innerHTML = `<p>${err.status === 409 ? escapeHtml(err.message) : err.status === 404
       ? "The assistant isn't available on the landing page yet. Try again in a few minutes."
-      : `The assistant couldn't answer: ${escapeHtml(err.message)}. Try again, or plan a talk directly on the <a href="/talk.html">attendee page</a>.`}</p>`;
+      : `The assistant couldn't answer: ${escapeHtml(err.message)}. Try again, or plan a talk directly on the <a href="${escapeHtml(talkPage())}">attendee page</a>.`}</p>`;
   } finally {
     chatBusy = false;
     lockChat(false);
@@ -1202,7 +1247,7 @@ async function saveSuggestion(btn) {
     renderProfileButton();
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = "Retry save";
+    btn.textContent = err.status === 409 ? err.message : "Retry save"; // a map being rebuilt says so
     btn.title = `Couldn't save: ${err.message}`;
   }
 }
@@ -1229,18 +1274,41 @@ function wireChat() {
   }, true);
 }
 
-// ---- conferences: step 1 (the picker), step 2 (the map or a detail card) ------------------
+// ---- conferences: step 1 (the picker), step 2 (the map, a build screen or a detail card) -----
 
 function confLine(c) {
   return [c && c.name, c && c.dates, c && c.location].filter(Boolean).join(" · ");
 }
 
+// A conference with a map to open: built, or being rebuilt (a retry keeps the earlier map; only a
+// finished build writes talks and counts, so they mark an existing map).
+function hasMap(c) {
+  if (!c) return false;
+  if (BUILT.includes(c.status)) return true;
+  return c.status === "building" && (Number(c.talks) > 0 || Number((c.counts || {}).kept) > 0);
+}
+
+// The earlier map's own status, while it's being rebuilt (as the server's status_for: a merged
+// duplicate is the same talk again, not something left out).
+function mapStatus(c) {
+  if (!c || c.status !== "building") return c && c.status;
+  return Object.entries(c.counts || {}).some(([k, n]) => k !== "kept" && k !== "duplicate" && Number(n)) ? "partial" : "ready";
+}
+
 function loadedList() {
-  return conferences && Array.isArray(conferences.loaded) ? conferences.loaded.filter((c) => c && c.id) : [];
+  const list = conferences && Array.isArray(conferences.all) ? conferences.all
+    : conferences && Array.isArray(conferences.loaded) ? conferences.loaded : [];
+  return list.filter((c) => c && c.id && hasMap(c));
 }
 
 function findLoaded(id) {
   return id ? loadedList().find((c) => c.id === id) || null : null;
+}
+
+// Every registry entry (with its url and stored schedule link), not only the built ones.
+function findEntry(id) {
+  const all = conferences && Array.isArray(conferences.all) ? conferences.all : [];
+  return id ? all.find((c) => c && c.id === id) || null : null;
 }
 
 let confRetry = null;
@@ -1259,19 +1327,57 @@ function formatSearchedAt(value) {
   return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 
-// One card. Loaded conferences open the map; the others open a plain detail card.
-function confCard(c, action) {
-  const ready = action.kind === "open";
+// What a card says and does for each map status.
+function cardStatus(c) {
+  const id = escapeHtml(c.id || "");
+  const open = `<button type="button" class="primary" data-open="${id}">Open the map →</button>`;
+  const retry = `<button type="button" class="primary" data-build="${id}">Try again</button>`;
+  switch (c.status) {
+    case "ready": return { pill: `<span class="pill ok">✓ Map ready</span>`, button: open };
+    case "partial": return {
+      pill: `<span class="pill star">Partial map</span>`,
+      button: `${open}<button type="button" class="linkbtn pk-retry" data-build="${id}">Try again</button>`,
+    };
+    case "building": if (hasMap(c)) {
+      const old = cardStatus({ ...c, status: mapStatus(c) });
+      return { pill: old.pill, button: `${open}<button type="button" class="linkbtn pk-rebuild" data-watch="${id}"><span class="spinner"></span>Rebuilding…</button>` };
+    }
+    return {
+      pill: `<span class="pill">Map building</span>`,
+      button: `<button type="button" class="lp-btn ghost pk-more" data-watch="${id}"><span class="spinner"></span>Building…</button>`,
+    };
+    case "not_found": {
+      const ago = timeAgo(c.checked_at);
+      return { pill: `<span class="pill plain">No schedule yet${ago ? ` (checked ${escapeHtml(ago)})` : ""}</span>`, button: retry };
+    }
+    case "failed": return { pill: `<span class="pill bad">Build failed</span>`, button: retry };
+    default: return {
+      pill: `<span class="pill plain">Schedule not loaded</span>`,
+      button: c.id ? `<button type="button" class="primary" data-build="${id}">Build the map</button>` : "",
+    };
+  }
+}
+
+// One card. Built maps open; a building one opens its build screen; the others open a detail card.
+function confCard(c, detailIndex = null) {
+  const status = c.status || (c.loaded ? "ready" : "none");
+  const s = cardStatus({ ...c, status });
   const href = safeUrl(c.url);
   const facts = [c.dates, c.location].filter(Boolean).join(" · ");
-  const attr = ready ? `data-open="${escapeHtml(action.id)}"` : `data-detail="${escapeHtml(String(action.index))}"`;
-  return `<article class="pk-card${ready ? " ready" : ""}" ${attr}>
-    <div class="pk-card-top">${ready ? `<span class="pill ok">✓ Map ready</span>` : `<span class="pill plain">Schedule not loaded</span>`}</div>
+  const open = hasMap({ ...c, status });
+  const shown = open ? mapStatus({ ...c, status }) : status;
+  const attr = open ? `data-open="${escapeHtml(c.id)}"`
+    : status === "building" ? `data-watch="${escapeHtml(c.id)}"`
+      : detailIndex !== null ? `data-detail="${escapeHtml(String(detailIndex))}"` : "";
+  return `<article class="pk-card${open ? " ready" : ""}${shown === "partial" ? " partial" : ""}" ${attr}>
+    <div class="pk-card-top">${s.pill}</div>
     <h3>${escapeHtml(c.name || c.id || "Conference")}</h3>
     ${facts ? `<p class="pk-facts">${escapeHtml(facts)}</p>` : ""}
     ${c.snippet ? `<p class="pk-snippet">${escapeHtml(c.snippet)}</p>` : ""}
+    ${status === "failed" && c.reason ? `<p class="pk-reason">${escapeHtml(c.reason)}</p>` : ""}
+    ${BUILT.includes(status) && c.reason ? `<p class="pk-outcome">${escapeHtml(c.reason)}</p>` : ""}
     <div class="pk-card-foot">
-      <button type="button" class="${ready ? "primary" : "lp-btn ghost pk-more"}">${ready ? "Open the map →" : "Details"}</button>
+      ${s.button}
       ${href !== "#" ? `<a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Website ↗</a>` : ""}
     </div>
   </article>`;
@@ -1289,12 +1395,13 @@ function renderReady() {
     return;
   }
   box.innerHTML = list.map((c) => confCard({
-    ...c, snippet: Number(c.talks) > 0 ? `${plural(Number(c.talks), "talk", "talks")} mapped` : "",
-  }, { kind: "open", id: c.id })).join("");
+    ...c, url: (findEntry(c.id) || {}).url, snippet: Number(c.talks) > 0 ? `${plural(Number(c.talks), "talk", "talks")} mapped` : "",
+  })).join("");
 }
 
 let nearbyBusy = false;
 let nearbyList = []; // the last search's conferences, for the detail card
+let lastNearby = null; // { data, typed }: re-rendered with fresh statuses when the picker comes back
 function setNearbyBusy(busy) {
   nearbyBusy = busy;
   document.getElementById("pk-locate").disabled = busy;
@@ -1335,10 +1442,18 @@ async function searchNearby(query, label) {
   }
 }
 
+// A search result with its entry's newer status, when the registry knows better (a build ran since).
+function withFreshStatus(c) {
+  const e = findEntry(c.id);
+  if (!e || !e.checked_at || (c.checked_at && c.checked_at >= e.checked_at)) return c;
+  return { ...c, status: e.status, reason: e.reason, checked_at: e.checked_at, counts: e.counts, talks: e.talks, loaded: BUILT.includes(e.status) };
+}
+
 function renderNearby(data, typed) {
-  const raw = (Array.isArray(data.conferences) ? data.conferences : []).filter((c) => c && c.name).slice(0, 20);
+  lastNearby = { data, typed };
+  const raw = (Array.isArray(data.conferences) ? data.conferences : []).filter((c) => c && c.name).slice(0, 20).map(withFreshStatus);
   // Conferences with a map come first; otherwise keep the search's order.
-  nearbyList = raw.map((c, i) => ({ c, i, ready: Boolean(c.loaded && findLoaded(c.id)) }))
+  nearbyList = raw.map((c, i) => ({ c, i, ready: Boolean(c.loaded) || hasMap(c) }))
     .sort((a, b) => (b.ready - a.ready) || (a.i - b.i));
   const place = data.place ? String(data.place) : "";
   // Only a typed city is remembered; a place worked out from your location is not.
@@ -1355,7 +1470,7 @@ function renderNearby(data, typed) {
   if (!nearbyList.length && !data.error) {
     parts.push(`<div class="pk-state">No upcoming conferences turned up${place ? ` near ${escapeHtml(place)}` : ""}. Try a bigger city nearby.</div>`);
   }
-  nearbyList.forEach((x, idx) => parts.push(confCard(x.c, x.ready ? { kind: "open", id: x.c.id } : { kind: "detail", index: idx })));
+  nearbyList.forEach((x, idx) => parts.push(confCard(x.c, idx)));
   document.getElementById("pk-results").innerHTML = parts.join("");
 }
 
@@ -1386,18 +1501,215 @@ function searchTyped() {
   searchNearby(`place=${encodeURIComponent(place)}`, place);
 }
 
+// ---- building a map ------------------------------------------------------------------
+
+// Name and website for the build screen: from the last search, else the registry.
+function confInfo(id) {
+  const hit = nearbyList.find((x) => x.c.id === id);
+  const c = (hit && hit.c) || findEntry(id) || findLoaded(id) || { id };
+  return { id: String(id).slice(0, 200), name: String(c.name || id).slice(0, 200), url: String(c.url || "").slice(0, 2000) };
+}
+
+// The "I have the schedule link" form, on the build screen and under a partial map's label.
+function scheduleForm(id, open) {
+  return `<details class="sch"${open ? " open" : ""}>
+      <summary>I have the schedule link</summary>
+      <form class="sch-form" data-schedule="${escapeHtml(id)}">
+        <input type="url" name="schedule_url" required maxlength="2000" placeholder="https://…/schedule" aria-label="Schedule link">
+        <button class="primary" type="submit">Build from this link</button>
+      </form>
+      <p class="sch-status muted small" role="status"></p>
+    </details>`;
+}
+
+// Start (or retry) a build, then watch it. A retry sends the schedule link stored from last time;
+// the server clears a link it refused (unsafe, didn't load, another event), so that retry starts from the website.
+async function startBuild(id, scheduleUrl) {
+  let url = scheduleUrl;
+  if (url === undefined) {
+    await loadConferences();
+    url = (findEntry(id) || {}).schedule_url || null;
+  }
+  await api(`/api/conferences/${encodeURIComponent(id)}/build`, { method: "POST", body: JSON.stringify({ schedule_url: url || null }) });
+  const info = confInfo(id);
+  if (history.state && history.state.build && history.state.build.id === id) history.replaceState({ build: info }, "", "/");
+  else history.pushState({ build: info }, "", "/");
+  showBuild(info);
+}
+
+async function buildFromCard(btn) {
+  btn.disabled = true;
+  btn.textContent = "Starting…";
+  try {
+    await startBuild(btn.dataset.build);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Try again";
+    const host = btn.closest(".pk-card, .pk-detail-card, .lp-partial");
+    let note = host && host.querySelector(".pk-reason");
+    if (host && !note) {
+      note = document.createElement("p");
+      note.className = "pk-reason";
+      btn.parentElement.before(note);
+    }
+    if (note) note.textContent = `Couldn't start the build: ${err.message}`;
+  }
+}
+
+async function submitScheduleLink(form) {
+  const status = form.parentElement.querySelector(".sch-status");
+  const button = form.querySelector("button");
+  const url = form.elements.schedule_url.value.trim();
+  if (!url) return;
+  button.disabled = true;
+  status.textContent = "Starting the build…";
+  status.classList.remove("error");
+  try {
+    await startBuild(form.dataset.schedule, url);
+  } catch (err) {
+    status.textContent = err.message;
+    status.classList.add("error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+const builder = { conf: null, started: 0, timer: 0, tick: 0, turn: 0 };
+
+function stopBuildPoll() {
+  builder.turn++;
+  clearTimeout(builder.timer);
+  clearInterval(builder.tick);
+}
+
+function showBuild(conf) {
+  stopBuildPoll();
+  setView("build");
+  builder.conf = conf;
+  builder.started = Date.now();
+  document.title = `Throughline · ${conf.name || conf.id}`;
+  renderBuild({ status: "building", step: "" });
+  builder.tick = setInterval(() => {
+    const el = document.querySelector("#bd-body .pk-elapsed");
+    if (el) el.textContent = `${Math.round((Date.now() - builder.started) / 1000)} s`;
+  }, 1000);
+  pollBuild();
+}
+
+async function pollBuild() {
+  const turn = builder.turn;
+  const conf = builder.conf;
+  let s;
+  try {
+    s = await api(`/api/conferences/${encodeURIComponent(conf.id)}/build`);
+  } catch (err) {
+    if (turn !== builder.turn) return;
+    if (err.status === 404) return renderBuild({ status: "failed", reason: "Throughline doesn't know this conference any more." });
+    builder.timer = setTimeout(pollBuild, 2000); // a blip: keep polling
+    return;
+  }
+  if (turn !== builder.turn) return;
+  if (BUILT.includes(s.status)) {
+    clearInterval(builder.tick);
+    await loadConferences();
+    // The visitor may have left (or opened another build) while the list loaded.
+    if (turn !== builder.turn || view !== "build" || !builder.conf || builder.conf.id !== conf.id) return;
+    stopBuildPoll();
+    mapStarted = null; // a rebuilt map replaces any drawn before
+    // The map opens with how the build ended: a retry that found less (or whose link was refused)
+    // says so in the label above the map (renderPartial reads the entry's reason).
+    return chooseConference(conf.id, true);
+  }
+  renderBuild(s);
+  if (s.status === "building") builder.timer = setTimeout(pollBuild, 2000);
+  else clearInterval(builder.tick);
+}
+
+function renderBuild(s) {
+  const conf = builder.conf;
+  const body = document.getElementById("bd-body");
+  const name = `<span class="label">Building the map</span><h1 id="bd-title">${escapeHtml(conf.name || conf.id)}</h1>`;
+  if (s.status === "building") {
+    const elapsed = Math.round((Date.now() - builder.started) / 1000);
+    body.innerHTML = `${name}
+      <p class="bd-step"><span class="spinner"></span><span>${escapeHtml(s.step || "Starting…")}</span></p>
+      <p class="muted"><b class="pk-elapsed">${elapsed} s</b> elapsed</p>
+      <span class="pk-bar" aria-hidden="true"><i></i></span>
+      <p class="muted small">Throughline reads the schedule, checks each talk against the page, and links the talks to what they teach. This usually takes a few minutes; the map opens by itself when it's ready.</p>`;
+    return;
+  }
+  body.innerHTML = `${name}${outcomeHtml(conf, s)}`;
+}
+
+// How a build ended without a map (not found, failed), with "Try again", the site and the schedule-link form.
+// The build screen shows it when a build ends; the detail card shows the saved result at once.
+function outcomeHtml(conf, s) {
+  const ago = s.checked_at ? timeAgo(s.checked_at) : "";
+  const head = (s.status === "not_found" ? "No schedule yet" : s.status === "failed" ? "Build failed" : "Schedule not loaded")
+    + (ago ? ` (checked ${ago})` : "");
+  const href = safeUrl(conf.url);
+  return `
+    <div class="pk-note">${escapeHtml(head)}${s.reason ? `: ${escapeHtml(s.reason)}` : ""}</div>
+    <div class="bd-actions">
+      <button type="button" class="primary" data-build="${escapeHtml(conf.id)}">Try again</button>
+      ${href !== "#" ? `<a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Open the conference site ↗</a>` : ""}
+    </div>
+    ${scheduleForm(conf.id, true)}`;
+}
+
+// A partial map says what it's missing, and offers a better schedule link.
+function partialText(counts) {
+  const n = (k) => Number(counts && counts[k]) || 0;
+  const parts = [`Partial schedule: ${plural(n("kept"), "talk", "talks")} found`];
+  if (n("no_time")) parts.push(`${n("no_time")} listed without times were left out`);
+  const unchecked = n("title_not_on_page") + n("time_not_on_page");
+  if (unchecked) parts.push(`${unchecked} couldn't be checked against the page`);
+  if (n("date_not_on_page")) parts.push(`${n("date_not_on_page")} couldn't be matched to a day on the page`);
+  if (n("detail_failed")) parts.push(`${plural(n("detail_failed"), "talk page", "talk pages")} couldn't be read`);
+  if (n("outside_dates")) parts.push(`${n("outside_dates")} outside the conference dates were left out`);
+  if (n("extract_failed")) parts.push(`${plural(n("extract_failed"), "talk", "talks")} couldn't be linked to concepts`);
+  if (n("no_links")) parts.push("talks aren't linked to concepts yet");
+  return parts;
+}
+
+// How the last build ended, when it didn't simply make this map: "The retry found fewer talks, so
+// the earlier map was kept.", a refused schedule link, an interrupted retry.
+function outcomeNote(conf) {
+  if (!conf || !conf.reason || conf.status === "building") return "";
+  const ago = conf.checked_at ? timeAgo(conf.checked_at) : "";
+  return `<p class="lp-outcome">${escapeHtml(conf.reason)}${ago ? ` <span class="muted">(${escapeHtml(ago)})</span>` : ""}</p>`;
+}
+
+function renderPartial(conf) {
+  const box = document.getElementById("flow-partial");
+  const status = conf && mapStatus(conf);
+  const note = outcomeNote(conf);
+  box.classList.toggle("notice", status === "ready");
+  if (status === "ready" && note) { box.innerHTML = note; box.hidden = false; return; }
+  if (status !== "partial") { box.hidden = true; box.innerHTML = ""; return; }
+  const [first, ...rest] = partialText(conf.counts);
+  const retry = conf.status === "building" ? ""
+    : `<button type="button" class="linkbtn lp-retry" data-build="${escapeHtml(conf.id)}">Try again</button>`;
+  box.innerHTML = `<p><strong>${escapeHtml(first)}</strong>${rest.map((x) => ` · ${escapeHtml(x)}`).join("")}</p>
+    ${note}
+    <div class="lp-partial-actions">${retry}${scheduleForm(conf.id, false)}</div>`;
+  box.hidden = false;
+}
+
 // ---- views ------------------------------------------------------------------------------
 
-let view = null;          // "picker" | "detail" | "map"
+let view = null;          // "picker" | "detail" | "build" | "map"
 let pickerStarted = false;
-let mapStarted = null;    // promise: flow, featured and chat loaded once
+let mapStarted = null;    // promise: flow, featured and chat loaded once per conference
 
 function setView(next) {
   view = next;
   const isMap = next === "map";
+  if (next !== "build") stopBuildPoll();
   document.getElementById("pickview").hidden = isMap;
   document.getElementById("picker").hidden = next !== "picker";
   document.getElementById("detail").hidden = next !== "detail";
+  document.getElementById("building").hidden = next !== "build";
   document.getElementById("mapview").hidden = !isMap;
   document.getElementById("tagline").hidden = isMap;
   document.getElementById("status").hidden = !isMap; // talk count and graph: about the loaded conference
@@ -1414,7 +1726,15 @@ function setView(next) {
 
 function showPicker() {
   setView("picker");
-  if (pickerStarted) return;
+  if (pickerStarted) {
+    // Statuses may have moved on (a build finished): show them fresh.
+    loadConferences().then(() => {
+      if (view !== "picker") return;
+      renderReady();
+      if (lastNearby && !nearbyBusy) renderNearby(lastNearby.data, lastNearby.typed);
+    });
+    return;
+  }
   pickerStarted = true;
   renderReady();
   const place = storageGet(PLACE_KEY);
@@ -1428,26 +1748,79 @@ function showDetail(c) {
   setView("detail");
   const href = safeUrl(c && c.url);
   const facts = [c && c.dates, c && c.location].filter(Boolean).map(escapeHtml);
+  // A saved "nothing found" or failed build shows at once, instead of offering a fresh build.
+  const saved = c && c.id ? findEntry(c.id) : null;
+  const ended = saved && ["not_found", "failed"].includes(saved.status);
   document.getElementById("dt-body").innerHTML = `
     <span class="label">Conference</span>
     <h1 id="dt-title">${escapeHtml((c && c.name) || "Conference")}</h1>
     ${facts.length ? `<p class="pk-facts">${facts.join(" · ")}</p>` : ""}
     ${c && c.snippet ? `<p class="pk-snippet">${escapeHtml(c.snippet)}</p>` : ""}
+    ${ended ? outcomeHtml({ id: c.id, url: c.url || saved.url }, saved) : `
     ${href !== "#" ? `<p><a class="pk-link" href="${href}" target="_blank" rel="noopener noreferrer">Conference website ↗</a></p>` : ""}
-    <div class="pk-note">Throughline hasn't loaded this conference's schedule yet, so there's no readiness map for it.</div>`;
+    <div class="pk-note">Throughline hasn't loaded this conference's schedule yet, so there's no readiness map for it.</div>
+    ${c && c.id ? `<div class="bd-actions"><button type="button" class="primary" data-build="${escapeHtml(c.id)}">Build the map</button></div>` : ""}`}`;
   document.title = `Throughline · ${(c && c.name) || "Conference"}`;
 }
 
+let chatIntroHtml = "";   // the chat's greeting, restored when another conference opens
+let homeExamplesHtml = ""; // the page's example goals, written for the home conference
+const GENERIC_GOAL = "I'm new to this topic and want the basics";
+let healthTurn = 0;
+
+// Forget the map drawn for another conference; the next showMap loads this one's.
+function resetMap(id) {
+  confId = id;
+  mapStarted = null;
+  flowData = null;
+  allTalks = null;
+  talkIndex = null;
+  talksReady = null;
+  conceptNames = null;
+  activeHighlight = null;
+  clockNow = null;
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  destroyFlow();
+  document.getElementById("flow-hl").hidden = true;
+  document.getElementById("flow-stats").textContent = "";
+  setFlowState(`<span class="spinner"></span> Building the talk flow from the graph…`);
+  document.getElementById("featured").innerHTML = `<div class="lp-cards-state"><span class="spinner"></span> Picking the talks you shouldn't miss…</div>`;
+  if (chatIntroHtml) chatLog().innerHTML = chatIntroHtml;
+  // The example goals in the page are about the home conference (Universe); elsewhere, one generic goal.
+  const home = (conferences && conferences.current && conferences.current.id) || "universe26";
+  const examples = document.getElementById("chat-examples");
+  examples.innerHTML = id === home ? homeExamplesHtml
+    : `<button type="button" class="chip" data-goal="${escapeHtml(GENERIC_GOAL)}">${escapeHtml(GENERIC_GOAL)}</button>`;
+  showExamples(true);
+  document.getElementById("cal-title").textContent = "Your schedule"; // the day count comes with the talks
+  document.getElementById("plan-link").href = talkPage();
+  const turn = ++healthTurn;
+  clockReady = api("/api/clock").then((c) => {
+    if (turn !== healthTurn) return;
+    clockNow = c && c.now;
+    clockConference = (c && c.conference) || "";
+  }).catch(() => {});
+  api("/api/health").then((h) => {
+    if (turn === healthTurn) document.getElementById("status").textContent = `${h.talks} talks · FalkorDB knowledge graph`;
+  }).catch(() => {});
+}
+
 function showMap(conf) {
+  if (confId !== conf.id || !mapStarted) resetMap(conf.id);
   setView("map");
   document.getElementById("conf-label").textContent = confLine(conf);
   document.title = `Throughline · ${conf.name || conf.id}`;
+  renderPartial(conf);
   if (!mapStarted) {
+    const id = conf.id;
     mapStarted = (async () => {
-      if (!talksReady) talksReady = api("/api/talks").then((t) => { allTalks = t; }).catch(() => {});
+      if (!talksReady) talksReady = api("/api/talks").then((t) => { if (confId === id) { allTalks = t; setCalendarTitle(); } }).catch(() => {});
       await sessionReady;
+      // Saved talks and ✓ marks are per conference: load this one's (and make the attendee known here).
+      if (attendee && me.conf !== id) await loadAttendee().catch(() => {});
       await Promise.allSettled([loadFlow(), loadFeatured(), talksReady, clockReady]);
-      await loadChat();
+      if (confId === id) await loadChat();
     })();
   } else if (flowData) {
     // The canvas was hidden: redraw it at its real size.
@@ -1456,11 +1829,15 @@ function showMap(conf) {
   return mapStarted;
 }
 
-function chooseConference(id) {
-  const conf = findLoaded(id);
+async function chooseConference(id, replace = false) {
+  let conf = findLoaded(id);
+  if (!conf) {
+    await loadConferences(); // built since the list was loaded
+    conf = findLoaded(id);
+  }
   if (!conf) return;
   storageSet(CONF_KEY, conf.id);
-  history.pushState({ conference: conf.id }, "", `/?conference=${encodeURIComponent(conf.id)}`);
+  history[replace ? "replaceState" : "pushState"]({ conference: conf.id }, "", `/?conference=${encodeURIComponent(conf.id)}`);
   showMap(conf);
 }
 
@@ -1486,6 +1863,7 @@ function route(firstLoad = false) {
   }
   const st = history.state;
   if (st && st.detail) return showDetail(st.detail);
+  if (st && st.build && st.build.id) return showBuild(st.build);
   if (firstLoad) {
     const saved = findLoaded(storageGet(CONF_KEY));
     if (saved) {
@@ -1499,8 +1877,18 @@ function route(firstLoad = false) {
 function wireConferences() {
   document.getElementById("pk-locate").addEventListener("click", locateMe);
   document.getElementById("pk-form").addEventListener("submit", (e) => { e.preventDefault(); searchTyped(); });
-  document.getElementById("picker").addEventListener("click", (e) => {
-    if (e.target.closest("a")) return; // the website link opens in a new tab
+  const pickview = document.getElementById("pickview");
+  pickview.addEventListener("click", (e) => {
+    if (e.target.closest("a, summary, input, .sch-form")) return; // links open in a new tab; the form handles itself
+    const build = e.target.closest("[data-build]");
+    if (build) { if (!build.disabled) buildFromCard(build); return; }
+    // Before data-open: a map being rebuilt has a "Rebuilding…" button inside its openable card.
+    const watch = e.target.closest("[data-watch]");
+    if (watch) {
+      const info = confInfo(watch.dataset.watch);
+      history.pushState({ build: info }, "", "/");
+      return showBuild(info);
+    }
     const open = e.target.closest("[data-open]");
     if (open) return chooseConference(open.dataset.open);
     const det = e.target.closest("[data-detail]");
@@ -1509,6 +1897,7 @@ function wireConferences() {
       if (!x) return;
       const c = x.c;
       const detail = {
+        id: String(c.id || "").slice(0, 200),
         name: String(c.name || "").slice(0, 200), dates: String(c.dates || "").slice(0, 100),
         location: String(c.location || "").slice(0, 120), url: String(c.url || "").slice(0, 2000),
         snippet: String(c.snippet || "").slice(0, 400),
@@ -1517,10 +1906,24 @@ function wireConferences() {
       showDetail(detail);
     }
   });
-  document.getElementById("dt-back").addEventListener("click", () => {
-    if (history.state && history.state.detail) history.back();
-    else { history.replaceState(null, "", "/"); showPicker(); }
+  // A partial map's "Try again" sits in its label, outside the picker.
+  document.getElementById("flow-partial").addEventListener("click", (e) => {
+    const build = e.target.closest("[data-build]");
+    if (build && !build.disabled) buildFromCard(build);
   });
+  // The schedule-link form lives on the build screen and under a partial map's label.
+  document.addEventListener("submit", (e) => {
+    const form = e.target.closest("form[data-schedule]");
+    if (!form) return;
+    e.preventDefault();
+    submitScheduleLink(form);
+  });
+  const back = () => {
+    if (history.state && (history.state.detail || history.state.build)) history.back();
+    else { history.replaceState(null, "", "/"); showPicker(); }
+  };
+  document.getElementById("dt-back").addEventListener("click", back);
+  document.getElementById("bd-back").addEventListener("click", back);
   document.getElementById("change-conf").addEventListener("click", changeConference);
   document.getElementById("conf-picker").addEventListener("click", changeConference);
   window.addEventListener("popstate", () => route(false));
@@ -1533,19 +1936,13 @@ let talksReady = null;
 let clockReady = null;
 
 async function init() {
+  chatIntroHtml = chatLog().innerHTML;
+  homeExamplesHtml = document.getElementById("chat-examples").innerHTML;
   wireProfile();
   wireFlow();
   wireCalendar();
   wireChat();
   wireConferences();
-  clockReady = api("/api/clock").then((c) => {
-    clockNow = c && c.now;
-    clockConference = (c && c.conference) || "";
-  }).catch(() => {});
-  api("/api/health").then((h) => {
-    document.getElementById("status").textContent =
-      `${h.talks} talks · FalkorDB knowledge graph`;
-  }).catch(() => {});
   sessionReady = startAttendee().catch((err) => {
     attendee = null;
     document.getElementById("profile-label").textContent = "Profile unavailable";

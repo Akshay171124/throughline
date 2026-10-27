@@ -85,10 +85,16 @@
       <button class="lp-btn ghost" type="button" id="dt-back">← All conferences</button>
       <div class="pk-detail-card" id="dt-body"></div>
     </section>
+
+    <section class="pk-detail" id="building" aria-labelledby="bd-title" aria-live="polite" hidden>
+      <button class="lp-btn ghost" type="button" id="bd-back">← All conferences</button>
+      <div class="pk-detail-card" id="bd-body"></div>
+    </section>
   </main>
 
   <main class="lp-main" id="mapview" hidden>
     <section class="lp-flow" aria-labelledby="flow-title">
+      <div class="lp-partial" id="flow-partial" role="note" hidden></div>
       <div class="lp-flow-head">
         <p class="lp-explain"><span class="lp-h2" id="flow-title">Talk flow</span>
           Each arrow: this talk teaches something the next one assumes, and ends before it starts. Hover a talk to trace its chain.</p>
