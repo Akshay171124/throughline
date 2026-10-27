@@ -175,13 +175,17 @@ STARTUP = "Transitioning From a Startup to a Mature Platform"  # a Tuesday talk 
 
 def test_day_headings_are_read_from_the_page():
     from throughline.importer import day_headings
-    text = ("Mon 16 Monday Nov 16 Tue 17 Tuesday Nov 17 Monday, November 16th, 2026 07:15AM PST Badge "
-            "Tuesday 17 November talks Thu, Nov 19 Saturn 16 November")
+    text = ("Mon 16 Monday Nov 16 9:00AM Talk Tuesday Nov 17 9:00AM Talk Monday, November 16th, 2026 07:15AM PST "
+            "Badge Tuesday 17 November 10:00 talks Thu, Nov 19 11:00AM Saturn 16 November 12:00PM")
     days = [(d, h) for _, d, h in day_headings(text)]
     assert days == [("2026-11-16", "Monday Nov 16"), ("2026-11-17", "Tuesday Nov 17"),
                     ("2026-11-16", "Monday, November 16th, 2026"), ("2026-11-17", "Tuesday 17 November"),
                     ("2026-11-19", "Thu, Nov 19")]
+    plain = "November 20, 2026 9:00AM Talk Nov 21 9:00AM Talk 22 November 2026 9:00AM Talk"
+    assert [(d, h) for _, d, h in day_headings(plain)] == [
+        ("2026-11-20", "November 20, 2026"), ("2026-11-21", "Nov 21"), ("2026-11-22", "22 November 2026")]
     assert day_headings("Talk One at 9:00AM, released on March 3, 2020") == []
+    assert day_headings("Released on March 3, 2020. Talk One at 9:00AM") == []  # one plain date is not a schedule
 
 
 def test_each_chunk_gets_the_day_it_starts_in():
@@ -219,3 +223,97 @@ def test_without_day_headings_dates_are_not_checked():
     page = Page(QCON, "", "Talk One at 9:00AM and Talk Two at 10:00AM", [])
     kept, dropped = verify_listing(page, [raw_talk("Talk One", "9:00AM", "09:00", date="2031-01-01")])
     assert [t["date"] for t in kept] == ["2031-01-01"] and not dropped
+
+
+# --- a heading counts only if a talk time follows it before the next heading: tab bars are not days ---
+
+TABS = "Mon Nov 16 Tue Nov 17 Wed Nov 18 Filters Track Room "
+FILLER = "Hallway notes and venue details. " * 40
+TAB_TALKS = [("Shipping Search at Scale", "9:00AM", "09:00", "2026-11-16"),
+             ("Retries Without Regret", "10:00AM", "10:00", "2026-11-16"),
+             ("Feature Flags in Anger", "9:30AM", "09:30", "2026-11-17"),
+             ("Paging Less, Sleeping More", "11:00AM", "11:00", "2026-11-17"),
+             ("Closing Keynote: The Long Tail", "4:00PM", "16:00", "2026-11-18")]
+
+
+def tab_bar_page() -> Page:
+    days = {"2026-11-16": "November 16, 2026", "2026-11-17": "November 17, 2026", "2026-11-18": "November 18, 2026"}
+    text, last = TABS, None
+    for title, time_text, _, date in TAB_TALKS:
+        if date != last:
+            text += f"{FILLER}{days[date]} "
+            last = date
+        text += f"{title} {time_text} PST Room 1 "
+    return Page(QCON, "", text, [])
+
+
+def tab_talks() -> list[dict]:
+    return [raw_talk(title, f"{time_text} PST", start, date=date) for title, time_text, start, date in TAB_TALKS]
+
+
+def test_a_tab_bar_is_not_a_day_heading():
+    from throughline.importer import day_headings
+    page = tab_bar_page()
+    assert [(d, h) for _, d, h in day_headings(page.text)] == [
+        ("2026-11-16", "November 16, 2026"), ("2026-11-17", "November 17, 2026"), ("2026-11-18", "November 18, 2026")]
+    kept, dropped = verify_listing(page, tab_talks())
+    assert [(t["title"], t["date"]) for t in kept] == [(t[0], t[3]) for t in TAB_TALKS] and not dropped
+
+
+def test_a_chunk_after_a_tab_bar_gets_the_body_heading():
+    from throughline.importer import _spans
+    page, seen = tab_bar_page(), []
+
+    def ask(system, user, schema):
+        seen.append(user)
+        return {"talks": []}
+
+    read_listing(page, ask=ask, chunk_chars=1400)
+    tuesday, wednesday = page.text.index("November 17, 2026"), page.text.index("November 18, 2026")
+    starts = [start for start, _ in _spans(page.text, 1400)]
+    assert "Day context" not in seen[0]
+    assert [u.split("\n", 1)[0] for u, start in zip(seen, starts) if tuesday < start < wednesday] == \
+        ["Day context: November 17, 2026 (the last day heading before this part of the page)"]
+
+
+def test_a_talk_under_the_wrong_body_heading_is_still_dropped():
+    talks = tab_talks()
+    talks[2] = {**talks[2], "date": "2026-11-16"}  # a Tuesday talk read as Monday
+    kept, dropped = verify_listing(tab_bar_page(), talks)
+    assert "Feature Flags in Anger" not in [t["title"] for t in kept] and len(kept) == 4
+    assert dropped == Counter({"date_not_on_page": 1})
+
+
+def test_tabs_over_numbered_days_mean_no_day_headings():
+    from throughline.importer import day_headings
+    text = (f"{TABS}Day 1 Shipping Search at Scale 9:00AM PST Retries Without Regret 10:00AM PST "
+            f"Day 2 Feature Flags in Anger 9:30AM PST Paging Less, Sleeping More 11:00AM PST")
+    page = Page(QCON, "", text, [])
+    assert day_headings(page.text) == []
+    kept, dropped = verify_listing(page, tab_talks()[:4])
+    assert len(kept) == 4 and not dropped
+
+
+def test_qcon_filter_bar_is_not_a_day_heading():
+    from throughline.importer import day_headings
+    assert [(d, h) for _, d, h in day_headings(qcon_page().text)] == [
+        ("2026-11-16", "Monday, November 16th, 2026"), ("2026-11-17", "Tuesday, November 17th, 2026"),
+        ("2026-11-18", "Wednesday, November 18th, 2026"), ("2026-11-19", "Thursday, November 19th, 2026"),
+        ("2026-11-20", "Friday, November 20th, 2026")]
+
+
+def test_a_plain_date_in_running_text_does_not_split_a_named_day():
+    from throughline.importer import day_headings
+    text = ("Monday, November 16th, 2026 9:00AM PST Talk One. Early pricing ends November 17th, register now. "
+            "10:00AM PST Talk Two Tuesday, November 17th, 2026 9:00AM PST Talk Three")
+    page = Page(QCON, "", text, [])
+    assert [h for _, _, h in day_headings(text)] == ["Monday, November 16th, 2026", "Tuesday, November 17th, 2026"]
+    kept, dropped = verify_listing(page, [raw_talk("Talk Two", "10:00AM PST", "10:00", date="2026-11-16")])
+    assert len(kept) == 1 and not dropped
+
+
+def test_a_plain_date_right_under_a_named_day_does_not_hide_it():
+    from throughline.importer import day_headings
+    text = ("Monday, November 16th, 2026 Early pricing ends Nov 10. 9:00AM PST Talk One "
+            "Tuesday, November 17th, 2026 9:00AM PST Talk Two")
+    assert [h for _, _, h in day_headings(text)] == ["Monday, November 16th, 2026", "Tuesday, November 17th, 2026"]

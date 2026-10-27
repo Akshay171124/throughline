@@ -362,39 +362,50 @@ _HEADINGS = [  # (pattern, group of weekday, month, day, year)
     (re.compile(rf"\b{_WEEKDAY},?\s+{_MONTH}\s+{_DAY}{_YEAR}", re.I), (1, 2, 3, 4)),  # Monday, November 16th, 2026
     (re.compile(rf"\b{_WEEKDAY},?\s+{_DAY}\s+{_MONTH}{_YEAR}", re.I), (1, 3, 2, 4)),  # Tuesday 17 November
 ]
-_PLAIN_HEADING = (re.compile(rf"\b{_MONTH}\s+{_DAY}{_YEAR}", re.I), (None, 1, 2, 3))  # November 16, 2026
+_PLAIN_HEADINGS = [
+    (re.compile(rf"\b{_MONTH}\s+{_DAY}{_YEAR}", re.I), (None, 1, 2, 3)),  # November 16, 2026 / Nov 16
+    (re.compile(rf"\b{_DAY}\s+{_MONTH},?\s*((?:19|20)\d\d)(?![\d:])", re.I), (None, 2, 1, 3)),  # 16 November 2026
+]
+_NUMBERED_DAY = re.compile(r"\bday\s+(?:\d{1,2}|one|two|three|four|five|six|seven)(?![\w:])", re.I)  # "Day 1"
 _DAY_NAMES = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 _MONTH_NAMES = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
 HEADING_SPREAD = 31  # days: a heading this far from the others is a date in an abstract, not a day of the event
 
 
-def _matches(text: str, patterns) -> list[tuple[int, str | None, int, int, int | None, str]]:
+def _matches(text: str, patterns) -> list[tuple[int, int, str | None, int, int, int | None, str]]:
     found = []
     for pattern, (w, m, d, y) in patterns:
         for match in pattern.finditer(text):
             year = match.group(y)
-            found.append((match.start(), match.group(w) if w else None, _MONTH_NAMES.index(match.group(m)[:3].lower()) + 1,
-                          int(match.group(d)), int(year) if year else None, match.group(0).rstrip(" ,")))
+            found.append((match.start(), match.end(), match.group(w) if w else None,
+                          _MONTH_NAMES.index(match.group(m)[:3].lower()) + 1, int(match.group(d)),
+                          int(year) if year else None, match.group(0).rstrip(" ,")))
     return sorted(found)
+
+
+def _has_clock(text: str) -> bool:
+    return any(parse_time(m.group(0)) for m in _CLOCK.finditer(text))
 
 
 def day_headings(text: str) -> list[tuple[int, str, str]]:
     """The day headings in a page's text, in order: (position, date, heading as written).
 
-    A heading names a weekday and a month and day ("Monday, November 16th, 2026", "Mon Nov 16",
-    "Tuesday 17 November"); a page without any may use month and day alone ("November 16"), if it names
-    at least two days. A heading without a year takes the year the page's headings (else its text) use
-    most; the date is "--MM-DD" when the page states no year. A stated weekday must fit the date, and a
-    heading far from the page's other days (a date in an abstract) is ignored."""
-    found = _matches(text, _HEADINGS)
-    if not found:
-        found = _matches(text, [_PLAIN_HEADING])
-        if len({(m, d) for _, _, m, d, _, _ in found}) < 2:
-            return []
+    A heading names a month and day, with or without a weekday ("Monday, November 16th, 2026",
+    "Mon Nov 16", "Tuesday 17 November", "November 16, 2026", "Nov 16", "16 November 2026"). It counts
+    only if a talk time follows it before the next heading (or a "Day 1" heading): a tab or filter bar
+    ("Mon Nov 16 Tue Nov 17 ... Filters") is not a day of talks. The page's days are then the headings of
+    one style, with a weekday or without, whichever names more days ("pricing ends November 10th" in
+    running text is not a day); without a weekday they must name at least two. A heading without a year
+    takes the year the page's headings (else its text) use most; the date is "--MM-DD" when the page states
+    no year. A stated weekday must fit the date, and a heading far from the page's other days (a date in
+    an abstract) is ignored. No heading left means the page's dates are not checked."""
+    named = _matches(text, _HEADINGS)
+    found = sorted(named + [h for h in _matches(text, _PLAIN_HEADINGS)  # "Nov 16" inside "Monday Nov 16" is one
+                            if not any(h[0] < end and start < h[1] for start, end, *_ in named)])
     years = Counter(y for *_, y, _ in found if y) or Counter(int(y) for y in re.findall(r"\b(20\d\d)\b", text))
     context = years.most_common(1)[0][0] if years else None
     out = []
-    for pos, weekday, month, day, year, heading in found:
+    for pos, end, weekday, month, day, year, heading in found:
         year = year or context
         try:
             when = datetime.date(year or 2000, month, day)  # 2000 is a leap year: Feb 29 stays valid
@@ -402,13 +413,28 @@ def day_headings(text: str) -> list[tuple[int, str, str]]:
             continue
         if year and weekday and _DAY_NAMES[when.weekday()] != weekday[:3].lower():
             continue
-        out.append((pos, when.isoformat() if year else f"--{month:02d}-{day:02d}", heading))
-    dated = sorted(datetime.date.fromisoformat(d).toordinal() for _, d, _ in out if not d.startswith("--"))
+        out.append((pos, end, weekday, when.isoformat() if year else f"--{month:02d}-{day:02d}", heading))
+    dated = sorted(datetime.date.fromisoformat(h[3]).toordinal() for h in out if not h[3].startswith("--"))
     if dated:
         middle = dated[len(dated) // 2]
-        out = [h for h in out if h[1].startswith("--")
-               or abs(datetime.date.fromisoformat(h[1]).toordinal() - middle) <= HEADING_SPREAD]
-    return out
+        out = [h for h in out if h[3].startswith("--")
+               or abs(datetime.date.fromisoformat(h[3]).toordinal() - middle) <= HEADING_SPREAD]
+    numbered = [m.start() for m in _NUMBERED_DAY.finditer(text)  # "Monday, November 16 (Day 1)" is one heading
+                if not any(h[1] <= m.start() and not re.search(r"\w", text[h[1]:m.start()]) for h in out)]
+
+    def timed(heads):  # the headings a talk time follows before the next heading
+        edges = sorted([h[0] for h in heads] + numbered + [len(text)])
+        return [h for h in heads if _has_clock(text[h[1]:edges[bisect.bisect_right(edges, h[0])]])]
+
+    left = timed(out)
+    named_days, plain_days = len({h[3] for h in left if h[2]}), len({h[3] for h in left if not h[2]})
+    if named_days and named_days >= plain_days:  # the page's days are the style that names more of them
+        out = timed([h for h in out if h[2]])  # "pricing ends Nov 10" under "Monday, Nov 16" ends no day
+    elif plain_days >= 2:
+        out = timed([h for h in out if not h[2]])
+    else:
+        return []
+    return [(pos, date, heading) for pos, _, _, date, heading in out]
 
 
 def _same_day(date: str | None, heading_date: str) -> bool:
