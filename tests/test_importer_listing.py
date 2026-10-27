@@ -317,3 +317,17 @@ def test_a_plain_date_right_under_a_named_day_does_not_hide_it():
     text = ("Monday, November 16th, 2026 Early pricing ends Nov 10. 9:00AM PST Talk One "
             "Tuesday, November 17th, 2026 9:00AM PST Talk Two")
     assert [h for _, _, h in day_headings(text)] == ["Monday, November 16th, 2026", "Tuesday, November 17th, 2026"]
+
+
+def test_a_tab_bar_over_unheaded_talks_means_no_day_headings():
+    from throughline.importer import day_headings
+    page = Page(QCON, "", "Mon Nov 16 Tue Nov 17 Wed Nov 18 Filters Talk A 9:00AM Talk B 10:00AM Talk C 11:00AM", [])
+    assert day_headings(page.text) == []
+    talks = [raw_talk("Talk A", "9:00AM", "09:00", date="2026-11-16"),
+             raw_talk("Talk B", "10:00AM", "10:00", date="2026-11-17"),
+             raw_talk("Talk C", "11:00AM", "11:00", date="2026-11-18")]
+    kept, dropped = verify_listing(page, talks)
+    assert [(t["title"], t["date"]) for t in kept] == [(t["title"], t["date"]) for t in talks] and not dropped
+    seen = []
+    read_listing(page, ask=lambda system, user, schema: seen.append(user) or {"talks": []})
+    assert seen and not any("Day context" in u for u in seen)

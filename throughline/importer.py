@@ -395,7 +395,7 @@ def day_headings(text: str) -> list[tuple[int, str, str]]:
     only if a talk time follows it before the next heading (or a "Day 1" heading): a tab or filter bar
     ("Mon Nov 16 Tue Nov 17 ... Filters") is not a day of talks. The page's days are then the headings of
     one style, with a weekday or without, whichever names more days ("pricing ends November 10th" in
-    running text is not a day); without a weekday they must name at least two. A heading without a year
+    running text is not a day); they must name at least two days. A heading without a year
     takes the year the page's headings (else its text) use most; the date is "--MM-DD" when the page states
     no year. A stated weekday must fit the date, and a heading far from the page's other days (a date in
     an abstract) is ignored. No heading left means the page's dates are not checked."""
@@ -433,6 +433,8 @@ def day_headings(text: str) -> list[tuple[int, str, str]]:
     elif plain_days >= 2:
         out = timed([h for h in out if not h[2]])
     else:
+        return []
+    if len({h[3] for h in out}) < 2:  # one day left: the last tab of a bar over unheaded talks, or a one-day page
         return []
     return [(pos, date, heading) for pos, _, _, date, heading in out]
 
